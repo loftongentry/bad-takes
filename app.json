@@ -1,7 +1,11 @@
 {
   "expo": {
-    "name": "bad-takes",
+    "scheme": "badtakes",
+    "name": "Bad Takes",
     "slug": "bad-takes",
+    "plugins": [
+      "expo-router"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
