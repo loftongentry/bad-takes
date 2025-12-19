@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useRouter } from 'expo-router'
 import { Button, Card, Input, Separator, Text, View } from 'tamagui'
 import { Plus, Minus, ArrowLeft } from '@tamagui/lucide-icons'
+import { useCreateRoom } from '../src/graphql/hooks/useCreateRoom'
 
 const TEXT_COLOR = '#D0CCC3'
 const SECONDARY_TEXT_COLOR = '#A8A49D'
@@ -40,7 +41,7 @@ function StepperRow({
           {label}
         </Text>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center'}}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Button
             bordered
             disabled={decrementDisabled}
@@ -146,6 +147,7 @@ function TextFieldRow({
 
 export default function CreateScreen() {
   const router = useRouter()
+  const { createRoom, loading, errorMessage } = useCreateRoom()
   const [lobbyName, setLobbyName] = useState<string>('')
   const [rounds, setRounds] = useState<number>(3)
   const [playerLimit, setPlayerLimit] = useState<number>(5)
@@ -162,6 +164,25 @@ export default function CreateScreen() {
   const STEP_SECONDS = 15
   const MIN_SECONDS = 60
   const MAX_SECONDS = 5 * 60 // 5 Minutes
+
+  async function handleCreateLobby() {
+    try {
+      const payload = await createRoom({
+        lobbyName,
+        rounds,
+        playerLimit,
+        timeLimit,
+        hostName: yourName,
+      })
+
+      router.push({
+        pathname: `/lobby`,
+        params: { roomId: payload.room.id },
+      })
+    } catch (error) {
+      console.error('Error creating lobby:', error)
+    }
+  }
 
   return (
     <View
@@ -272,9 +293,7 @@ export default function CreateScreen() {
       <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
         <Button
           bordered
-          onPress={() => {
-            // TODO: validate + create lobby
-          }}
+          onPress={handleCreateLobby}
           style={{ height: 58, borderRadius: 14 }}
         >
           <Text style={{ color: TEXT_COLOR, fontSize: 20, fontWeight: '800' }}>
