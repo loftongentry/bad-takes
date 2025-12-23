@@ -1,149 +1,13 @@
 import { useState } from 'react'
 import { useRouter } from 'expo-router'
-import { Button, Card, Input, Separator, Text, View } from 'tamagui'
-import { Plus, Minus, ArrowLeft } from '@tamagui/lucide-icons'
+import { Button, Card, Text, View } from 'tamagui'
 import { useCreateRoom } from '../src/graphql/hooks/useCreateRoom'
-
-const TEXT_COLOR = '#D0CCC3'
-const SECONDARY_TEXT_COLOR = '#A8A49D'
+import { Page } from '../src/ui/Page'
+import { StepperRow } from '../src/ui/StepperRow'
+import { COLORS } from '../src/ui/theme'
+import { TextFieldRow } from '../src/ui/TextFieldRow'
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
-
-function StepperRow({
-  label,
-  valueText,
-  onDecrement,
-  onIncrement,
-  decrementDisabled,
-  incrementDisabled,
-  showDivider = true,
-}: {
-  label: string
-  valueText: string
-  onDecrement: () => void
-  onIncrement: () => void
-  decrementDisabled?: boolean
-  incrementDisabled?: boolean
-  showDivider?: boolean
-}) {
-  return (
-    <View>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingVertical: 16,
-          paddingHorizontal: 18,
-        }}
-      >
-        <Text style={{ color: TEXT_COLOR, fontSize: 16, fontWeight: '700' }}>
-          {label}
-        </Text>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Button
-            bordered
-            disabled={decrementDisabled}
-            onPress={onDecrement}
-            style={{
-              height: 34,
-              width: 44,
-              borderRadius: 12,
-              justifyContent: 'center',
-              alignItems: 'center',
-              opacity: decrementDisabled ? 0.35 : 1,
-            }}
-            icon={<Minus />}
-          />
-
-          <Text
-            style={{
-              color: TEXT_COLOR,
-              fontSize: 16,
-              fontWeight: '800',
-              minWidth: 92,
-              textAlign: 'center',
-            }}
-          >
-            {valueText}
-          </Text>
-
-          <Button
-            bordered
-            disabled={incrementDisabled}
-            onPress={onIncrement}
-            style={{
-              height: 34,
-              width: 44,
-              borderRadius: 12,
-              justifyContent: 'center',
-              alignItems: 'center',
-              opacity: incrementDisabled ? 0.35 : 1,
-            }}
-            icon={<Plus />}
-          />
-        </View>
-      </View>
-
-      {showDivider ? <Separator style={{ opacity: 0.22 }} /> : null}
-    </View>
-  )
-}
-
-function TextFieldRow({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  showDivider = true,
-}: {
-  label: string
-  value: string
-  onChangeText: (t: string) => void
-  placeholder: string
-  showDivider?: boolean
-}) {
-  return (
-    <View>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingVertical: 16,
-          paddingHorizontal: 18,
-        }}
-      >
-        <Text style={{ color: TEXT_COLOR, fontSize: 16, fontWeight: '700' }}>
-          {label}
-        </Text>
-
-        <View style={{ flex: 1, alignItems: 'flex-end', marginLeft: 16 }}>
-          <Input
-            value={value}
-            onChangeText={onChangeText}
-            placeholder={placeholder}
-            placeholderTextColor={SECONDARY_TEXT_COLOR}
-            style={{
-              width: 170,
-              backgroundColor: 'transparent',
-              borderWidth: 0,
-              paddingHorizontal: 0,
-              paddingVertical: 0,
-              textAlign: 'right',
-              color: TEXT_COLOR,
-              fontSize: 16,
-              fontWeight: '700',
-            }}
-          />
-        </View>
-      </View>
-
-      {showDivider ? <Separator style={{ opacity: 0.22 }} /> : null}
-    </View>
-  )
-}
 
 export default function CreateScreen() {
   const router = useRouter()
@@ -185,53 +49,10 @@ export default function CreateScreen() {
   }
 
   return (
-    <View
-      style={{
-        flex: 1,
-        paddingHorizontal: 20,
-        paddingTop: 40,
-        alignItems: 'center',
-        marginTop: 20,
-      }}
+    <Page
+      title="Create Game"
+      onBack={() => router.back()}
     >
-      {/* Header */}
-      <View
-        style={{
-          width: '100%',
-          maxWidth: 340,
-          alignSelf: 'center',
-          flexDirection: 'row',
-          alignItems: 'center',
-          marginTop: 10,
-          marginBottom: 20,
-        }}
-      >
-        <Button
-          bordered
-          onPress={() => router.back()}
-          style={{
-            height: 30,
-            width: 30,
-            borderRadius: 14,
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 0,
-          }}
-          icon={<ArrowLeft color={TEXT_COLOR} size={18} />}
-        />
-        <View style={{ flex: 1 }} />
-      </View>
-      <Text
-        style={{
-          color: TEXT_COLOR,
-          fontSize: 44,
-          fontWeight: '900',
-          letterSpacing: -0.5,
-          marginBottom: 20,
-        }}
-      >
-        Create Game
-      </Text>
 
       <Card
         bordered
@@ -296,11 +117,11 @@ export default function CreateScreen() {
           onPress={handleCreateLobby}
           style={{ height: 58, borderRadius: 14 }}
         >
-          <Text style={{ color: TEXT_COLOR, fontSize: 20, fontWeight: '800' }}>
+          <Text style={{ color: COLORS.text, fontSize: 20, fontWeight: '800' }}>
             Create
           </Text>
         </Button>
       </View>
-    </View>
+    </Page>
   )
 }
