@@ -22,11 +22,13 @@ function BackIconButton({ onPress }: { onPress?: () => void }) {
 
 export function Page({
   title,
+  subtitle,
   showBack = true,
   onBack,
   children,
 }: {
   title: string
+  subtitle?: string
   showBack?: boolean
   onBack?: () => void
   children: React.ReactNode
@@ -67,6 +69,21 @@ export function Page({
       >
         {title}
       </Text>
+      {subtitle && (
+        <Text
+          style={{
+            color: COLORS.text,
+            fontSize: 16,
+            fontWeight: '700',
+            opacity: 0.85,
+            marginTop: -10,
+            marginBottom: 16,
+            textAlign: 'center',
+          }}
+        >
+          {subtitle}
+        </Text>
+      )}
       {children}
     </View>
   )

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useRouter } from 'expo-router'
-import { Button, Card, Text, View } from 'tamagui'
+import { Button, Text, View } from 'tamagui'
 import { useCreateRoom } from '../src/graphql/hooks/useCreateRoom'
 import { Page } from '../src/ui/Page'
 import { StepperRow } from '../src/ui/StepperRow'
-import { COLORS } from '../src/ui/theme'
 import { TextFieldRow } from '../src/ui/TextFieldRow'
+import { FormCard } from '../src/ui/FormCard'
+import { COLORS } from '../src/ui/theme'
+import { PrimaryButton } from '../src/ui/PrimaryButton'
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
 
@@ -53,17 +55,7 @@ export default function CreateScreen() {
       title="Create Game"
       onBack={() => router.back()}
     >
-
-      <Card
-        bordered
-        style={{
-          width: '100%',
-          maxWidth: 340,
-          borderRadius: 18,
-          overflow: 'hidden',
-        }}
-      >
-        {/* Lobby Name moved to top */}
+      <FormCard>
         <TextFieldRow
           label="Lobby Name"
           value={lobbyName}
@@ -109,18 +101,14 @@ export default function CreateScreen() {
           placeholder="Enter name"
           showDivider={false}
         />
-      </Card>
+      </FormCard>
 
       <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
-        <Button
-          bordered
+        <PrimaryButton
           onPress={handleCreateLobby}
-          style={{ height: 58, borderRadius: 14 }}
         >
-          <Text style={{ color: COLORS.text, fontSize: 20, fontWeight: '800' }}>
-            Create
-          </Text>
-        </Button>
+          Create
+        </PrimaryButton>
       </View>
     </Page>
   )

@@ -42,5 +42,15 @@ const link = ApolloLink.split(
 
 export const apolloClient = new ApolloClient({
   link: link,
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({
+    typePolicies: {
+      Room: {
+        fields: {
+          players: {
+            merge: false,
+          },
+        }
+      }
+    }
+  }),
 });
