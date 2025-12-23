@@ -1,4 +1,3 @@
-import { use, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'expo-router'
 import { useNavigation } from '@react-navigation/native'
 import { ScrollView, TouchableOpacity } from 'react-native'
@@ -16,6 +15,9 @@ import { useRoom } from '../src/graphql/hooks/useRoom'
 import { useLeaveRoom } from '../src/graphql/hooks/useLeaveRoom'
 import { useKickPlayer } from '../src/graphql/hooks/useKickPlayer'
 import { useStartGame } from '../src/graphql/hooks/useStartGame'
+import { useSubscription } from '@apollo/client/react'
+import { ROOM_CLOSED } from '../src/graphql/operations/closeRoom'
+import { useRoomClosed } from '../src/graphql/hooks/useRoomClosed'
 
 type Player = {
   id: string
@@ -29,7 +31,6 @@ export default function LobbyScreen() {
 
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const playerId = useGameSessionStore((s) => s.session?.playerId ?? null)
-  const clearSession = useGameSessionStore((s) => s.clearSession)
 
   if (!roomId || !playerId) {
     router.replace('/')
@@ -41,13 +42,20 @@ export default function LobbyScreen() {
   const { kickPlayer } = useKickPlayer()
   const { startGame } = useStartGame()
 
+  const clearSession = useGameSessionStore((s) => s.clearSession)
+
+  useRoomClosed(roomId, () => {
+    clearSession()
+    navigation.goBack()
+  })
+
   const onBackPress = async () => {
     try {
       if (roomId && playerId) {
         await leaveRoom(roomId, playerId)
       }
     } catch (e) {
-      console.error('Error leaving room:', e)
+      // Ignore errors on leave
     } finally {
       clearSession()
       navigation.goBack()

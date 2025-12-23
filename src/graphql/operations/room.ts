@@ -89,13 +89,35 @@ export type RoomUpdatedData = {
 export const LEAVE_ROOM = gql`
   mutation LeaveRoom($roomId: ID!, $playerId: ID!) {
     leaveRoom(roomId: $roomId, playerId: $playerId) {
-      id
-      players {
+      roomId
+      closed
+      room {
         id
+        players {
+          id
+        }
       }
     }
   }
 `
+
+export type LeaveRoomVars = {
+  roomId: string;
+  playerId: string;
+};
+
+export type LeaveRoomData = {
+  leaveRoom: {
+    roomId: string;
+    closed: boolean;
+    room: {
+      id: string;
+      players: {
+        id: string;
+      } | null;
+    };
+  };
+};
 
 export const KICK_PLAYER = gql`
   mutation KickPlayer($roomId: ID!, $playerId: ID!) {
