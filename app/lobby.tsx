@@ -15,8 +15,6 @@ import { useRoom } from '../src/graphql/hooks/useRoom'
 import { useLeaveRoom } from '../src/graphql/hooks/useLeaveRoom'
 import { useKickPlayer } from '../src/graphql/hooks/useKickPlayer'
 import { useStartGame } from '../src/graphql/hooks/useStartGame'
-import { useSubscription } from '@apollo/client/react'
-import { ROOM_CLOSED } from '../src/graphql/operations/closeRoom'
 import { useRoomClosed } from '../src/graphql/hooks/useRoomClosed'
 
 type Player = {
