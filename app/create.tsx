@@ -1,19 +1,18 @@
 import { useState } from 'react'
 import { useRouter } from 'expo-router'
-import { Button, Text, View } from 'tamagui'
-import { useCreateRoom } from '../src/graphql/hooks/useCreateRoom'
+import { View } from 'tamagui'
 import { Page } from '../src/ui/Page'
 import { StepperRow } from '../src/ui/StepperRow'
 import { TextFieldRow } from '../src/ui/TextFieldRow'
 import { FormCard } from '../src/ui/FormCard'
-import { COLORS } from '../src/ui/theme'
 import { PrimaryButton } from '../src/ui/PrimaryButton'
+import { useLobby } from '../src/hooks/useLobby'
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
 
 export default function CreateScreen() {
   const router = useRouter()
-  const { createRoom, loading, errorMessage } = useCreateRoom()
+  const { createGame, loading } = useLobby()
   const [lobbyName, setLobbyName] = useState<string>('')
   const [rounds, setRounds] = useState<number>(3)
   const [playerLimit, setPlayerLimit] = useState<number>(5)
@@ -31,20 +30,17 @@ export default function CreateScreen() {
   const MIN_SECONDS = 60
   const MAX_SECONDS = 5 * 60 // 5 Minutes
 
-  async function handleCreateLobby() {
+  const handleCreateLobby = async () => {
     try {
-      const payload = await createRoom({
+      const room = await createGame({
+        hostName: yourName,
         lobbyName,
         rounds,
         playerLimit,
         timeLimit,
-        hostName: yourName,
-      })
-
-      router.push({
-        pathname: `/lobby`,
-        params: { roomId: payload.room.id },
-      })
+      });
+      
+      router.push(`/lobby`);
     } catch (error) {
       console.error('Error creating lobby:', error)
     }

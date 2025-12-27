@@ -1,21 +1,15 @@
 import { useRouter } from 'expo-router'
-import { useNavigation } from '@react-navigation/native'
 import { ScrollView, TouchableOpacity } from 'react-native'
 import { Text, View } from 'tamagui'
 import { X } from '@tamagui/lucide-icons'
-
 import { Page } from '../src/ui/Page'
 import { FormCard } from '../src/ui/FormCard'
 import { FormRow } from '../src/ui/FormRow'
 import { PrimaryButton } from '../src/ui/PrimaryButton'
 import { COLORS } from '../src/ui/theme'
-
 import { useGameSessionStore } from '../src/state/gameSessionStore'
-import { useRoom } from '../src/graphql/hooks/useRoom'
-import { useLeaveRoom } from '../src/graphql/hooks/useLeaveRoom'
-import { useKickPlayer } from '../src/graphql/hooks/useKickPlayer'
-import { useStartGame } from '../src/graphql/hooks/useStartGame'
-import { useRoomClosed } from '../src/graphql/hooks/useRoomClosed'
+import { useLobby } from '../src/hooks/useLobby'
+import { useEffect } from 'react'
 
 type Player = {
   id: string
@@ -25,61 +19,46 @@ type Player = {
 
 export default function LobbyScreen() {
   const router = useRouter()
-  const navigation = useNavigation()
 
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const playerId = useGameSessionStore((s) => s.session?.playerId ?? null)
-
-  if (!roomId || !playerId) {
-    router.replace('/')
-    return null
-  }
-
-  const { room, loading } = useRoom(roomId)
-  const { leaveRoom } = useLeaveRoom()
-  const { kickPlayer } = useKickPlayer()
-  const { startGame } = useStartGame()
-
+  const isHost = useGameSessionStore((s) => s.session?.isHost ?? false)
   const clearSession = useGameSessionStore((s) => s.clearSession)
 
-  useRoomClosed(roomId, () => {
-    clearSession()
-    navigation.goBack()
-  })
+  const { room, leaveGame, kickPlayer, startGame, loading } = useLobby(roomId || undefined)
 
-  const onBackPress = async () => {
-    try {
-      if (roomId && playerId) {
-        await leaveRoom(roomId, playerId)
-      }
-    } catch (e) {
-      // Ignore errors on leave
-    } finally {
-      clearSession()
-      navigation.goBack()
+  useEffect(() => {
+    if (room?.status === 'PROMPT_ENTRY') {
+      router.replace('/prompt-entry')
     }
-  }
+  }, [room?.status])
 
-  if (loading || !room) {
+  if (!roomId || !playerId || (!room && loading)) {
     return (
-      <Page title="Lobby" showBack onBack={onBackPress}>
-        <Text style={{ color: COLORS.text, opacity: 0.8 }}>
-          {/*{error ? error.message : 'Loading...'}*/}
-        </Text>
+      <Page title="Loading..." onBack={() => router.back()}>
+        <Text style={{ textAlign: 'center', marginTop: 20 }}>Connecting to Lobby...</Text>
       </Page>
     )
   }
 
-  const me = room?.players?.find((p: any) => p.id === playerId)
-  const isHost = !!me?.isHost
-  const joinCode = room?.joinCode || ''
-  const subtitle = `Join Code: ${joinCode} \n Rounds: ${room.settings.rounds} · Time: ${room.settings.timeLimit} seconds`
+  if (!room) {
+    return (
+      <Page title="Lobby Not Found" onBack={() => {
+        clearSession()
+        router.replace('/')
+      }}>
+        <Text style={{ textAlign: 'center', marginTop: 20 }}>The lobby you are trying to join does not exist or has been closed.</Text>
+      </Page>
+    )
+  }
+
+  const subtitle = `Join Code: ${room.joinCode} \n Rounds: ${room.settings.rounds} · Time: ${room.settings.timeLimit} seconds`
 
   return (
     <Page
       title={room.settings.lobbyName || 'Game Lobby'}
       subtitle={subtitle}
-      onBack={onBackPress}
+      onBack={leaveGame}
     >
       <View style={{ width: '100%', maxWidth: 340 }}>
         <FormCard>
@@ -138,7 +117,7 @@ export default function LobbyScreen() {
                         {/* Only host sees remove control; host can't remove self (UI only rule) */}
                         {isHost && !p.isHost && (
                           <TouchableOpacity
-                            onPress={() => kickPlayer(roomId, p.id)}
+                            onPress={() => kickPlayer(p.id)}
                             activeOpacity={0.7}
                             style={{
                               height: 28,
@@ -166,7 +145,7 @@ export default function LobbyScreen() {
 
       {isHost ? (
         <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
-          <PrimaryButton disabled={loading || !room} onPress={() => startGame(roomId)}>
+          <PrimaryButton disabled={loading || !room} onPress={startGame}>
             Start Game
           </PrimaryButton>
         </View>

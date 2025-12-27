@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useRouter } from 'expo-router'
 import { Text, Input, View } from 'tamagui'
-import { useJoinRoom } from '../src/graphql/hooks/useJoinRoom'
 import { PrimaryButton } from '../src/ui/PrimaryButton'
 import { RoomCodeInput } from '../src/ui/RoomCodeInput'
 import { Page } from '../src/ui/Page'
 import { COLORS } from '../src/ui/theme'
+import { useLobby } from '../src/hooks/useLobby'
 
 function LabeledField({
   label,
@@ -31,7 +31,7 @@ function LabeledField({
       >
         {label}
       </Text>
-      
+
       <Input
         value={value}
         onChangeText={onChangeText}
@@ -55,25 +55,22 @@ function LabeledField({
 
 export default function JoinScreen() {
   const router = useRouter()
-  const { joinRoom, loading, errorMessage } = useJoinRoom();
+  const { joinGame, loading } = useLobby()
   const [roomCode, setRoomCode] = useState<string>('')
   const [yourName, setYourName] = useState<string>('')
 
   const canJoin = roomCode.length === 5 && yourName.trim().length > 0
 
-  async function handleJoinLobby() {
+  const handleJoinLobby = async () => {
     try {
-      const payload = await joinRoom({
-        joinCode: roomCode,
-        playerName: yourName.trim(),
-      });
-
-      router.push({
-        pathname: `/lobby`,
-        params: { roomId: payload.room.id },
-      });
+      await joinGame(
+        roomCode,
+        yourName
+      );
+      
+      router.push(`/lobby`);
     } catch (error) {
-      console.error("Failed to join room:", error);
+      console.error('Error joining lobby:', error)
     }
   }
 
