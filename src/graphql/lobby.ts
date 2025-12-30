@@ -105,5 +105,11 @@ export const LOBBY_OPS = {
         ...RoomData
       }
     }
-  `
+  `,
+
+  SUBMIT_PROMPT: gql`
+    mutation SubmitPrompt($roomId: ID!, $playerId: ID!, $prompt: String!) {
+      submitPrompt(roomId: $roomId, playerId: $playerId, prompt: $prompt)
+    }
+  `,
 };

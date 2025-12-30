@@ -48,6 +48,10 @@ type JoinRoomResult = {
   };
 };
 
+type SubmitPromptResult = {
+  submitPrompt: boolean;
+};
+
 export function useLobby(roomId?: string) {
   const router = useRouter();
   const { session, setSession, clearSession } = useGameSessionStore();
@@ -112,6 +116,7 @@ export function useLobby(roomId?: string) {
   const [leaveFn] = useMutation(LOBBY_OPS.LEAVE)
   const [kickFn] = useMutation(LOBBY_OPS.KICK)
   const [startFn] = useMutation(LOBBY_OPS.START)
+  const [submitPromptFn] = useMutation<SubmitPromptResult>(LOBBY_OPS.SUBMIT_PROMPT)
 
   return {
     room,
@@ -177,5 +182,16 @@ export function useLobby(roomId?: string) {
       if (!roomId) return;
       await startFn({ variables: { roomId } });
     },
-  }
+
+    submitPrompt: async (prompt: string) => {
+      if (!roomId || !myPlayerId) return;
+      const res = await submitPromptFn({ variables: { roomId, playerId: myPlayerId, prompt } });
+
+      if (res.data && res.data.submitPrompt === true) {
+        return true;
+      }
+
+      return false;
+    },
+  };
 }
