@@ -7,7 +7,6 @@ const ENV_VAR_NAME = 'EXPO_PUBLIC_GRAPHQL_URL';
 const PORT = '3500';
 const ENDPOINT = '/graphql';
 const ENV_PATH = path.join(__dirname, '../.env'); 
-// ---------------------
 
 function getLocalIp() {
   const interfaces = os.networkInterfaces();
@@ -40,7 +39,7 @@ try {
   }
 
   fs.writeFileSync(ENV_PATH, envContent);
-  console.log(`✅ Updated .env: ${ENV_VAR_NAME}=${newValue}`);
+  console.log(`Updated .env: ${ENV_VAR_NAME}=${newValue}`);
 } catch (error) {
-  console.error('❌ Error updating .env:', error);
+  console.error('Error updating .env:', error);
 }
