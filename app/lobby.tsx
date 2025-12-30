@@ -72,11 +72,11 @@ export default function LobbyScreen() {
               paddingHorizontal: 18,
             }}
           >
-            <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '800' }}>
+            <Text style={{ color: COLORS.light, fontSize: 16, fontWeight: '800' }}>
               Players
             </Text>
 
-            <Text style={{ color: COLORS.text, fontSize: 14, fontWeight: '700', opacity: 0.75 }}>
+            <Text style={{ color: COLORS.light, fontSize: 14, fontWeight: '700', opacity: 0.75 }}>
               {room.players.length}
             </Text>
           </View>
@@ -104,7 +104,7 @@ export default function LobbyScreen() {
                         {rightLabel ? (
                           <Text
                             style={{
-                              color: COLORS.text,
+                              color: COLORS.light,
                               fontSize: 14,
                               fontWeight: '800',
                               opacity: 0.75,

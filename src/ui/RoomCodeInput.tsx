@@ -45,7 +45,7 @@ export function RoomCodeInput({
                   height: 54,
                   borderRadius: 12,
                   borderWidth: 1,
-                  borderColor: isActive ? COLORS.text : 'rgba(208,204,195,0.35)',
+                  borderColor: isActive ? COLORS.light : 'rgba(208,204,195,0.35)',
                   backgroundColor: 'rgba(0,0,0,0.15)',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -53,7 +53,7 @@ export function RoomCodeInput({
               >
                 <Text
                   style={{
-                    color: COLORS.text,
+                    color: COLORS.light,
                     fontSize: 22,
                     fontWeight: '900',
                     letterSpacing: 1,

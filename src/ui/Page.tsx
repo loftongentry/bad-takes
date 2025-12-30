@@ -60,11 +60,12 @@ export function Page({
 
       <Text
         style={{
-          color: COLORS.text,
+          color: COLORS.light,
           fontSize: 44,
           fontWeight: '900',
           letterSpacing: -0.5,
           marginBottom: 20,
+          textAlign: 'center',
         }}
       >
         {title}
@@ -72,7 +73,7 @@ export function Page({
       {subtitle && (
         <Text
           style={{
-            color: COLORS.text,
+            color: COLORS.light,
             fontSize: 16,
             fontWeight: '700',
             opacity: 0.85,

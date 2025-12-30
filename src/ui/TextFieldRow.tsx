@@ -25,7 +25,7 @@ export function TextFieldRow({
           paddingHorizontal: 18,
         }}
       >
-        <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '700' }}>
+        <Text style={{ color: COLORS.light, fontSize: 16, fontWeight: '700' }}>
           {label}
         </Text>
 
@@ -34,7 +34,7 @@ export function TextFieldRow({
             value={value}
             onChangeText={onChangeText}
             placeholder={placeholder}
-            placeholderTextColor={COLORS.textSecondary}
+            placeholderTextColor={COLORS.lightSecondary}
             style={{
               width: 170,
               backgroundColor: 'transparent',
@@ -42,7 +42,7 @@ export function TextFieldRow({
               paddingHorizontal: 0,
               paddingVertical: 0,
               textAlign: 'right',
-              color: COLORS.text,
+              color: COLORS.light,
               fontSize: 16,
               fontWeight: '700',
             }}

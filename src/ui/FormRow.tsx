@@ -22,7 +22,7 @@ export function FormRow({
           paddingHorizontal: 18,
         }}
       >
-        <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '700' }}>
+        <Text style={{ color: COLORS.light, fontSize: 16, fontWeight: '700' }}>
           {label}
         </Text>
 

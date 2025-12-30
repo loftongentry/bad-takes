@@ -6,10 +6,10 @@ import { COLORS } from "./theme";
 function Rule({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={{ marginBottom: 12 }}>
-      <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '800' }}>
+      <Text style={{ color: COLORS.light, fontSize: 16, fontWeight: '800' }}>
         {title}
       </Text>
-      <Text style={{ color: COLORS.text, fontSize: 14, marginTop: 4, lineHeight: 20 }}>
+      <Text style={{ color: COLORS.light, fontSize: 14, marginTop: 4, lineHeight: 20 }}>
         {children}
       </Text>
     </View>
@@ -46,7 +46,7 @@ export function HowToPlay() {
           }}
         >
           <Dialog.Title
-            style={{ color: COLORS.text, fontSize: 22, fontWeight: '900' }}
+            style={{ color: COLORS.light, fontSize: 22, fontWeight: '900' }}
           >
             How to Play
           </Dialog.Title>
@@ -88,7 +88,7 @@ export function HowToPlay() {
 
           <Dialog.Close asChild>
             <Button bordered style={{ height: 48, borderRadius: 14, marginTop: 12 }}>
-              <Text style={{ color: COLORS.text, fontSize: 18, fontWeight: '800' }}>
+              <Text style={{ color: COLORS.light, fontSize: 18, fontWeight: '800' }}>
                 Close
               </Text>
             </Button>

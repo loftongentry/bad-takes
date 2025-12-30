@@ -22,7 +22,7 @@ function LabeledField({
     <View style={{ width: '100%', maxWidth: 340 }}>
       <Text
         style={{
-          color: COLORS.text,
+          color: COLORS.light,
           fontSize: 18,
           fontWeight: '800',
           textAlign: 'center',
@@ -36,7 +36,7 @@ function LabeledField({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={COLORS.textSecondary}
+        placeholderTextColor={COLORS.lightSecondary}
         autoCorrect={false}
         style={{
           width: '100%',
@@ -44,7 +44,7 @@ function LabeledField({
           borderWidth: 0,
           paddingHorizontal: 0,
           paddingVertical: 0,
-          color: COLORS.text,
+          color: COLORS.light,
           fontSize: 18,
           fontWeight: '800',
         }}

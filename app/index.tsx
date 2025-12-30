@@ -32,7 +32,7 @@ export default function WelcomeScreen() {
         <Text
           style={{
             textAlign: 'center',
-            color: COLORS.text,
+            color: COLORS.light,
             fontSize: 56,
             fontWeight: '900',
             lineHeight: 56,
@@ -44,7 +44,7 @@ export default function WelcomeScreen() {
         <Text
           style={{
             textAlign: 'center',
-            color: COLORS.text,
+            color: COLORS.light,
             marginTop: 20,
             opacity: 0.85,
             fontSize: 16,

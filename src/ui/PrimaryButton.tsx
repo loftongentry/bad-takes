@@ -17,8 +17,8 @@ export function PrimaryButton({
   invert?: boolean
   height?: number
 }) {
-  const bg = invert ? COLORS.text : undefined
-  const textColor = invert ? COLORS.dark : COLORS.text
+  const bg = invert ? COLORS.light : undefined
+  const textColor = invert ? COLORS.dark : COLORS.light
   const opacity = disabled ? 0.45 : 1
 
   return (

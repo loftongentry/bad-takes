@@ -42,7 +42,7 @@ export function StepperRow({
           />
           <Text
             style={{
-              color: COLORS.text,
+              color: COLORS.light,
               fontSize: 16,
               fontWeight: '800',
               minWidth: 92,
