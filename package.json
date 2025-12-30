@@ -6,7 +6,10 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "update-ip": "node ./scripts/update-ip.js",
+    "predev": "npm run update-ip",
+    "dev": "expo start -c"
   },
   "dependencies": {
     "@apollo/client": "^4.0.11",
