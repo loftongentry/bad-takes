@@ -1,3 +1,4 @@
+// TODO: Add a 'Game starting!' screen after all player have submitted their bad takes before shifting to defense screen
 import { useEffect, useState } from "react"
 import { Card, TextArea, View, Text, XStack, Spinner } from "tamagui"
 import { Page } from "../src/ui/Page"
