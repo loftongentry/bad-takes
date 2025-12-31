@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useRouter } from 'expo-router'
-import { View } from 'tamagui'
+import { Spinner, View } from 'tamagui'
 import { Page } from '../src/ui/Page'
 import { StepperRow } from '../src/ui/StepperRow'
 import { TextFieldRow } from '../src/ui/TextFieldRow'
@@ -12,12 +12,13 @@ const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(ma
 
 export default function CreateScreen() {
   const router = useRouter()
-  const { createGame, loading } = useLobby()
+  const { createGame } = useLobby()
   const [lobbyName, setLobbyName] = useState<string>('')
-  const [rounds, setRounds] = useState<number>(3)
+  const [rounds, setRounds] = useState<number>(1)
   const [playerLimit, setPlayerLimit] = useState<number>(5)
   const [timeLimit, setTimeLimit] = useState<number>(60)
   const [yourName, setYourName] = useState<string>('')
+  const [loading, setLoading] = useState<boolean>(false)
 
   // Constraints
   const MIN_ROUNDS = 1
@@ -30,19 +31,25 @@ export default function CreateScreen() {
   const MIN_SECONDS = 60
   const MAX_SECONDS = 5 * 60 // 5 Minutes
 
+  const canCreate = lobbyName.trim().length > 0 && yourName.trim().length > 0
+
   const handleCreateLobby = async () => {
     try {
-      const room = await createGame({
+      setLoading(true)
+      await createGame({
         hostName: yourName,
         lobbyName,
         rounds,
         playerLimit,
         timeLimit,
       });
-      
+
       router.push(`/lobby`);
     } catch (error) {
       console.error('Error creating lobby:', error)
+      alert('Failed to create lobby. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -102,8 +109,9 @@ export default function CreateScreen() {
       <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
         <PrimaryButton
           onPress={handleCreateLobby}
+          disabled={!canCreate || loading}
         >
-          Create
+          {loading ? <Spinner /> : 'Create Lobby'}
         </PrimaryButton>
       </View>
     </Page>

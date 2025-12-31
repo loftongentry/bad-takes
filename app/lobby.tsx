@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react'
 import { useRouter } from 'expo-router'
 import { ScrollView, TouchableOpacity } from 'react-native'
-import { Text, View } from 'tamagui'
+import { Spinner, Text, View } from 'tamagui'
 import { X } from '@tamagui/lucide-icons'
 import { Page } from '../src/ui/Page'
 import { FormCard } from '../src/ui/FormCard'
@@ -9,7 +10,6 @@ import { PrimaryButton } from '../src/ui/PrimaryButton'
 import { COLORS } from '../src/ui/theme'
 import { useGameSessionStore } from '../src/state/gameSessionStore'
 import { useLobby } from '../src/hooks/useLobby'
-import { useEffect } from 'react'
 
 type Player = {
   id: string
@@ -26,6 +26,7 @@ export default function LobbyScreen() {
   const clearSession = useGameSessionStore((s) => s.clearSession)
 
   const { room, leaveGame, kickPlayer, startGame, loading } = useLobby(roomId || undefined)
+  const [startLoading, setStartLoading] = useState<boolean>(false)
 
   useEffect(() => {
     if (room?.status === 'PROMPT_ENTRY') {
@@ -36,6 +37,7 @@ export default function LobbyScreen() {
   if (!roomId || !playerId || (!room && loading)) {
     return (
       <Page title="Loading..." onBack={() => router.back()}>
+        <Spinner />
         <Text style={{ textAlign: 'center', marginTop: 20 }}>Connecting to Lobby...</Text>
       </Page>
     )
@@ -50,6 +52,27 @@ export default function LobbyScreen() {
         <Text style={{ textAlign: 'center', marginTop: 20 }}>The lobby you are trying to join does not exist or has been closed.</Text>
       </Page>
     )
+  }
+
+  const handleStartGame = async () => {
+    try {
+      setStartLoading(true)
+      await startGame()
+    } catch (error) {
+      console.error('Error starting game:', error)
+      alert('Failed to start game. Please try again.')
+    } finally {
+      setStartLoading(false)
+    }
+  }
+
+  const handleKickPlayer = (playerIdToKick: string) => {
+    try {
+      kickPlayer(playerIdToKick)
+    } catch (error) {
+      console.error('Error kicking player:', error)
+      alert('Failed to kick player. Please try again.')
+    }
   }
 
   const subtitle = `Join Code: ${room.joinCode} \n Rounds: ${room.settings.rounds} · Time: ${room.settings.timeLimit} seconds`
@@ -117,7 +140,7 @@ export default function LobbyScreen() {
                         {/* Only host sees remove control; host can't remove self (UI only rule) */}
                         {isHost && !p.isHost && (
                           <TouchableOpacity
-                            onPress={() => kickPlayer(p.id)}
+                            onPress={() => handleKickPlayer(p.id)}
                             activeOpacity={0.7}
                             style={{
                               height: 28,
@@ -145,8 +168,8 @@ export default function LobbyScreen() {
 
       {isHost ? (
         <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
-          <PrimaryButton disabled={loading || !room} onPress={startGame}>
-            Start Game
+          <PrimaryButton disabled={loading || !room} onPress={handleStartGame}>
+            {startLoading ? <Spinner /> : 'Start Game'}
           </PrimaryButton>
         </View>
       ) : null}

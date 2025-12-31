@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useRouter } from 'expo-router'
-import { Text, Input, View } from 'tamagui'
+import { Text, Input, View, Spinner } from 'tamagui'
 import { PrimaryButton } from '../src/ui/PrimaryButton'
 import { RoomCodeInput } from '../src/ui/RoomCodeInput'
 import { Page } from '../src/ui/Page'
@@ -55,22 +55,27 @@ function LabeledField({
 
 export default function JoinScreen() {
   const router = useRouter()
-  const { joinGame, loading } = useLobby()
+  const { joinGame } = useLobby()
   const [roomCode, setRoomCode] = useState<string>('')
   const [yourName, setYourName] = useState<string>('')
+  const [loading, setLoading] = useState<boolean>(false)
 
   const canJoin = roomCode.length === 5 && yourName.trim().length > 0
 
   const handleJoinLobby = async () => {
     try {
+      setLoading(true)
       await joinGame(
         roomCode,
         yourName
       );
-      
+
       router.push(`/lobby`);
     } catch (error) {
       console.error('Error joining lobby:', error)
+      alert('Failed to join lobby. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -95,10 +100,10 @@ export default function JoinScreen() {
       <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
         <PrimaryButton
           onPress={handleJoinLobby}
-          disabled={!canJoin}
+          disabled={!canJoin || loading}
           invert
         >
-          Join
+          {loading ? <Spinner /> : 'Join Lobby'}
         </PrimaryButton>
       </View>
     </Page>
