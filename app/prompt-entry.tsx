@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, TextArea, View, Text, XStack, Spinner } from "tamagui"
 import { Page } from "../src/ui/Page"
 import { PrimaryButton } from "../src/ui/PrimaryButton"
@@ -6,30 +6,45 @@ import { useLobby } from "../src/hooks/useLobby"
 import { useGameSessionStore } from "../src/state/gameSessionStore"
 import { COLORS } from "../src/ui/theme"
 import { Keyboard, TouchableWithoutFeedback } from "react-native"
+import { useRouter } from "expo-router"
 
 const PromptEntry = () => {
+  const router = useRouter()
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
-  const { leaveGame, submitPrompt } = useLobby(roomId || undefined)
+  const { room, leaveGame, submitPrompt } = useLobby(roomId || undefined)
   const [badTake, setBadTake] = useState<string>('')
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
 
   const CHAR_LIMIT = 140
 
+  useEffect(() => {
+    if (room?.status === 'DEFENSE') {
+      router.replace('/defense')
+    }
+  }, [room?.status])
+
   const handleSubmitPrompt = async () => {
+    Keyboard.dismiss();
     setLoading(true)
 
     try {
-      await submitPrompt(badTake);
-      setIsSubmitted(true);
+      const success = await submitPrompt(badTake);
+      if (success) {
+        setIsSubmitted(true);
+      }
     } catch (error) {
       console.error("Failed to submit bad take:", error);
+      alert("Failed to submit bad take. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   if (isSubmitted) {
+    const count = room?.gameState?.submittedPromptsCount || 0;
+    const total = room?.players.length || 0;
+
     return (
       <Page
         title="Bad Take Submitted!"
@@ -56,7 +71,7 @@ const PromptEntry = () => {
               lineHeight: 28
             }}
           >
-            Waiting for other players to finish their terrible opinions...
+            Waiting on {total - count} {total - count > 1 ? 'players' : 'player'} to finish their terrible opinions...
           </Text>
         </View>
       </Page>

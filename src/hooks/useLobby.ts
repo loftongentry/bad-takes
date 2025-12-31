@@ -23,7 +23,13 @@ type Room = {
   gameState: {
     deadline: string | null;
     votesCast: number;
-  } | null;
+    submittedPromptsCount: number;
+    currentTurn: {
+      defenderId: string;
+      promptId: string;
+      promptText: string;
+    };
+  };
 }
 
 type CreateArgs = {

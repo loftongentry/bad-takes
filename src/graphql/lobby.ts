@@ -21,6 +21,12 @@ const ROOM_FRAGMENT = gql`
     gameState {
       deadline
       votesCast
+      submittedPromptsCount
+      currentTurn {
+        defenderId
+        promptId
+        promptText
+      } 
     }
   }
 `;
@@ -48,7 +54,7 @@ export const LOBBY_OPS = {
   `,
 
   // --- MUTATIONS ---
-  
+
   // Updated to match your backend Schema arguments
   CREATE: gql`
     ${ROOM_FRAGMENT}
