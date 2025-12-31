@@ -75,12 +75,12 @@ export default function LobbyScreen() {
     }
   }
 
-  const subtitle = `Join Code: ${room.joinCode} \n Rounds: ${room.settings.rounds} · Time: ${room.settings.timeLimit} seconds`
+  const subText = `Join Code: ${room.joinCode} \n Rounds: ${room.settings.rounds} · Time: ${room.settings.timeLimit} seconds`
 
   return (
     <Page
       title={room.settings.lobbyName || 'Game Lobby'}
-      subtitle={subtitle}
+      subtitle={subText}
       onBack={leaveGame}
     >
       <View style={{ width: '100%', maxWidth: 340 }}>
