@@ -1,18 +1,21 @@
-// TODO: add a button that auto-ends the player's turn if they are finished defending before time runs out (they press it themselves)
 import { Card, Text, View, Spinner, Progress } from 'tamagui'
 import { Page } from '../src/ui/Page'
 import { COLORS } from '../src/ui/theme'
 import { useGameSessionStore } from '../src/state/gameSessionStore'
 import { useLobby } from '../src/hooks/useLobby'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'expo-router'
+import { PrimaryButton } from '../src/ui/PrimaryButton'
 
-export const Defense = () => {
+const Defense = () => {
+  const router = useRouter()
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const myPlayerId = useGameSessionStore((s) => s.session?.playerId ?? null)
-  const { room } = useLobby(roomId || undefined)
+  const { room, endTurn } = useLobby(roomId || undefined)
 
   const currentTurn = room?.gameState?.currentTurn
   const isMe = currentTurn?.defenderId === myPlayerId
+  const isHost = room?.players.find(p => p.id === myPlayerId)?.isHost
   const defenderName = room?.players.find(p => p.id === currentTurn?.defenderId)?.name || 'Unknown'
 
   const PREP_TIME = 5
@@ -22,12 +25,21 @@ export const Defense = () => {
   const [phase, setPhase] = useState<'PREP' | 'DEFEND'>('PREP')
 
   useEffect(() => {
+    if (room?.status === 'VOTING') {
+      router.replace('/voting')
+    }
+  }, [room?.status])
+
+  useEffect(() => {
     if (timeLeft <= 0) {
       if (phase === 'PREP') {
         setPhase('DEFEND')
         setTimeLeft(DEFEND_TIME)
+      } else if (phase === 'DEFEND') {
+        if (isHost) {
+          endTurn()
+        }
       }
-
       return
     }
 
@@ -36,7 +48,7 @@ export const Defense = () => {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [timeLeft, phase])
+  }, [timeLeft, phase, isHost, endTurn])
 
   if (!currentTurn) {
     return (
@@ -136,6 +148,26 @@ export const Defense = () => {
           {currentTurn.promptText}
         </Text>
       </Card>
+
+      {isMe && phase === 'DEFEND' && (
+        <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
+          <PrimaryButton
+            onPress={() => endTurn()}
+          >
+            <Text
+              style={{
+                color: COLORS.light,
+                fontWeight: '700',
+                fontSize: 16,
+              }}
+            >
+              End Defense
+            </Text>
+          </PrimaryButton>
+        </View>
+      )}
     </Page>
   )
 }
+
+export default Defense

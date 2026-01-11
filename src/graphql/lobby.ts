@@ -118,4 +118,16 @@ export const LOBBY_OPS = {
       submitPrompt(roomId: $roomId, playerId: $playerId, prompt: $prompt)
     }
   `,
+
+  END_TURN: gql`
+    mutation EndTurn($roomId: ID!) {
+      endTurn(roomId: $roomId)
+    }
+  `,
+
+  SUBMIT_VOTE: gql`
+    mutation SubmitVote($roomId: ID!, $playerId: ID!, $value: Int!) {
+      submitVote(roomId: $roomId, playerId: $playerId, value: $value)
+    }
+  `,
 };

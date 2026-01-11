@@ -4,7 +4,7 @@ import config from "../tamagui.config";
 import { ApolloProvider } from "@apollo/client/react";
 import { apolloClient } from "../src/graphql/client";
 
-export const Layout = () => {
+const Layout = () => {
   return (
     <ApolloProvider client={apolloClient}>
       <TamaguiProvider config={config}>
@@ -20,3 +20,5 @@ export const Layout = () => {
     </ApolloProvider>
   );
 }
+
+export default Layout

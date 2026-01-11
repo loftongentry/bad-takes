@@ -53,7 +53,7 @@ const LabeledField = ({
   )
 }
 
-export const JoinScreen = () => {
+const JoinScreen = () => {
   const router = useRouter()
   const { joinGame } = useLobby()
   const [roomCode, setRoomCode] = useState<string>('')
@@ -109,3 +109,5 @@ export const JoinScreen = () => {
     </Page>
   )
 }
+
+export default JoinScreen

@@ -1,12 +1,22 @@
 import { Text, View, Button } from "tamagui"
 import { ArrowLeft } from '@tamagui/lucide-icons'
 import { COLORS } from "./theme"
+import { useRouter } from "expo-router"
+import { useGameSessionStore } from "../state/gameSessionStore"
 
-function BackIconButton({ onPress }: { onPress?: () => void }) {
+const BackIconButton = ({ onBack }: { onBack?: () => void }) =>{
+  const router = useRouter()
+  const clearSession = useGameSessionStore((s) => s.clearSession)
+
+  const handleBack = () => {
+    clearSession()
+    router.replace('/')
+  }
+
   return (
     <Button
       bordered
-      onPress={onPress}
+      onPress={onBack || handleBack}
       style={{
         height: 30,
         width: 30,
@@ -54,7 +64,7 @@ export const Page = ({
           marginBottom: 20,
         }}
       >
-        {showBack ? <BackIconButton onPress={onBack} /> : null}
+        {showBack ? <BackIconButton onBack={onBack} /> : null}
         <View style={{ flex: 1 }} />
       </View>
 

@@ -62,6 +62,10 @@ type SubmitPromptResult = {
   submitPrompt: boolean;
 };
 
+type SubmitVoteResult = {
+  submitVote: boolean;
+};
+
 export function useLobby(roomId?: string) {
   const router = useRouter();
   const { session, setSession, clearSession } = useGameSessionStore();
@@ -127,6 +131,8 @@ export function useLobby(roomId?: string) {
   const [kickFn] = useMutation<KickPlayerResult>(LOBBY_OPS.KICK)
   const [startFn] = useMutation(LOBBY_OPS.START)
   const [submitPromptFn] = useMutation<SubmitPromptResult>(LOBBY_OPS.SUBMIT_PROMPT)
+  const [endTurnFn] = useMutation(LOBBY_OPS.END_TURN)
+  const [submitVoteFn] = useMutation<SubmitVoteResult>(LOBBY_OPS.SUBMIT_VOTE)
 
   return {
     room,
@@ -189,7 +195,7 @@ export function useLobby(roomId?: string) {
         return;
       }
 
-      // This is a fire and forget; we do not wait for errors, as the goal is for the player to leave the room, which those does accomplish.
+      // This is a fire and forget; we do not wait for errors, as the goal is for the player to leave the room, which these accomplish.
       try {
         await leaveFn({ variables: { roomId, playerId: myPlayerId } });
       } catch (error) {
@@ -240,13 +246,44 @@ export function useLobby(roomId?: string) {
 
         const res = await submitPromptFn({ variables: { roomId, playerId: myPlayerId, prompt } });
 
-        if(res.data?.submitPrompt === true) {
+        if (res.data?.submitPrompt === true) {
           return true;
         }
 
         throw new Error("Server returned false");
       } catch (error) {
         console.error("Error submitting prompt:", error);
+        throw error;
+      }
+    },
+
+    endTurn: async () => {
+      try {
+        if (!roomId) {
+          throw new Error("Missing session data");
+        }
+
+        await endTurnFn({ variables: { roomId } });
+      } catch (error) {
+        console.error("Failed to end turn:", error);
+        throw error;
+      }
+    },
+
+    submitVote: async (value: number) => {
+      try {
+        if (!roomId || !myPlayerId) {
+          throw new Error("Missing session data");
+        }
+
+        const res = await submitVoteFn({ variables: { roomId, playerId: myPlayerId, value } });
+
+        if (res.data?.submitVote !== true) {
+          throw new Error('Failed to submit vote');
+        }
+
+      } catch (error) {
+        console.error("Error submitting vote:", error);
         throw error;
       }
     },

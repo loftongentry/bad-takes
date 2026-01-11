@@ -9,7 +9,7 @@ import { COLORS } from "../src/ui/theme"
 import { Keyboard, TouchableWithoutFeedback } from "react-native"
 import { useRouter } from "expo-router"
 
-export const PromptEntry = () => {
+const PromptEntry = () => {
   const router = useRouter()
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const { room, leaveGame, submitPrompt } = useLobby(roomId || undefined)
@@ -43,6 +43,7 @@ export const PromptEntry = () => {
   };
 
   if (isSubmitted) {
+    // TODO: This isn't retrieving the submittedPromptsCount correctly after submission
     const count = room?.gameState?.submittedPromptsCount || 0;
     const total = room?.players.length || 0;
 
@@ -146,3 +147,5 @@ export const PromptEntry = () => {
     </TouchableWithoutFeedback>
   )
 }
+
+export default PromptEntry

@@ -17,13 +17,12 @@ type Player = {
   isHost: boolean
 }
 
-export const LobbyScreen = () => {
+const LobbyScreen = () => {
   const router = useRouter()
 
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const playerId = useGameSessionStore((s) => s.session?.playerId ?? null)
   const isHost = useGameSessionStore((s) => s.session?.isHost ?? false)
-  const clearSession = useGameSessionStore((s) => s.clearSession)
 
   const { room, leaveGame, kickPlayer, startGame, loading } = useLobby(roomId || undefined)
   const [startLoading, setStartLoading] = useState<boolean>(false)
@@ -36,7 +35,7 @@ export const LobbyScreen = () => {
 
   if (!roomId || !playerId || (!room && loading)) {
     return (
-      <Page title="Loading..." onBack={() => router.back()}>
+      <Page title="Loading...">
         <Spinner />
         <Text style={{ textAlign: 'center', marginTop: 20 }}>Connecting to Lobby...</Text>
       </Page>
@@ -45,10 +44,7 @@ export const LobbyScreen = () => {
 
   if (!room) {
     return (
-      <Page title="Lobby Not Found" onBack={() => {
-        clearSession()
-        router.replace('/')
-      }}>
+      <Page title="Lobby Not Found">
         <Text style={{ textAlign: 'center', marginTop: 20 }}>The lobby you are trying to join does not exist or has been closed.</Text>
       </Page>
     )
@@ -81,7 +77,6 @@ export const LobbyScreen = () => {
     <Page
       title={room.settings.lobbyName || 'Game Lobby'}
       subtitle={subText}
-      onBack={leaveGame}
     >
       <View style={{ width: '100%', maxWidth: 340 }}>
         <FormCard>
@@ -176,3 +171,5 @@ export const LobbyScreen = () => {
     </Page>
   )
 }
+
+export default LobbyScreen
