@@ -3,7 +3,7 @@ import { Info } from '@tamagui/lucide-icons'
 import { PrimaryButton } from "./PrimaryButton";
 import { COLORS } from "./theme";
 
-function Rule({ title, children }: { title: string; children: React.ReactNode }) {
+const Rule = ({ title, children }: { title: string; children: React.ReactNode }) => {
   return (
     <View style={{ marginBottom: 12 }}>
       <Text style={{ color: COLORS.light, fontSize: 16, fontWeight: '800' }}>
@@ -16,7 +16,7 @@ function Rule({ title, children }: { title: string; children: React.ReactNode })
   )
 }
 
-export function HowToPlay() {
+export const HowToPlay = () => {
   return (
     <Dialog modal>
       <Dialog.Trigger asChild>

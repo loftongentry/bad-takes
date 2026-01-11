@@ -20,7 +20,7 @@ function BackIconButton({ onPress }: { onPress?: () => void }) {
   )
 }
 
-export function Page({
+export const Page = ({
   title,
   subtitle,
   showBack = true,
@@ -32,7 +32,7 @@ export function Page({
   showBack?: boolean
   onBack?: () => void
   children: React.ReactNode
-}) {
+}) => {
   return (
     <View
       style={{

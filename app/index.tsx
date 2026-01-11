@@ -4,7 +4,7 @@ import { PrimaryButton } from '../src/ui/PrimaryButton'
 import { HowToPlay } from '../src/ui/HowToPlay'
 import { COLORS } from '../src/ui/theme'
 
-export default function WelcomeScreen() {
+export const WelcomeScreen = () => {
   const router = useRouter()
 
   return (

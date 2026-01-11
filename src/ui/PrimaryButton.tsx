@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Button, Text } from 'tamagui'
 import { COLORS } from './theme'
 
-export function PrimaryButton({
+export const PrimaryButton = ({
   children,
   onPress,
   disabled,
@@ -16,7 +16,7 @@ export function PrimaryButton({
   icon?: any
   invert?: boolean
   height?: number
-}) {
+}) => {
   const bg = invert ? COLORS.light : undefined
   const textColor = invert ? COLORS.dark : COLORS.light
   const opacity = disabled ? 0.45 : 1

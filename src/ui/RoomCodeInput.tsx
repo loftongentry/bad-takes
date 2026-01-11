@@ -3,13 +3,13 @@ import { Pressable, TextInput, View } from 'react-native'
 import { Text } from 'tamagui'
 import { COLORS } from './theme'
 
-export function RoomCodeInput({
+export const RoomCodeInput = ({
   value,
   onChange,
 }: {
   value: string
   onChange: (next: string) => void
-}) {
+}) => {
   const inputRef = useRef<TextInput>(null)
 
   const sanitized = useMemo(() => {

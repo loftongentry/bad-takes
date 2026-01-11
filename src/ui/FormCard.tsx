@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Card } from 'tamagui'
 
-export function FormCard({ children }: { children: ReactNode }) {
+export const FormCard = ({ children }: { children: ReactNode }) => {
   return (
     <Card
       bordered

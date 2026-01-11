@@ -9,7 +9,7 @@ import { COLORS } from "../src/ui/theme"
 import { Keyboard, TouchableWithoutFeedback } from "react-native"
 import { useRouter } from "expo-router"
 
-const PromptEntry = () => {
+export const PromptEntry = () => {
   const router = useRouter()
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const { room, leaveGame, submitPrompt } = useLobby(roomId || undefined)
@@ -146,5 +146,3 @@ const PromptEntry = () => {
     </TouchableWithoutFeedback>
   )
 }
-
-export default PromptEntry

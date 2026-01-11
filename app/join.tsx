@@ -7,7 +7,7 @@ import { Page } from '../src/ui/Page'
 import { COLORS } from '../src/ui/theme'
 import { useLobby } from '../src/hooks/useLobby'
 
-function LabeledField({
+const LabeledField = ({
   label,
   value,
   onChangeText,
@@ -17,7 +17,7 @@ function LabeledField({
   value: string
   onChangeText: (t: string) => void
   placeholder: string
-}) {
+}) => {
   return (
     <View style={{ width: '100%', maxWidth: 340 }}>
       <Text
@@ -53,7 +53,7 @@ function LabeledField({
   )
 }
 
-export default function JoinScreen() {
+export const JoinScreen = () => {
   const router = useRouter()
   const { joinGame } = useLobby()
   const [roomCode, setRoomCode] = useState<string>('')

@@ -1,7 +1,7 @@
 import { Input, Text, View, Separator } from "tamagui"
 import { COLORS } from "./theme"
 
-export function TextFieldRow({
+export const TextFieldRow = ({
   label,
   value,
   onChangeText,
@@ -13,7 +13,7 @@ export function TextFieldRow({
   onChangeText: (t: string) => void
   placeholder: string
   showDivider?: boolean
-}) {
+}) => {
   return (
     <View>
       <View

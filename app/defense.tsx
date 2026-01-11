@@ -6,7 +6,7 @@ import { useGameSessionStore } from '../src/state/gameSessionStore'
 import { useLobby } from '../src/hooks/useLobby'
 import { useEffect, useState } from 'react'
 
-const Defense = () => {
+export const Defense = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const myPlayerId = useGameSessionStore((s) => s.session?.playerId ?? null)
   const { room } = useLobby(roomId || undefined)
@@ -139,5 +139,3 @@ const Defense = () => {
     </Page>
   )
 }
-
-export default Defense

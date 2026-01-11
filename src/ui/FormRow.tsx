@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Separator, Text, View } from 'tamagui'
 import { COLORS } from './theme'
 
-export function FormRow({
+export const FormRow = ({
   label,
   right,
   showDivider = true,
@@ -10,7 +10,7 @@ export function FormRow({
   label: string
   right: ReactNode
   showDivider?: boolean
-}) {
+}) => {
   return (
     <View>
       <View

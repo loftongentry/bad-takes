@@ -10,7 +10,7 @@ import { useLobby } from '../src/hooks/useLobby'
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
 
-export default function CreateScreen() {
+export const CreateScreen = () => {
   const router = useRouter()
   const { createGame } = useLobby()
   const [lobbyName, setLobbyName] = useState<string>('')

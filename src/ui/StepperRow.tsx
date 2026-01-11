@@ -3,7 +3,7 @@ import { Minus, Plus } from '@tamagui/lucide-icons'
 import { COLORS } from './theme'
 import { FormRow } from './FormRow'
 
-export function StepperRow({
+export const StepperRow = ({
   label,
   valueText,
   onDecrement,
@@ -19,7 +19,7 @@ export function StepperRow({
   decrementDisabled?: boolean
   incrementDisabled?: boolean
   showDivider?: boolean
-}) {
+}) => {
   return (
     <FormRow
       label={label}

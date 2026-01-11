@@ -17,7 +17,7 @@ type Player = {
   isHost: boolean
 }
 
-export default function LobbyScreen() {
+export const LobbyScreen = () => {
   const router = useRouter()
 
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
