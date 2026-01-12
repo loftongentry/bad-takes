@@ -1,6 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { create } from 'zustand'
-import { createJSONStorage, persist } from 'zustand/middleware'
 
 export type GameSession = {
   roomId: string
@@ -15,16 +13,8 @@ type GameSessionState = {
   clearSession: () => void
 }
 
-export const useGameSessionStore = create<GameSessionState>()(
-  persist(
-    (set) => ({
-      session: null,
-      setSession: (session: GameSession) => set({ session }),
-      clearSession: () => set({ session: null }),
-    }),
-    {
-      name: 'bad-takes-session',
-      storage: createJSONStorage(() => AsyncStorage)
-    }
-  )
-)
+export const useGameSessionStore = create<GameSessionState>((set) => ({
+  session: null,
+  setSession: (session) => set({ session }),
+  clearSession: () => set({ session: null }),
+}))

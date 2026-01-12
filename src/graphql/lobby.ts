@@ -22,8 +22,6 @@ const ROOM_FRAGMENT = gql`
       deadline
       votesCast
       submittedPromptsCount
-      submittedPlayersIds
-      votedPlayers
       currentTurn {
         defenderId
         promptId

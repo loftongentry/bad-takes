@@ -24,13 +24,12 @@ type Room = {
     deadline: string | null;
     votesCast: number;
     submittedPromptsCount: number;
-    submittedPlayersIds: string[];
-    votedPlayers: string[];
     currentTurn: {
       defenderId: string;
       promptId: string;
       promptText: string;
     };
+    votedPlayers: string[];
   };
 }
 
