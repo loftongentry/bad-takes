@@ -1,3 +1,4 @@
+// TODO: Remove host authority logic when time hits zero, and instead implement an "absolute time countdown" that all clients follow.
 import { Card, Text, View, Spinner, Progress } from 'tamagui'
 import { Page } from '../src/ui/Page'
 import { COLORS } from '../src/ui/theme'

@@ -1,3 +1,4 @@
+// TODO: Add in (potentially) more settings
 import { useEffect, useState } from 'react'
 import { useRouter } from 'expo-router'
 import { ScrollView, TouchableOpacity } from 'react-native'

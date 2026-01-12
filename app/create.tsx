@@ -21,8 +21,9 @@ const CreateScreen = () => {
   const [loading, setLoading] = useState<boolean>(false)
 
   // Constraints
+  // TODO: Implement logic that handles multiple rounds instead of just 1
   const MIN_ROUNDS = 1
-  const MAX_ROUNDS = 5
+  const MAX_ROUNDS = 1
 
   const MIN_PLAYERS = 2
   const MAX_PLAYERS = 20

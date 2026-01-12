@@ -1,3 +1,4 @@
+// TODO: Persist user sessions
 import { create } from 'zustand'
 
 export type GameSession = {
