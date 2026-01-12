@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react"
-import { View, Text, ScrollView } from "tamagui"
+import { View, Text, ScrollView, Separator } from "tamagui"
 import { useRouter } from "expo-router"
-import { Crown, Trophy, RefreshCw } from '@tamagui/lucide-icons'
-
+import { Crown, RefreshCw } from '@tamagui/lucide-icons'
 import { Page } from "../src/ui/Page"
 import { PrimaryButton } from "../src/ui/PrimaryButton"
-import { Card } from "tamagui" // Or your custom card
+import { Card } from "tamagui"
 import { COLORS } from "../src/ui/theme"
 import { useGameSessionStore } from "../src/state/gameSessionStore"
 import { useLobby } from "../src/hooks/useLobby"
@@ -15,18 +14,15 @@ const Results = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const myPlayerId = useGameSessionStore((s) => s.session?.playerId ?? null)
 
-  // We will implement 'resetGame' in the next step
-  const { room } = useLobby(roomId || undefined)
+  const { room, resetGame } = useLobby(roomId || undefined)
   const [loading, setLoading] = useState(false)
 
   const isHost = room?.players.find(p => p.id === myPlayerId)?.isHost
 
-  // 1. Sort Players by Score (High to Low)
   const players = room?.players || []
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
   const winner = sortedPlayers[0]
 
-  // 2. Auto-Redirect back to Lobby when host resets
   useEffect(() => {
     if (room?.status === 'LOBBY') {
       router.replace('/lobby')
@@ -36,7 +32,7 @@ const Results = () => {
   const handlePlayAgain = async () => {
     setLoading(true)
     try {
-      //await resetGame()
+      await resetGame()
     } catch (e) {
       console.error(e)
       alert("Failed to reset game")
@@ -46,7 +42,9 @@ const Results = () => {
   }
 
   return (
-    <Page title="Game Results" showBack={false}>
+    <Page
+      title="Game Results"
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={{ width: '100%' }}
@@ -79,10 +77,10 @@ const Results = () => {
         )}
 
         {/* LEADERBOARD */}
-        <View style={{ width: '100%', maxWidth: 340, gap: 12 }}>
+        <View style={{ width: '100%', gap: 12 }}>
           {sortedPlayers.map((player, index) => {
             const isWinner = index === 0
-            if (isWinner) return null // Skip winner, already shown above
+            if (isWinner) return null
 
             return (
               <Card
@@ -113,17 +111,17 @@ const Results = () => {
           })}
         </View>
 
+        <Separator style={{ margin: 20 }} />
+
         {/* HOST ACTIONS */}
-        {isHost && (
-          <View style={{ marginTop: 40, width: '100%', maxWidth: 300 }}>
-            <PrimaryButton onPress={handlePlayAgain} disabled={loading}>
+        {isHost ? (
+          <View style={{ width: '100%' }}>
+            <PrimaryButton onPress={handlePlayAgain} disabled={loading} icon={<RefreshCw size={22} color={'#D0CCC3'} />}>
               {loading ? "Resetting..." : "Play Again"}
             </PrimaryButton>
           </View>
-        )}
-
-        {!isHost && (
-          <Text style={{ marginTop: 40, color: COLORS.light, opacity: 0.6 }}>
+        ) : (
+          <Text style={{ textAlign: 'center', color: COLORS.light, opacity: 0.6 }}>
             Waiting for host to restart...
           </Text>
         )}

@@ -126,6 +126,7 @@ const Voting = () => {
   return (
     <Page
       title="Cast Your Vote"
+      showBack={false}
     >
       <View
         style={{

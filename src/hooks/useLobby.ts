@@ -29,6 +29,7 @@ type Room = {
       promptId: string;
       promptText: string;
     };
+    votedPlayers: string[];
   };
 }
 
@@ -64,6 +65,10 @@ type SubmitPromptResult = {
 
 type SubmitVoteResult = {
   submitVote: boolean;
+};
+
+type ResetGameResult = {
+  resetGame: boolean;
 };
 
 export function useLobby(roomId?: string) {
@@ -133,6 +138,7 @@ export function useLobby(roomId?: string) {
   const [submitPromptFn] = useMutation<SubmitPromptResult>(LOBBY_OPS.SUBMIT_PROMPT)
   const [endTurnFn] = useMutation(LOBBY_OPS.END_TURN)
   const [submitVoteFn] = useMutation<SubmitVoteResult>(LOBBY_OPS.SUBMIT_VOTE)
+  const [resetGameFn] = useMutation<ResetGameResult>(LOBBY_OPS.RESET_GAME)
 
   return {
     room,
@@ -284,6 +290,24 @@ export function useLobby(roomId?: string) {
 
       } catch (error) {
         console.error("Error submitting vote:", error);
+        throw error;
+      }
+    },
+
+    resetGame: async () => {
+      try {
+        if (!roomId) {
+          throw new Error("Missing session data");
+        }
+
+        const res = await resetGameFn({ variables: { roomId } });
+
+        if (res.data?.resetGame !== true) {
+          throw new Error('Failed to reset game');
+        }
+
+      } catch (error) {
+        console.error("Error resetting game:", error);
         throw error;
       }
     },

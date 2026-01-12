@@ -130,4 +130,10 @@ export const LOBBY_OPS = {
       submitVote(roomId: $roomId, playerId: $playerId, value: $value)
     }
   `,
+
+  RESET_GAME: gql`
+    mutation ResetGame($roomId: ID!) {
+      resetGame(roomId: $roomId)
+    }
+  `,
 };
