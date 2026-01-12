@@ -14,10 +14,12 @@ const PromptEntry = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const { room, leaveGame, submitPrompt } = useLobby(roomId || undefined)
   const [badTake, setBadTake] = useState<string>('')
-  const [isSubmitted, setIsSubmitted] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
 
   const CHAR_LIMIT = 140
+
+  const myPlayerId = useGameSessionStore((s) => s.session?.playerId ?? null)
+  const hasSubmitted = room?.gameState?.submittedPlayersIds.includes(myPlayerId || '') || false
 
   useEffect(() => {
     if (room?.status === 'DEFENSE') {
@@ -30,10 +32,7 @@ const PromptEntry = () => {
     setLoading(true)
 
     try {
-      const success = await submitPrompt(badTake);
-      if (success) {
-        setIsSubmitted(true);
-      }
+      await submitPrompt(badTake);
     } catch (error) {
       console.error("Failed to submit bad take:", error);
       alert("Failed to submit bad take. Please try again.");
@@ -42,7 +41,7 @@ const PromptEntry = () => {
     }
   };
 
-  if (isSubmitted) {
+  if (hasSubmitted) {
     // TODO: This isn't retrieving the submittedPromptsCount correctly after submission
     const count = room?.gameState?.submittedPromptsCount || 0;
     const total = room?.players.length || 0;
