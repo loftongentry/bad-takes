@@ -29,7 +29,6 @@ type Room = {
       promptId: string;
       promptText: string;
     };
-    votedPlayers: string[];
   };
 }
 
