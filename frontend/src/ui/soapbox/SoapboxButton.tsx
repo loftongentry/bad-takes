@@ -1,5 +1,5 @@
 import type { ReactNode, Ref } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, type PressableInstance } from "react-native";
 import { FONTS, SOAPBOX } from "./tokens";
 
 type Variant = "primary" | "caution" | "outline";
@@ -33,7 +33,7 @@ export const SoapboxButton = ({
   variant?: Variant;
   disabled?: boolean;
   icon?: ReactNode;
-  ref?: Ref<View>;
+  ref?: Ref<PressableInstance>;
 }) => {
   const look = LOOKS[variant];
   return (

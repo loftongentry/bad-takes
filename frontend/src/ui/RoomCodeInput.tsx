@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Pressable, StyleSheet, TextInput } from "react-native";
+import { Pressable, StyleSheet, TextInput, type TextInputInstance } from "react-native";
 import { CodeTiles } from "./soapbox/CodeTiles";
 
 const CODE_LENGTH = 5;
@@ -18,7 +18,7 @@ export const RoomCodeInput = ({
   value: string;
   onChange: (next: string) => void;
 }) => {
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   // The parent only ever receives sanitized text (see onChangeText), so this is just a safeguard
   const sanitized = sanitize(value);

@@ -39,7 +39,7 @@ Each screen redirects when the status changes.
 
 ## Setup
 
-Requires Node and Docker.
+Requires Docker and Node 22.13+ or 24.3+ (Expo SDK 58 doesn't support odd-numbered Node releases).
 
 ```sh
 npm install   # also installs frontend/ and backend/ dependencies
@@ -81,7 +81,7 @@ so do a final check on a real device.
 
 ### Playing on a phone
 
-Install **Expo Go** (iOS or Android), make sure the phone is on the same Wi-Fi as this PC,
+Install **Expo Go** (iOS or Android; the project is on Expo SDK 58, which needs the current Expo Go), make sure the phone is on the same Wi-Fi as this PC,
 and scan the QR code that `npm run dev:frontend` prints. No Mac is needed for an iPhone.
 An Android emulator (from Android Studio) also works: press `a` instead of scanning.
 If the phone can't reach the backend, set the PC's address yourself:

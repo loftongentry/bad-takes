@@ -1,5 +1,5 @@
 import type { Ref } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, type PressableInstance } from "react-native";
 import { Dialog } from "tamagui";
 import { Users } from "@tamagui/lucide-icons";
 import { useGameSessionStore } from "../state/gameSessionStore";
@@ -11,7 +11,13 @@ import { FONTS, SOAPBOX } from "./soapbox/tokens";
 
 // The small paper button that opens the menu. Dialog.Trigger passes its onPress (and a ref) in
 // through props, so the button keeps its own styling here rather than in the trigger's child.
-const PlayersButton = ({ onPress, ref }: { onPress?: () => void; ref?: Ref<View> }) => (
+const PlayersButton = ({
+  onPress,
+  ref,
+}: {
+  onPress?: () => void;
+  ref?: Ref<PressableInstance>;
+}) => (
   <Pressable
     ref={ref}
     onPress={onPress}
