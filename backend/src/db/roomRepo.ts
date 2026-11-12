@@ -102,6 +102,28 @@ export async function getPrompts(roomId: string): Promise<Prompt[]> {
   return raw.map((p) => JSON.parse(p));
 }
 
+// Every room currently in DEFENSE, with its deadline. Used on startup to restore the
+// in-memory turn timers that a server restart would otherwise lose.
+export async function getDefenseDeadlines(): Promise<Array<{ roomId: string; deadline: string }>> {
+  const found: Array<{ roomId: string; deadline: string }> = [];
+  let cursor = "0";
+  do {
+    const [next, keys] = await redis.scan(cursor, "MATCH", "room:*", "COUNT", 200);
+    cursor = next;
+    for (const key of keys) {
+      // Only the room hashes themselves (room:{id}), not room:{id}:players and friends
+      if (key.split(":").length !== 2) continue;
+      const [status, rawState] = await redis.hmget(key, "status", "gameState");
+      if (status !== "DEFENSE" || !rawState) continue;
+      const deadline = JSON.parse(rawState).deadline;
+      if (deadline) {
+        found.push({ roomId: key.slice("room:".length), deadline });
+      }
+    }
+  } while (cursor !== "0");
+  return found;
+}
+
 // --- Writes ---
 
 export async function insertRoom(

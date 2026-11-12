@@ -121,9 +121,10 @@ export const ROOM_OPS = {
     }
   `,
 
+  // Defender only. When time runs out, the server ends the turn itself.
   END_TURN: gql`
-    mutation EndTurn($roomId: ID!) {
-      endTurn(roomId: $roomId)
+    mutation EndTurn($roomId: ID!, $playerId: ID!) {
+      endTurn(roomId: $roomId, playerId: $playerId)
     }
   `,
 

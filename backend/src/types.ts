@@ -32,6 +32,8 @@ export type StoredGameState = {
   queue: Turn[]
   votes: Record<string, number>
   currentTurn: Turn | null
+  // When the current turn's defense ends (ISO time, including the prep countdown)
+  deadline: string | null
 }
 
 // What clients see: the stored state plus vote info derived from the votes hash

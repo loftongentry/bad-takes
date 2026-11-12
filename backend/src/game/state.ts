@@ -6,7 +6,8 @@ export function emptyGameState(): StoredGameState {
     prompts: [],
     queue: [],
     votes: {},
-    currentTurn: null
+    currentTurn: null,
+    deadline: null
   };
 }
 

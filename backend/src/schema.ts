@@ -55,7 +55,8 @@ const typeDefs = `
     kickPlayer(roomId: ID!, hostId: ID!, playerId: ID!): Boolean!
     startGame(roomId: ID!, hostId: ID!): Room!
     submitPrompt(roomId: ID!, playerId: ID!, prompt: String!): Boolean!
-    endTurn(roomId: ID!): Boolean!
+    # The defender ending their defense early; the server ends it automatically at gameState.deadline
+    endTurn(roomId: ID!, playerId: ID!): Boolean!
     submitVote(roomId: ID!, playerId: ID!, value: Int!): Boolean!
     resetGame(roomId: ID!, hostId: ID!): Boolean!
   }

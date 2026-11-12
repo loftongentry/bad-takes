@@ -138,11 +138,11 @@ export function useRoomActions(roomId?: string) {
     }),
 
     endTurn: withErrorLog("Failed to end turn:", async () => {
-      if (!roomId) {
+      if (!roomId || !myPlayerId) {
         throw new Error("Missing session data");
       }
 
-      await endTurnFn({ variables: { roomId } });
+      await endTurnFn({ variables: { roomId, playerId: myPlayerId } });
     }),
 
     submitVote: withErrorLog("Error submitting vote:", async (value: number) => {

@@ -69,7 +69,7 @@ export async function submitPrompt(roomId: string, playerId: string, prompt: str
       const state = { ...emptyGameState(), prompts, queue: generateQueue(room.players, prompts) };
 
       // Transition to first turn. If the last few prompts arrive together, only one request starts it.
-      await advanceToNextTurn(roomId, "PROMPT_ENTRY", state);
+      await advanceToNextTurn(roomId, "PROMPT_ENTRY", state, room.settings.timeLimit);
     }
 
     // Notify subscribers in room

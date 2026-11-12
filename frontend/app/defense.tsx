@@ -11,6 +11,7 @@ import { useRoomActions } from '../src/hooks/useRoomActions'
 import { useStatusRedirect } from '../src/hooks/useStatusRedirect'
 import { useDefenseTimer } from '../src/hooks/useDefenseTimer'
 
+// Must match PREP_SECONDS in backend/src/game/turns.ts (the server's deadline includes it)
 const PREP_TIME = 5
 
 const Defense = () => {
@@ -21,19 +22,14 @@ const Defense = () => {
 
   const currentTurn = room?.gameState?.currentTurn
   const isMe = currentTurn?.defenderId === myPlayerId
-  const isHost = room?.players.find(p => p.id === myPlayerId)?.isHost
   const defenderName = room?.players.find(p => p.id === currentTurn?.defenderId)?.name || 'Unknown'
 
   const DEFEND_TIME = room?.settings.timeLimit || 60
 
   useStatusRedirect(room?.status, { VOTING: '/voting' })
 
-  // The host's client is the one that ends the turn when time runs out
-  const { phase, timeLeft, maxTime } = useDefenseTimer(PREP_TIME, DEFEND_TIME, () => {
-    if (isHost) {
-      endTurn()
-    }
-  })
+  // Counts down to the server's deadline; the server moves everyone to voting when it passes
+  const { phase, timeLeft, maxTime } = useDefenseTimer(room?.gameState?.deadline, PREP_TIME, DEFEND_TIME)
 
   if (!currentTurn) {
     return (

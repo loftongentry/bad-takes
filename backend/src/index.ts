@@ -8,6 +8,7 @@ import { expressMiddleware } from '@as-integrations/express5';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import cors from 'cors';
 import { schema } from './schema';
+import { restoreDefenseTimers } from './game/turns';
 
 const GRAPH_QL = '/graphql'
 const PORT = process.env.PORT || 3500
@@ -58,6 +59,9 @@ async function main() {
     console.log(`HTTP: http://localhost:${PORT}${GRAPH_QL}`)
     console.log(`WS:   ws://localhost:${PORT}${GRAPH_QL}`)
   });
+
+  // Turn timers are in memory, so pick up any defenses that were running before a restart
+  restoreDefenseTimers().catch((err) => console.error('Failed to restore defense timers', err));
 }
 
 main().catch((err) => {

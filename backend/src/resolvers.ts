@@ -40,8 +40,8 @@ export const resolvers = {
     submitPrompt: async (_: unknown, { roomId, playerId, prompt }: { roomId: string; playerId: string; prompt: string }) => {
       return await submitPrompt(roomId, playerId, prompt);
     },
-    endTurn: async (_: unknown, { roomId }: { roomId: string }) => {
-      return await endTurn(roomId);
+    endTurn: async (_: unknown, { roomId, playerId }: { roomId: string; playerId: string }) => {
+      return await endTurn(roomId, playerId);
     },
     submitVote: async (_: unknown, { roomId, playerId, value }: { roomId: string; playerId: string; value: number }) => {
       return await submitVote(roomId, playerId, value);
