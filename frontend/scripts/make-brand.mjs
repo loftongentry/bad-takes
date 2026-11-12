@@ -1,5 +1,5 @@
 // Renders the app icon, Android adaptive icon, splash image and web favicon from the SVG artwork
-// below, in the Soapbox look: a tilted cardboard "BAD TAKES" sign over kraft and caution tape.
+// below, in the Soapbox look: BAD TAKES in big marker capitals on kraft, over caution tape.
 //
 // Needs a Chromium-based browser and puppeteer-core, which aren't project dependencies:
 //   npm install --no-save puppeteer-core
@@ -30,7 +30,6 @@ const C = {
   kraftDark: "#A8845F",
   marker: "#1F1A17",
   caution: "#F5C518",
-  tape: "#F3E7D6",
 };
 
 const defs = `
@@ -54,46 +53,48 @@ const background = `
   <rect width="1024" height="1024" fill="url(#fibers)"/>
   <rect width="1024" height="1024" fill="url(#edges)"/>`;
 
-// Caution tape stretched diagonally across the lower part
+// Caution tape stretched diagonally across the bottom, below the words
 const tape = `
-  <g transform="rotate(-14 512 512)">
-    <rect x="-300" y="690" width="1624" height="128" fill="url(#stripes)"/>
-    <rect x="-300" y="690" width="1624" height="128" fill="none" stroke="${C.marker}" stroke-opacity="0.35" stroke-width="8"/>
+  <g transform="rotate(-10 512 512)">
+    <rect x="-300" y="776" width="1624" height="118" fill="url(#stripes)"/>
+    <rect x="-300" y="776" width="1624" height="118" fill="none" stroke="${C.marker}" stroke-opacity="0.35" stroke-width="8"/>
   </g>`;
 
-// The sign: lighter cardboard with a hard shadow, taped at the top corners, BAD TAKES in marker
-const sign = `
-  <g transform="rotate(-6 512 470)">
-    <rect x="156" y="232" width="712" height="476" rx="6" fill="${C.kraftDark}" transform="translate(24 28)"/>
-    <rect x="156" y="232" width="712" height="476" rx="6" fill="${C.kraftLight}" stroke="${C.kraftDark}" stroke-width="10"/>
-    <text x="512" y="446" text-anchor="middle" font-family="SignFont" font-size="196" fill="${C.marker}">BAD</text>
-    <text x="512" y="638" text-anchor="middle" font-family="SignFont" font-size="168" fill="${C.marker}">TAKES</text>
-    <rect x="96" y="214" width="190" height="62" fill="${C.tape}" fill-opacity="0.82" transform="rotate(-32 191 245)"/>
-    <rect x="738" y="214" width="190" height="62" fill="${C.tape}" fill-opacity="0.82" transform="rotate(28 833 245)"/>
+// BAD TAKES in big marker-black capitals, tilted a little, with a hard cardboard-coloured shadow
+const words = `
+  <g transform="rotate(-6 512 440)">
+    <g fill="${C.kraftDark}" transform="translate(16 18)">
+      <text x="512" y="440" text-anchor="middle" font-family="SignFont" font-size="300">BAD</text>
+      <text x="512" y="676" text-anchor="middle" font-family="SignFont" font-size="236">TAKES</text>
+    </g>
+    <g fill="${C.marker}">
+      <text x="512" y="440" text-anchor="middle" font-family="SignFont" font-size="300">BAD</text>
+      <text x="512" y="676" text-anchor="middle" font-family="SignFont" font-size="236">TAKES</text>
+    </g>
   </g>`;
 
 // Each output: canvas size, the SVG content (in a 1024 box unless viewBox says otherwise), and
 // whether the background is transparent
 const outputs = [
   // iOS and the default icon: the full scene (iOS rounds the corners itself)
-  { file: "icon.png", size: [1024, 1024], svg: `${background}${tape}${sign}` },
+  { file: "icon.png", size: [1024, 1024], svg: `${background}${tape}${words}` },
   // Android adaptive icon foreground: transparent, scaled into the centre safe zone (the
   // launcher masks it to a circle or squircle over the kraft background colour in app.json)
   {
     file: "adaptive-icon.png",
     size: [1024, 1024],
     transparent: true,
-    svg: `<g transform="translate(512 512) scale(0.66) translate(-512 -512)">${tape}${sign}</g>`,
+    svg: `<g transform="translate(512 512) scale(0.66) translate(-512 -512)">${tape}${words}</g>`,
   },
-  // Splash: just the sign, cropped close, shown centred on kraft
+  // Splash: just the words, cropped close, shown centred on kraft
   {
     file: "splash-icon.png",
     size: [1024, 720],
     transparent: true,
-    viewBox: "90 120 844 680",
-    svg: sign,
+    viewBox: "40 120 944 664",
+    svg: words,
   },
-  { file: "favicon.png", size: [48, 48], svg: `${background}${tape}${sign}` },
+  { file: "favicon.png", size: [48, 48], svg: `${background}${tape}${words}` },
 ];
 
 const browser = await puppeteer.launch({ executablePath: process.env.BROWSER, headless: true });
