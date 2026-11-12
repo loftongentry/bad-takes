@@ -1,12 +1,11 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "expo-router";
-import { Spinner } from "tamagui";
-import { Page } from "../src/ui/Page";
-import { StepperRow } from "../src/ui/StepperRow";
-import { TextFieldRow } from "../src/ui/TextFieldRow";
-import { FormCard } from "../src/ui/FormCard";
-import { PrimaryButton } from "../src/ui/PrimaryButton";
-import { ActionRow } from "../src/ui/ActionRow";
+import { ActivityIndicator, View } from "react-native";
+import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
+import { Board } from "../src/ui/soapbox/Board";
+import { FieldRow, InlineTextInput, Stepper } from "../src/ui/soapbox/Form";
+import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
+import { SOAPBOX } from "../src/ui/soapbox/tokens";
 import { useRoomActions } from "../src/hooks/useRoomActions";
 import { useRules } from "../src/hooks/useRules";
 import type { GameRules, Range } from "../src/graphql/types";
@@ -26,6 +25,7 @@ const RangeStepper = ({
   range,
   step = 1,
   unit = "",
+  last,
 }: {
   label: string;
   value: number;
@@ -33,14 +33,16 @@ const RangeStepper = ({
   range: Range;
   step?: number;
   unit?: string;
+  last?: boolean;
 }) => (
-  <StepperRow
+  <Stepper
     label={label}
     valueText={`${value}${unit}`}
     decrementDisabled={value <= range.min}
     incrementDisabled={value >= range.max}
     onDecrement={() => setValue((current) => clamp(current - step, range))}
     onIncrement={() => setValue((current) => clamp(current + step, range))}
+    last={last}
   />
 );
 
@@ -84,25 +86,36 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
   };
 
   return (
-    <Page title="Create Game" onBack={() => router.back()}>
-      <FormCard>
-        <TextFieldRow
-          label="Lobby Name"
-          value={lobbyName}
-          onChangeText={setLobbyName}
-          placeholder="Lobby Name"
-          maxLength={rules.lobbyNameMaxLength}
-        />
+    <SoapboxPage title="Create Game" onBack={() => router.back()}>
+      <Board label="The room">
+        <FieldRow label="Lobby Name">
+          <InlineTextInput
+            value={lobbyName}
+            onChangeText={setLobbyName}
+            placeholder="Lobby Name"
+            maxLength={rules.lobbyNameMaxLength}
+            accessibilityLabel="Lobby name"
+          />
+        </FieldRow>
+        <FieldRow label="Your Name" last>
+          <InlineTextInput
+            value={yourName}
+            onChangeText={setYourName}
+            placeholder="Enter name"
+            maxLength={rules.playerNameMaxLength}
+            accessibilityLabel="Your name"
+          />
+        </FieldRow>
+      </Board>
 
+      <Board label="House rules" style={{ marginTop: 34 }}>
         <RangeStepper label="Rounds" value={rounds} setValue={setRounds} range={rules.rounds} />
-
         <RangeStepper
           label="Player Limit"
           value={playerLimit}
           setValue={setPlayerLimit}
           range={rules.playerLimit}
         />
-
         <RangeStepper
           label="Writing Time"
           value={promptTimeLimit}
@@ -111,7 +124,6 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
           step={STEP_SECONDS}
           unit="s"
         />
-
         <RangeStepper
           label="Defense Time"
           value={timeLimit}
@@ -119,24 +131,16 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
           range={rules.timeLimit}
           step={STEP_SECONDS}
           unit="s"
+          last
         />
+      </Board>
 
-        <TextFieldRow
-          label="Your Name"
-          value={yourName}
-          onChangeText={setYourName}
-          placeholder="Enter name"
-          maxLength={rules.playerNameMaxLength}
-          showDivider={false}
-        />
-      </FormCard>
-
-      <ActionRow>
-        <PrimaryButton onPress={handleCreateLobby} disabled={!canCreate || loading}>
-          {loading ? <Spinner /> : "Create Lobby"}
-        </PrimaryButton>
-      </ActionRow>
-    </Page>
+      <View style={{ marginTop: 28 }}>
+        <SoapboxButton onPress={handleCreateLobby} disabled={!canCreate || loading}>
+          {loading ? <ActivityIndicator color={SOAPBOX.paper} /> : "Create Lobby"}
+        </SoapboxButton>
+      </View>
+    </SoapboxPage>
   );
 };
 
@@ -147,9 +151,9 @@ const CreateScreen = () => {
   // The form's limits come from the server; they're usually cached by the time you get here
   if (!rules) {
     return (
-      <Page title="Create Game" onBack={() => router.back()}>
-        <Spinner />
-      </Page>
+      <SoapboxPage title="Create Game" onBack={() => router.back()}>
+        <ActivityIndicator size="large" color={SOAPBOX.marker} />
+      </SoapboxPage>
     );
   }
   return <CreateForm rules={rules} />;

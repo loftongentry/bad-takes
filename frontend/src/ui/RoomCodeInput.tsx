@@ -1,9 +1,10 @@
 import { useRef } from "react";
-import { Pressable, TextInput, View } from "react-native";
-import { Text } from "tamagui";
-import { COLORS } from "./theme";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { FONTS, SOAPBOX } from "./soapbox/tokens";
 
 const CODE_LENGTH = 5;
+// Typed letters land on little paper tiles, each a bit crooked like a ransom note
+const TILE_TILT = [-4, 3, -2, 4, -3];
 
 // Uppercase letters and digits only, at most CODE_LENGTH of them (so a pasted "ab-12-c" works)
 const sanitize = (text: string) =>
@@ -28,64 +29,69 @@ export const RoomCodeInput = ({
   const isComplete = sanitized.length === CODE_LENGTH;
 
   return (
-    <Pressable onPress={() => inputRef.current?.focus()} style={{ width: "100%" }}>
-      <View style={{ width: "100%", alignItems: "center" }}>
-        {/* Boxes */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            gap: 12,
-          }}
-        >
-          {boxes.map((ch, idx) => {
-            const isActive = !isComplete && idx === sanitized.length;
-            return (
-              <View
-                key={idx}
-                style={{
-                  width: 54,
-                  height: 54,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: isActive ? COLORS.light : "rgba(208,204,195,0.35)",
-                  backgroundColor: "rgba(0,0,0,0.15)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text
-                  style={{
-                    color: COLORS.light,
-                    fontSize: 22,
-                    fontWeight: "900",
-                    letterSpacing: 1,
-                  }}
-                >
-                  {ch}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Hidden input that actually captures typing/paste/backspace */}
-        <TextInput
-          ref={inputRef}
-          value={sanitized}
-          onChangeText={(text) => onChange(sanitize(text))}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          keyboardType="default"
-          textContentType="oneTimeCode"
-          style={{
-            position: "absolute",
-            opacity: 0,
-            width: 1,
-            height: 1,
-          }}
-        />
+    <Pressable onPress={() => inputRef.current?.focus()} style={styles.wrap}>
+      <View style={styles.tiles}>
+        {boxes.map((ch, idx) => {
+          const isActive = !isComplete && idx === sanitized.length;
+          return (
+            <View
+              key={idx}
+              style={[
+                styles.tile,
+                ch ? [styles.filled, { transform: [{ rotate: `${TILE_TILT[idx]}deg` }] }] : null,
+                isActive ? styles.active : null,
+              ]}
+            >
+              <Text style={styles.letter}>{ch}</Text>
+            </View>
+          );
+        })}
       </View>
+
+      {/* Hidden input that actually captures typing/paste/backspace */}
+      <TextInput
+        ref={inputRef}
+        value={sanitized}
+        onChangeText={(text) => onChange(sanitize(text))}
+        autoCapitalize="characters"
+        autoCorrect={false}
+        keyboardType="default"
+        textContentType="oneTimeCode"
+        accessibilityLabel="Room code"
+        style={styles.hidden}
+      />
     </Pressable>
   );
 };
+
+const styles = StyleSheet.create({
+  wrap: { width: "100%", paddingVertical: 12 },
+  tiles: { flexDirection: "row", justifyContent: "center", gap: 8 },
+  tile: {
+    flex: 1,
+    maxWidth: 56,
+    height: 62,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "rgba(31, 26, 23, 0.35)",
+    borderRadius: 4,
+    backgroundColor: "rgba(31, 26, 23, 0.05)",
+  },
+  filled: {
+    borderStyle: "solid",
+    borderWidth: 2.5,
+    borderColor: SOAPBOX.marker,
+    backgroundColor: SOAPBOX.paper,
+    boxShadow: `2px 3px 0px ${SOAPBOX.marker}`,
+  },
+  active: {
+    borderStyle: "solid",
+    borderWidth: 2.5,
+    borderColor: SOAPBOX.marker,
+    backgroundColor: SOAPBOX.caution,
+  },
+  letter: { fontFamily: FONTS.heading, fontSize: 26, color: SOAPBOX.marker },
+  hidden: { position: "absolute", opacity: 0, width: 1, height: 1 },
+});

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { View, Spinner } from "tamagui";
-import { PrimaryButton } from "../src/ui/PrimaryButton";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { RoomCodeInput } from "../src/ui/RoomCodeInput";
-import { LabeledField } from "../src/ui/LabeledField";
-import { ActionRow } from "../src/ui/ActionRow";
-import { Page } from "../src/ui/Page";
+import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
+import { Board } from "../src/ui/soapbox/Board";
+import { FieldRow, InlineTextInput } from "../src/ui/soapbox/Form";
+import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
+import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 import { useRoomActions } from "../src/hooks/useRoomActions";
 import { useRules } from "../src/hooks/useRules";
 
@@ -34,28 +35,41 @@ const JoinScreen = () => {
   };
 
   return (
-    <Page title="Join Game" onBack={() => router.back()}>
-      <View style={{ width: "100%", maxWidth: 340 }}>
+    <SoapboxPage title="Join Game" onBack={() => router.back()}>
+      <Board label="Room code">
         <RoomCodeInput value={roomCode} onChange={setRoomCode} />
+        <Text style={styles.hint}>The 5-character code on the host’s screen</Text>
+      </Board>
+
+      <Board style={{ marginTop: 24 }}>
+        <FieldRow label="Your Name" last>
+          <InlineTextInput
+            value={yourName}
+            onChangeText={setYourName}
+            placeholder="Enter name"
+            maxLength={rules?.playerNameMaxLength}
+            accessibilityLabel="Your name"
+          />
+        </FieldRow>
+      </Board>
+
+      <View style={{ marginTop: 28 }}>
+        <SoapboxButton variant="caution" onPress={handleJoinLobby} disabled={!canJoin || loading}>
+          {loading ? <ActivityIndicator color={SOAPBOX.marker} /> : "Join Lobby"}
+        </SoapboxButton>
       </View>
-
-      <View style={{ height: 26 }} />
-
-      <LabeledField
-        label="Your Name"
-        value={yourName}
-        onChangeText={setYourName}
-        placeholder="Enter name"
-        maxLength={rules?.playerNameMaxLength}
-      />
-
-      <ActionRow>
-        <PrimaryButton onPress={handleJoinLobby} disabled={!canJoin || loading} invert>
-          {loading ? <Spinner /> : "Join Lobby"}
-        </PrimaryButton>
-      </ActionRow>
-    </Page>
+    </SoapboxPage>
   );
 };
+
+const styles = StyleSheet.create({
+  hint: {
+    fontFamily: FONTS.body,
+    fontSize: 14,
+    textAlign: "center",
+    color: SOAPBOX.markerSoft,
+    marginBottom: 10,
+  },
+});
 
 export default JoinScreen;
