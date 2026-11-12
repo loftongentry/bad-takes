@@ -83,7 +83,8 @@ Install **Expo Go** (iOS or Android), make sure the phone is on the same Wi-Fi a
 and scan the QR code that `npm run dev:frontend` prints. No Mac is needed for an iPhone.
 An Android emulator (from Android Studio) also works: press `a` instead of scanning.
 If the phone can't reach the backend, set the PC's address yourself:
-`DEV_HOST_IP=192.168.x.x npm run dev:frontend`.
+`$env:DEV_HOST_IP="192.168.x.x"; npm run dev:frontend` in PowerShell
+(`DEV_HOST_IP=192.168.x.x npm run dev:frontend` in bash).
 
 ## Checks
 
