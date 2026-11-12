@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { HowToPlay } from "../src/ui/HowToPlay";
+import { useTrackHomeScreen } from "../src/navigation/home";
 import { CautionTape } from "../src/ui/soapbox/CautionTape";
 import { KraftBackground } from "../src/ui/soapbox/KraftBackground";
 import { Sign } from "../src/ui/soapbox/Sign";
@@ -9,6 +10,7 @@ import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 
 const WelcomeScreen = () => {
   const router = useRouter();
+  useTrackHomeScreen();
   // Short phones (an iPhone SE is 667 points tall) get a smaller sign and tape closer to the edges
   const compact = useWindowDimensions().height < 740;
 

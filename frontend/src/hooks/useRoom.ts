@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "expo-router";
 import { useQuery, useSubscription } from "@apollo/client/react";
 import { useGameSessionStore } from "../state/gameSessionStore";
+import { goHome } from "../navigation/home";
 import { ROOM_OPS } from "../graphql/operations";
 import type { Room, RoomStatus } from "../graphql/types";
 
@@ -58,13 +59,9 @@ export function useRoom(roomId?: string) {
     // 2. Define the navigation logic
     const handleExit = () => {
       clearSession();
-      // Small timeout ensures we aren't mid-render when we navigate. Checked inside the timeout
-      // because leaveGame may have already navigated home by the time it runs.
-      setTimeout(() => {
-        if (router.canGoBack()) {
-          router.dismissAll();
-        }
-      }, 0);
+      // Small timeout ensures we aren't mid-render when we navigate. goHome does nothing if
+      // leaveGame has already sent the player home.
+      setTimeout(goHome, 0);
     };
 
     // Room was closed: the server said so, or the room no longer exists
@@ -80,7 +77,7 @@ export function useRoom(roomId?: string) {
         handleExit();
       }
     }
-  }, [room, roomClosed, roomMissing, loading, myPlayerId, roomId, router, clearSession]);
+  }, [room, roomClosed, roomMissing, loading, myPlayerId, roomId, clearSession]);
 
   // Follow the room to the screen for its current phase
   const status = room?.status;

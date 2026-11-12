@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
 import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useGameSessionStore } from "../state/gameSessionStore";
+import { goHome } from "../navigation/home";
 import { ROOM_OPS } from "../graphql/operations";
 import type {
   CreateArgs,
@@ -27,7 +27,6 @@ const withErrorLog =
 
 // Every game mutation, bound to the current room and player
 export function useRoomActions(roomId?: string) {
-  const router = useRouter();
   const client = useApolloClient();
   const { session, setSession, clearSession } = useGameSessionStore();
 
@@ -94,9 +93,7 @@ export function useRoomActions(roomId?: string) {
       // Safety check, just force player back to home if missing data
       if (!roomId || !myToken) {
         clearSession();
-        if (router.canGoBack()) {
-          router.dismissAll();
-        }
+        goHome();
         return;
       }
 
@@ -107,10 +104,8 @@ export function useRoomActions(roomId?: string) {
         console.warn("Network failed while leaving room (User forced exit):", error);
       } finally {
         clearSession();
-        // The room-closed handler in useRoom may have already navigated home
-        if (router.canGoBack()) {
-          router.dismissAll();
-        }
+        // useRoom may have sent the player home already; goHome only navigates once
+        goHome();
       }
     },
 

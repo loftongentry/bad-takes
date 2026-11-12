@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import { ArrowLeft } from "@tamagui/lucide-icons";
 import { useGameSessionStore } from "../../state/gameSessionStore";
+import { goHome } from "../../navigation/home";
 import { KraftBackground } from "./KraftBackground";
 import { FONTS, SOAPBOX } from "./tokens";
 
@@ -38,14 +38,13 @@ export const SoapboxPage = ({
   headerRight?: ReactNode;
   children: ReactNode;
 }) => {
-  const router = useRouter();
   const clearSession = useGameSessionStore((s) => s.clearSession);
   const insets = useSafeAreaInsets();
   const compact = useWindowDimensions().height < 740;
 
-  const goHome = () => {
+  const leave = () => {
     clearSession();
-    router.replace("/");
+    goHome();
   };
 
   return (
@@ -62,7 +61,7 @@ export const SoapboxPage = ({
       >
         <View style={styles.column}>
           <View style={styles.topBar}>
-            {showBack ? <BackButton onPress={onBack ?? goHome} /> : <View />}
+            {showBack ? <BackButton onPress={onBack ?? leave} /> : <View />}
             {headerRight}
           </View>
 
