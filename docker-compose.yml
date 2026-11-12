@@ -3,5 +3,7 @@ services:
     image: redis:7-alpine
     container_name: bad-takes-redis
     ports:
-      - "6379:6379"
+      # Only reachable from this PC. Redis here has no password and the image turns
+      # protected mode off, so it must not be exposed to the rest of the network.
+      - "127.0.0.1:6379:6379"
     restart: unless-stopped
