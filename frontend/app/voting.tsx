@@ -8,7 +8,7 @@ import { TakeSign } from "../src/ui/soapbox/TakeSign";
 import { VoteStamp } from "../src/ui/soapbox/VoteStamp";
 import { WaitingNote } from "../src/ui/soapbox/WaitingNote";
 import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
-import { settleIn, stampIn, thud } from "../src/ui/soapbox/motion";
+import { Flourish, settleIn, thud } from "../src/ui/soapbox/motion";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
@@ -31,11 +31,11 @@ const STAMP = {
 // The inked mark a vote stamp leaves on the sign
 const StampMark = ({ kind }: { kind: keyof typeof STAMP }) => (
   <View style={styles.markLayer} pointerEvents="none">
-    <Animated.View entering={stampIn} style={[styles.mark, { borderColor: STAMP[kind].color }]}>
+    <Flourish kind="stamp" style={[styles.mark, { borderColor: STAMP[kind].color }]}>
       <View style={[styles.markInner, { borderColor: STAMP[kind].color }]}>
         <Text style={[styles.markWord, { color: STAMP[kind].color }]}>{STAMP[kind].word}</Text>
       </View>
-    </Animated.View>
+    </Flourish>
   </View>
 );
 
@@ -183,7 +183,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: SOAPBOX.markerSoft,
   },
+  // Drawn over the sign (the sign's cardboard must not be stacked above it)
   markLayer: {
+    zIndex: 2,
     position: "absolute",
     top: 0,
     right: 0,

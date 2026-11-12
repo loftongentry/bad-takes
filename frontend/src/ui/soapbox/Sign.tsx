@@ -42,7 +42,6 @@ const styles = StyleSheet.create({
     borderColor: SOAPBOX.kraftDark,
     borderRadius: 3,
     boxShadow: `5px 6px 0px ${SOAPBOX.kraftDark}`,
-    zIndex: 1,
   },
   boardCompact: { paddingVertical: 20 },
   tape: {

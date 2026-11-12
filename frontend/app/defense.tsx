@@ -8,16 +8,15 @@ import { TakeSign } from "../src/ui/soapbox/TakeSign";
 import { TapeTimer } from "../src/ui/soapbox/TapeTimer";
 import { WaitingNote } from "../src/ui/soapbox/WaitingNote";
 import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
-import { settleIn, slamIn, thud } from "../src/ui/soapbox/motion";
+import { Flourish, settleIn, SLAM_IMPACT_MS, thud } from "../src/ui/soapbox/motion";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
 import { useRules } from "../src/hooks/useRules";
 import { useDefenseTimer } from "../src/hooks/useDefenseTimer";
 
-// The take sign slams down shortly after a turn starts; the impact lands 55% into the slam
+// The take sign slams down shortly after a turn starts
 const SLAM_DELAY_MS = 150;
-const SLAM_IMPACT_MS = 385;
 
 // "0:37"
 const clock = (seconds: number) =>
@@ -91,9 +90,9 @@ const Defense = () => {
         )}
       </Animated.Text>
 
-      <Animated.View key={turnKey} entering={slamIn(SLAM_DELAY_MS)}>
+      <Flourish key={turnKey} kind="slam" delay={SLAM_DELAY_MS}>
         <TakeSign text={currentTurn.promptText} />
-      </Animated.View>
+      </Flourish>
 
       {isMe && phase === "DEFEND" ? (
         <Animated.View entering={settleIn()} style={{ marginTop: 32 }}>

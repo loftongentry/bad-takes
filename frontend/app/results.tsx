@@ -13,7 +13,7 @@ import { Board } from "../src/ui/soapbox/Board";
 import { Sign } from "../src/ui/soapbox/Sign";
 import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
 import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
-import { popIn, settleIn, slamIn, thud } from "../src/ui/soapbox/motion";
+import { Flourish, popIn, settleIn, SLAM_IMPACT_MS, thud } from "../src/ui/soapbox/motion";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
@@ -32,7 +32,6 @@ const REVEAL = {
   rest: 2300,
   actions: 2600,
 };
-const SIGN_IMPACT_MS = 385; // 55% into the slam
 
 // A player standing on a wooden crate; the crate's height shows their place. The crate rises
 // out of the ground with a springy overshoot, then the player's name drops onto it.
@@ -86,7 +85,7 @@ const Results = () => {
     if (!hasWinner) {
       return;
     }
-    const impact = setTimeout(thud, REVEAL.sign + SIGN_IMPACT_MS);
+    const impact = setTimeout(thud, REVEAL.sign + SLAM_IMPACT_MS);
     return () => clearTimeout(impact);
   }, [hasWinner]);
 
@@ -109,7 +108,7 @@ const Results = () => {
       onBack={leaveGame}
     >
       {winner ? (
-        <Animated.View entering={slamIn(REVEAL.sign)}>
+        <Flourish kind="slam" delay={REVEAL.sign}>
           <Sign tilt={-2}>
             <Animated.View entering={popIn(REVEAL.sign + 520)}>
               <Crown size={44} color={SOAPBOX.marker} fill={SOAPBOX.caution} />
@@ -120,7 +119,7 @@ const Results = () => {
               <Text style={styles.winnerPointsText}>{points(winner.score)}</Text>
             </View>
           </Sign>
-        </Animated.View>
+        </Flourish>
       ) : null}
 
       <View style={styles.stage}>

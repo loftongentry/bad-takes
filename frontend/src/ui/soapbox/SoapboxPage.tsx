@@ -6,7 +6,7 @@ import { useGameSessionStore } from "../../state/gameSessionStore";
 import { goHome } from "../../navigation/home";
 import Animated from "react-native-reanimated";
 import { KraftBackground } from "./KraftBackground";
-import { punchIn, settleIn } from "./motion";
+import { Flourish, settleIn } from "./motion";
 import { FONTS, SOAPBOX } from "./tokens";
 
 const BackButton = ({ onPress }: { onPress: () => void }) => (
@@ -71,14 +71,25 @@ export const SoapboxPage = ({
             {headerRight}
           </View>
 
-          <Animated.Text
-            key={title}
-            entering={titleEntrance === "punch" ? punchIn : settleIn()}
-            style={[styles.title, compact ? styles.titleCompact : null]}
-            accessibilityRole="header"
-          >
-            {title}
-          </Animated.Text>
+          {titleEntrance === "punch" ? (
+            <Flourish key={title} kind="punch">
+              <Text
+                style={[styles.title, compact ? styles.titleCompact : null]}
+                accessibilityRole="header"
+              >
+                {title}
+              </Text>
+            </Flourish>
+          ) : (
+            <Animated.Text
+              key={title}
+              entering={settleIn()}
+              style={[styles.title, compact ? styles.titleCompact : null]}
+              accessibilityRole="header"
+            >
+              {title}
+            </Animated.Text>
+          )}
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           {/* Room for a Board's tape label, which sticks up above its top edge */}
           <View style={{ height: 30 }} />
