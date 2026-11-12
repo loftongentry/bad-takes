@@ -8,8 +8,11 @@ export const PROMPT_MAX = 140;
 
 export const ROUNDS = { min: 1, max: 1 }; // multiple rounds aren't supported yet
 export const PLAYER_LIMIT = { min: 2, max: 20 };
-// Defense time in seconds. The minimum is overridable so tests can use very short defenses.
-export const TIME_LIMIT = { min: Number(process.env.MIN_TIME_LIMIT_SECONDS) || 60, max: 300 };
+// Defense and writing times in seconds. The minimums are overridable so tests can use very
+// short phases.
+const TEST_MIN = Number(process.env.MIN_TIME_LIMIT_SECONDS) || 0;
+export const TIME_LIMIT = { min: TEST_MIN || 60, max: 300 };
+export const PROMPT_TIME_LIMIT = { min: TEST_MIN || 30, max: 180 };
 
 // Trims the text and checks it isn't empty or too long. Returns the trimmed text.
 export function cleanText(value: string, label: string, max: number) {
@@ -33,5 +36,6 @@ export function checkSettings(settings: RoomSettings): RoomSettings {
   checkRange(settings.rounds, "Rounds", ROUNDS);
   checkRange(settings.playerLimit, "Player limit", PLAYER_LIMIT);
   checkRange(settings.timeLimit, "Time limit", TIME_LIMIT);
+  checkRange(settings.promptTimeLimit, "Writing time", PROMPT_TIME_LIMIT);
   return { ...settings, lobbyName: cleanText(settings.lobbyName, "Lobby name", LOBBY_NAME_MAX) };
 }

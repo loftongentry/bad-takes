@@ -1,6 +1,8 @@
 // Defense/voting loop: advancing turns, timing each phase, ending a defense, and tallying votes
 import * as repo from "../db/roomRepo";
 import { requirePlayer } from "./permissions";
+// prompts.ts also imports from this file; the cycle is fine because these are only called later
+import { startTurnsIfAllPromptsIn } from "./prompts";
 import type { Player, Room, RoomStatus, StoredGameState } from "../types";
 
 // "Get ready" countdown before each defense. The app's defense screen uses the same value.
@@ -10,7 +12,7 @@ export const PREP_SECONDS = 5;
 // Overridable so tests don't have to wait.
 export const VOTE_SECONDS = Number(process.env.VOTE_SECONDS) || 30;
 
-type TimedPhase = "DEFENSE" | "VOTING";
+type TimedPhase = "PROMPT_ENTRY" | "DEFENSE" | "VOTING";
 
 // Starts the next turn in the queue, or moves to RESULTS when the queue is empty.
 // Turns belonging to players who have since left are skipped.
@@ -56,7 +58,7 @@ export async function advanceToNextTurn(
   return true;
 }
 
-// --- Phase timers (defense and voting) ---
+// --- Phase timers (writing, defense and voting) ---
 
 // Timers live in this process's memory; restorePhaseTimers() re-creates them from Redis
 // on startup, so a server restart mid-turn doesn't leave a phase running forever.
@@ -85,7 +87,10 @@ async function endPhaseAtDeadline(roomId: string, phase: TimedPhase, deadline: s
     return;
   }
 
-  if (phase === "DEFENSE") {
+  if (phase === "PROMPT_ENTRY") {
+    console.log(`[GameLogic] Writing time is up in room ${roomId}`);
+    await startTurnsIfAllPromptsIn(roomId, { timeUp: true });
+  } else if (phase === "DEFENSE") {
     console.log(`[GameLogic] Time's up for the defense in room ${roomId}`);
     await moveToVoting(roomId);
   } else {

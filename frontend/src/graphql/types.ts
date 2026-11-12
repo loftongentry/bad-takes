@@ -16,6 +16,7 @@ export type Room = {
     rounds: number;
     playerLimit: number;
     timeLimit: number;
+    promptTimeLimit: number;
   };
   players: Player[];
   gameState: {
@@ -36,6 +37,7 @@ export type CreateArgs = {
   rounds: number;
   playerLimit: number;
   timeLimit: number;
+  promptTimeLimit: number;
 };
 
 // --- Mutation results ---

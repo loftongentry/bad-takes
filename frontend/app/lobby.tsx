@@ -83,7 +83,7 @@ const LobbyScreen = () => {
   // Matches the server's rule: with one player there's nobody to vote
   const hasEnoughPlayers = room.players.length >= MIN_PLAYERS
 
-  const subText = `Join Code: ${room.joinCode} \n Rounds: ${room.settings.rounds} · Time: ${room.settings.timeLimit} seconds`
+  const subText = `Join Code: ${room.joinCode} \n Writing: ${room.settings.promptTimeLimit}s · Defense: ${room.settings.timeLimit}s`
 
   return (
     <Page

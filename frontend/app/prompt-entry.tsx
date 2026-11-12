@@ -11,6 +11,7 @@ import { ActionRow } from "../src/ui/ActionRow"
 import { useGameSessionStore } from "../src/state/gameSessionStore"
 import { useRoom } from "../src/hooks/useRoom"
 import { useRoomActions } from "../src/hooks/useRoomActions"
+import { useSecondsLeft } from "../src/hooks/useSecondsLeft"
 
 const CHAR_LIMIT = 140
 
@@ -21,6 +22,9 @@ const PromptEntry = () => {
   const [badTake, setBadTake] = useState<string>('')
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
+
+  // Writing time set by the host; when it runs out the game starts with the takes that are in
+  const secondsLeft = useSecondsLeft(room?.status === 'PROMPT_ENTRY' ? room.gameState?.deadline : null)
 
   const handleSubmitPrompt = async () => {
     Keyboard.dismiss();
@@ -50,6 +54,7 @@ const PromptEntry = () => {
       >
         <SpinnerMessage>
           Waiting on {total - count} {total - count > 1 ? 'players' : 'player'} to finish their terrible opinions...
+          {secondsLeft !== null ? `\nStarting in ${secondsLeft}s at the latest.` : ''}
         </SpinnerMessage>
       </Page>
     )
@@ -59,7 +64,7 @@ const PromptEntry = () => {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <Page
         title="Enter Bad Take"
-        subtitle="Enter a controversial opinion below"
+        subtitle={secondsLeft !== null ? `Enter a controversial opinion · ${secondsLeft}s left` : "Enter a controversial opinion below"}
         onBack={leaveGame}
       >
         <PromptCard>
@@ -93,7 +98,7 @@ const PromptEntry = () => {
         <ActionRow>
           <PrimaryButton
             onPress={handleSubmitPrompt}
-            disabled={loading || badTake.length === 0 || badTake.length > CHAR_LIMIT}
+            disabled={loading || badTake.trim().length === 0 || badTake.length > CHAR_LIMIT}
           >
             {loading ? <Spinner /> : "Submit Bad Take"}
           </PrimaryButton>

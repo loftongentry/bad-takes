@@ -60,7 +60,9 @@ export const HowToPlay = () => {
             </Rule>
 
             <Rule key="2" title="2) Write a prompt">
-              When the round starts, each player submits a controversial “bad take”
+              When the round starts, each player writes a controversial “bad take” before the
+              writing timer runs out. If someone doesn't finish in time, the game plays on
+              with the takes that came in
             </Rule>
 
             <Rule key="3" title="3) Random assignment">

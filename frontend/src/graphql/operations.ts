@@ -11,6 +11,7 @@ const ROOM_FRAGMENT = gql`
       rounds
       playerLimit
       timeLimit
+      promptTimeLimit
     }
     players {
       id
@@ -63,14 +64,16 @@ export const ROOM_OPS = {
       $lobbyName: String!, 
       $rounds: Int!, 
       $playerLimit: Int!, 
-      $timeLimit: Int!
+      $timeLimit: Int!,
+      $promptTimeLimit: Int!
     ) {
       createRoom(
         hostName: $hostName, 
         lobbyName: $lobbyName, 
         rounds: $rounds, 
         playerLimit: $playerLimit, 
-        timeLimit: $timeLimit
+        timeLimit: $timeLimit,
+        promptTimeLimit: $promptTimeLimit
       ) {
         hostId
         playerToken

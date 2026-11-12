@@ -28,6 +28,7 @@ export async function createRoom(rawHostName: string, rawSettings: RoomSettings)
     rounds: settings.rounds,
     playerLimit: settings.playerLimit,
     timeLimit: settings.timeLimit,
+    promptTimeLimit: settings.promptTimeLimit,
     gameState: JSON.stringify(emptyGameState())
   };
 

@@ -72,6 +72,8 @@ export async function getRoom(roomId: string): Promise<Room | null> {
         rounds: Number(roomData.rounds),
         playerLimit: Number(roomData.playerLimit),
         timeLimit: Number(roomData.timeLimit),
+        // Rooms created before this setting existed default to 90 seconds
+        promptTimeLimit: Number(roomData.promptTimeLimit) || 90,
       },
       players: players,
       gameState
@@ -102,10 +104,10 @@ export async function getPrompts(roomId: string): Promise<Prompt[]> {
   return raw.map((p) => JSON.parse(p));
 }
 
-type PhaseDeadline = { roomId: string; status: "DEFENSE" | "VOTING"; deadline: string };
+type PhaseDeadline = { roomId: string; status: "PROMPT_ENTRY" | "DEFENSE" | "VOTING"; deadline: string };
 
-// Every room currently in a timed phase (DEFENSE or VOTING), with its deadline. Used on
-// startup to restore the in-memory phase timers that a server restart would otherwise lose.
+// Every room currently in a timed phase (writing, defense or voting), with its deadline. Used
+// on startup to restore the in-memory phase timers that a server restart would otherwise lose.
 export async function getPhaseDeadlines(): Promise<PhaseDeadline[]> {
   const found: PhaseDeadline[] = [];
   let cursor = "0";
@@ -116,7 +118,7 @@ export async function getPhaseDeadlines(): Promise<PhaseDeadline[]> {
       // Only the room hashes themselves (room:{id}), not room:{id}:players and friends
       if (key.split(":").length !== 2) continue;
       const [status, rawState] = await redis.hmget(key, "status", "gameState");
-      if ((status !== "DEFENSE" && status !== "VOTING") || !rawState) continue;
+      if ((status !== "PROMPT_ENTRY" && status !== "DEFENSE" && status !== "VOTING") || !rawState) continue;
       const deadline = JSON.parse(rawState).deadline;
       if (deadline) {
         found.push({ roomId: key.slice("room:".length), status, deadline });

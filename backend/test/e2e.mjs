@@ -72,10 +72,10 @@ const hostOf = new Map(); // roomId -> host's player id
 const tok = (playerId) => tokenOf.get(playerId) ?? 'not-a-real-token';
 
 // Creates a room hosted by names[0] and joins the rest. Returns { roomId, players: [{ id, name }] }
-async function setupRoom(names, { timeLimit = 60, url = HTTP } = {}) {
+async function setupRoom(names, { timeLimit = 60, promptTimeLimit = 90, url = HTTP } = {}) {
   const c = await gql(
-    `mutation($h:String!,$t:Int!){ createRoom(hostName:$h, lobbyName:"E2E", rounds:1, playerLimit:20, timeLimit:$t) { hostId playerToken room { id joinCode } } }`,
-    { h: names[0], t: timeLimit },
+    `mutation($h:String!,$t:Int!,$w:Int!){ createRoom(hostName:$h, lobbyName:"E2E", rounds:1, playerLimit:20, timeLimit:$t, promptTimeLimit:$w) { hostId playerToken room { id joinCode } } }`,
+    { h: names[0], t: timeLimit, w: promptTimeLimit },
     url
   );
   const roomId = c.createRoom.room.id;
@@ -360,7 +360,7 @@ test('only the host can start, reset, or kick', async () => {
 
 test('names, lobby names and takes are trimmed and length-limited', async () => {
   const create = (hostName, lobbyName = 'L') =>
-    gqlRaw(`mutation($h:String!,$l:String!){ createRoom(hostName:$h, lobbyName:$l, rounds:1, playerLimit:5, timeLimit:60) { room { id } } }`, { h: hostName, l: lobbyName });
+    gqlRaw(`mutation($h:String!,$l:String!){ createRoom(hostName:$h, lobbyName:$l, rounds:1, playerLimit:5, timeLimit:60, promptTimeLimit:90) { room { id } } }`, { h: hostName, l: lobbyName });
   assert((await create('x'.repeat(25))).errors, 'a 25-character name should be rejected');
   assert((await create('   ')).errors, 'a blank name should be rejected');
   assert((await create('Ann', 'y'.repeat(41))).errors, 'a 41-character lobby name should be rejected');
@@ -386,11 +386,13 @@ test('names, lobby names and takes are trimmed and length-limited', async () => 
 
 test('room settings must be in range', async () => {
   const create = (settings) =>
-    gqlRaw(`mutation($r:Int!,$p:Int!,$t:Int!){ createRoom(hostName:"A", lobbyName:"L", rounds:$r, playerLimit:$p, timeLimit:$t) { room { id } } }`, settings);
+    gqlRaw(`mutation($r:Int!,$p:Int!,$t:Int!,$w:Int!){ createRoom(hostName:"A", lobbyName:"L", rounds:$r, playerLimit:$p, timeLimit:$t, promptTimeLimit:$w) { room { id } } }`, { w: 90, ...settings });
   assert((await create({ r: 1, p: 1, t: 60 })).errors, 'a player limit of 1 should be rejected');
   assert((await create({ r: 1, p: 500, t: 60 })).errors, 'a player limit of 500 should be rejected');
   assert((await create({ r: 1, p: 5, t: 0 })).errors, 'a time limit of 0 should be rejected');
   assert((await create({ r: 1, p: 5, t: 10_000_000 })).errors, 'a huge time limit should be rejected');
+  assert((await create({ r: 1, p: 5, t: 60, w: 0 })).errors, 'a writing time of 0 should be rejected');
+  assert((await create({ r: 1, p: 5, t: 60, w: 100_000 })).errors, 'a huge writing time should be rejected');
   assert((await create({ r: 3, p: 5, t: 60 })).errors, 'more than 1 round should be rejected (not supported yet)');
   assert(!(await create({ r: 1, p: 5, t: 60 })).errors, 'valid settings should be accepted');
 });
@@ -431,6 +433,41 @@ test("a player's public id can't be used to act as them", async () => {
   const stale = await gqlRaw(`mutation($r:ID!,$t:String!){ submitPrompt(roomId:$r, playerToken:$t, prompt:"ghost") }`, { r: roomId, t: tok(c.id) });
   assert(stale.errors, "a departed player's token should stop working");
   await submitPrompt(roomId, b.id, 'still works');
+});
+
+test('when writing time runs out, the game plays the takes that came in', async () => {
+  const { roomId, players } = await setupRoom(['A', 'B', 'C'], { promptTimeLimit: 2 });
+  await startGame(roomId);
+  const { deadline } = (await getRoom(roomId)).gameState;
+  assert(deadline, 'prompt entry should have a deadline');
+
+  // C never writes a take
+  await submitPrompt(roomId, players[0].id, 'take by A');
+  await submitPrompt(roomId, players[1].id, 'take by B');
+  await sleep(Date.parse(deadline) + 1000 - Date.now());
+
+  let room = await getRoom(roomId);
+  assert(room.status === 'DEFENSE', `the game should start when writing time runs out (status ${room.status})`);
+  const takes = [];
+  const defenders = [];
+  while (room.status === 'DEFENSE') {
+    takes.push(room.gameState.currentTurn.promptText);
+    defenders.push(room.gameState.currentTurn.defenderId);
+    await endTurn(roomId);
+    for (const v of players.filter((p) => p.id !== room.gameState.currentTurn.defenderId)) await submitVote(roomId, v.id, 1);
+    room = await getRoom(roomId);
+  }
+  assert(new Set(defenders).size === 3, `everyone should still defend (${defenders.length} turns)`);
+  assert(takes.every((t) => t === 'take by A' || t === 'take by B'), `only submitted takes should be played (${takes.join(', ')})`);
+});
+
+test('if nobody writes a take, the room goes back to the lobby', async () => {
+  const { roomId } = await setupRoom(['A', 'B'], { promptTimeLimit: 1 });
+  await startGame(roomId);
+  const { deadline } = (await getRoom(roomId)).gameState;
+  await sleep(Date.parse(deadline) + 1000 - Date.now());
+  const room = await getRoom(roomId);
+  assert(room.status === 'LOBBY', `with no takes the room should return to the lobby (status ${room.status})`);
 });
 
 test('only the defender can end their defense early', async () => {
@@ -624,7 +661,7 @@ test('active rooms outlive the expiry time; idle rooms still expire', async () =
     const exists = async (roomId) => (await gql(`query($id:ID!){ room(id:$id){ id } }`, { id: roomId }, url)).room !== null;
 
     const c = await gql(
-      `mutation { createRoom(hostName:"A", lobbyName:"TTL", rounds:1, playerLimit:5, timeLimit:60) { room { id joinCode } } }`,
+      `mutation { createRoom(hostName:"A", lobbyName:"TTL", rounds:1, playerLimit:5, timeLimit:60, promptTimeLimit:90) { room { id joinCode } } }`,
       {},
       url
     );

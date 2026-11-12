@@ -2,13 +2,12 @@
 import { v4 as uuid } from "uuid";
 import * as repo from "../db/roomRepo";
 import { emptyGameState, generateQueue } from "./state";
-import { advanceToNextTurn } from "./turns";
+import { advanceToNextTurn, schedulePhaseEnd } from "./turns";
 import { requireHost, requirePlayer } from "./permissions";
 import { PROMPT_MAX, cleanText } from "./rules";
 
 export const MIN_PLAYERS = 2;
 
-// TODO: Need to add logic to force faster entry of prompts based on timeLimit setting (that also would need to be added into schema)
 export async function startGame(roomId: string, hostToken: string) {
   try {
     const room = await repo.getRoom(roomId);
@@ -26,7 +25,15 @@ export async function startGame(roomId: string, hostToken: string) {
 
     console.log(`[RoomStore.startGame] Starting game for room ${roomId}`);
 
-    await repo.setStatus(roomId, "PROMPT_ENTRY");
+    // Players have until this deadline to write their take
+    const state = emptyGameState();
+    state.deadline = new Date(Date.now() + room.settings.promptTimeLimit * 1000).toISOString();
+
+    // Atomic, so two "Start" taps can't both start the game
+    if (!(await repo.advanceRoom(roomId, "LOBBY", "PROMPT_ENTRY", state))) {
+      throw new Error("The game has already started");
+    }
+    schedulePhaseEnd(roomId, "PROMPT_ENTRY", state.deadline);
 
     const updatedRoom = await repo.getRoom(roomId);
     if (!updatedRoom) {
@@ -76,9 +83,12 @@ export async function submitPrompt(roomId: string, playerToken: string, prompt: 
   }
 }
 
-// If every player still in the room has submitted a prompt, builds the turn queue and starts
-// the first turn. Called after each submission and when a player leaves during prompt entry.
-export async function startTurnsIfAllPromptsIn(roomId: string) {
+// Builds the turn queue and starts the first turn once every player still in the room has
+// submitted a take. Called after each submission and when a player leaves during prompt entry.
+// With timeUp (the writing time ran out), plays with the takes that came in: everyone still
+// defends, so some takes get defended more than once. If nobody wrote anything, the room goes
+// back to the lobby.
+export async function startTurnsIfAllPromptsIn(roomId: string, { timeUp = false } = {}) {
   const room = await repo.getRoom(roomId);
   if (!room || room.status !== "PROMPT_ENTRY") {
     return;
@@ -87,7 +97,15 @@ export async function startTurnsIfAllPromptsIn(roomId: string) {
   // Only prompts from players still in the room count
   const playerIds = new Set(room.players.map((p) => p.id));
   const prompts = (await repo.getPrompts(roomId)).filter((p) => playerIds.has(p.authorId));
-  if (prompts.length < room.players.length) {
+  if (prompts.length < room.players.length && !timeUp) {
+    return;
+  }
+
+  if (prompts.length === 0) {
+    console.log(`[GameLogic] Nobody wrote a take in room ${roomId}, back to the lobby`);
+    if (await repo.advanceRoom(roomId, "PROMPT_ENTRY", "LOBBY", emptyGameState())) {
+      await repo.publishRoom(await repo.getRoom(roomId));
+    }
     return;
   }
 

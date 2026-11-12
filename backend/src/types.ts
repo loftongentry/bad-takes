@@ -5,6 +5,8 @@ export type RoomSettings = {
   rounds: number
   playerLimit: number
   timeLimit: number
+  // Seconds players get to write their take
+  promptTimeLimit: number
 }
 
 export type Player = {

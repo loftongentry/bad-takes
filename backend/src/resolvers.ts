@@ -19,8 +19,8 @@ export const resolvers = {
   },
   Mutation: {
     createRoom: async (_: unknown, args: CreateRoomArgs) => {
-      const { hostName, lobbyName, rounds, playerLimit, timeLimit } = args;
-      const settings = { lobbyName, rounds, playerLimit, timeLimit };
+      const { hostName, lobbyName, rounds, playerLimit, timeLimit, promptTimeLimit } = args;
+      const settings = { lobbyName, rounds, playerLimit, timeLimit, promptTimeLimit };
 
       const { room, hostId, hostToken } = await createRoom(hostName, settings);
       if (!room) throw new Error("Failed to create room");

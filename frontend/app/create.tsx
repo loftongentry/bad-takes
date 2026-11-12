@@ -20,8 +20,12 @@ const MIN_PLAYERS = 2
 const MAX_PLAYERS = 20
 
 const STEP_SECONDS = 15
+// Defense time
 const MIN_SECONDS = 60
 const MAX_SECONDS = 5 * 60 // 5 Minutes
+// Writing time (to write a take)
+const MIN_WRITING_SECONDS = 30
+const MAX_WRITING_SECONDS = 3 * 60
 
 const CreateScreen = () => {
   const router = useRouter()
@@ -30,6 +34,7 @@ const CreateScreen = () => {
   const [rounds, setRounds] = useState<number>(1)
   const [playerLimit, setPlayerLimit] = useState<number>(5)
   const [timeLimit, setTimeLimit] = useState<number>(60)
+  const [promptTimeLimit, setPromptTimeLimit] = useState<number>(90)
   const [yourName, setYourName] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
 
@@ -44,6 +49,7 @@ const CreateScreen = () => {
         rounds,
         playerLimit,
         timeLimit,
+        promptTimeLimit,
       });
 
       router.push(`/lobby`);
@@ -88,7 +94,20 @@ const CreateScreen = () => {
         />
 
         <StepperRow
-          label="Time Limit"
+          label="Writing Time"
+          valueText={`${promptTimeLimit}s`}
+          decrementDisabled={promptTimeLimit <= MIN_WRITING_SECONDS}
+          incrementDisabled={promptTimeLimit >= MAX_WRITING_SECONDS}
+          onDecrement={() =>
+            setPromptTimeLimit((s) => clamp(s - STEP_SECONDS, MIN_WRITING_SECONDS, MAX_WRITING_SECONDS))
+          }
+          onIncrement={() =>
+            setPromptTimeLimit((s) => clamp(s + STEP_SECONDS, MIN_WRITING_SECONDS, MAX_WRITING_SECONDS))
+          }
+        />
+
+        <StepperRow
+          label="Defense Time"
           valueText={`${timeLimit}s`}
           decrementDisabled={timeLimit <= MIN_SECONDS}
           incrementDisabled={timeLimit >= MAX_SECONDS}
