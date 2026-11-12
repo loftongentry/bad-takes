@@ -3,6 +3,7 @@ import { useState } from "react"
 import { View, Text, Spinner, XStack } from "tamagui"
 import { ThumbsUp, ThumbsDown } from '@tamagui/lucide-icons'
 import { Page } from "../src/ui/Page"
+import { HostPlayersMenu } from "../src/ui/HostPlayersMenu"
 import { COLORS } from "../src/ui/theme"
 import { PromptCard, PromptText } from "../src/ui/PromptCard"
 import { VoteButton } from "../src/ui/VoteButton"
@@ -10,6 +11,7 @@ import { useGameSessionStore } from "../src/state/gameSessionStore"
 import { useRoom } from "../src/hooks/useRoom"
 import { useRoomActions } from "../src/hooks/useRoomActions"
 import { useSecondsLeft } from "../src/hooks/useSecondsLeft"
+import type { Room } from "../src/graphql/types"
 
 // "Voting closes in 12s"; the server counts whatever votes are in when it hits zero
 const VotingClock = ({ secondsLeft }: { secondsLeft: number | null }) =>
@@ -21,17 +23,20 @@ const VotingClock = ({ secondsLeft }: { secondsLeft: number | null }) =>
 
 // Shown to the defender while the jury votes, and to voters after they've voted
 const WaitingPage = ({
+  room,
   title,
   message,
   secondsLeft,
   onBack,
 }: {
+  room: Room | null
   title: string
   message: string
   secondsLeft: number | null
   onBack: () => void
 }) => (
   <Page
+    headerRight={<HostPlayersMenu room={room} />}
     title={title}
     onBack={onBack}
   >
@@ -95,15 +100,16 @@ const Voting = () => {
   }
 
   if (isDefender) {
-    return <WaitingPage title="Judgement Time" message="The jury is deciding..." secondsLeft={secondsLeft} onBack={leaveGame} />
+    return <WaitingPage room={room} title="Judgement Time" message="The jury is deciding..." secondsLeft={secondsLeft} onBack={leaveGame} />
   }
 
   if (hasVoted) {
-    return <WaitingPage title="Vote Locked In" message="Waiting for others to vote..." secondsLeft={secondsLeft} onBack={leaveGame} />
+    return <WaitingPage room={room} title="Vote Locked In" message="Waiting for others to vote..." secondsLeft={secondsLeft} onBack={leaveGame} />
   }
 
   return (
     <Page
+      headerRight={<HostPlayersMenu room={room} />}
       title="Cast Your Vote"
       showBack={false}
     >

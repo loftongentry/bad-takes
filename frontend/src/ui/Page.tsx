@@ -35,12 +35,15 @@ export const Page = ({
   subtitle,
   showBack = true,
   onBack,
+  headerRight,
   children,
 }: {
   title: string
   subtitle?: string
   showBack?: boolean
   onBack?: () => void
+  // Shown at the right end of the top bar, e.g. the host's players menu
+  headerRight?: React.ReactNode
   children: React.ReactNode
 }) => {
   return (
@@ -66,6 +69,7 @@ export const Page = ({
       >
         {showBack ? <BackIconButton onBack={onBack} /> : null}
         <View style={{ flex: 1 }} />
+        {headerRight}
       </View>
 
       <Text

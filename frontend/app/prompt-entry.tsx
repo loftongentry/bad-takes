@@ -4,6 +4,7 @@ import { useState } from "react"
 import { TextArea, Text, XStack, Spinner } from "tamagui"
 import { Keyboard, TouchableWithoutFeedback } from "react-native"
 import { Page } from "../src/ui/Page"
+import { HostPlayersMenu } from "../src/ui/HostPlayersMenu"
 import { PrimaryButton } from "../src/ui/PrimaryButton"
 import { PromptCard, promptTextStyle } from "../src/ui/PromptCard"
 import { SpinnerMessage } from "../src/ui/SpinnerMessage"
@@ -49,6 +50,7 @@ const PromptEntry = () => {
 
     return (
       <Page
+        headerRight={<HostPlayersMenu room={room} />}
         title="Bad Take Submitted!"
         onBack={leaveGame}
       >
@@ -63,6 +65,7 @@ const PromptEntry = () => {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <Page
+        headerRight={<HostPlayersMenu room={room} />}
         title="Enter Bad Take"
         subtitle={secondsLeft !== null ? `Enter a controversial opinion · ${secondsLeft}s left` : "Enter a controversial opinion below"}
         onBack={leaveGame}

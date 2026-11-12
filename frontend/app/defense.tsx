@@ -1,5 +1,6 @@
 import { Text, View, Progress } from 'tamagui'
 import { Page } from '../src/ui/Page'
+import { HostPlayersMenu } from "../src/ui/HostPlayersMenu"
 import { COLORS } from '../src/ui/theme'
 import { PrimaryButton } from '../src/ui/PrimaryButton'
 import { PromptCard, PromptText } from '../src/ui/PromptCard'
@@ -31,6 +32,7 @@ const Defense = () => {
   if (!currentTurn) {
     return (
       <Page
+        headerRight={<HostPlayersMenu room={room} />}
         title="Loading..."
         showBack={false}
       >
@@ -44,6 +46,7 @@ const Defense = () => {
 
   return (
     <Page
+      headerRight={<HostPlayersMenu room={room} />}
       title={headerText}
       showBack={false}
     >

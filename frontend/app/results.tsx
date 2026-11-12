@@ -2,6 +2,7 @@ import { useState } from "react"
 import { View, Text, ScrollView, Separator, Card } from "tamagui"
 import { Crown, RefreshCw } from '@tamagui/lucide-icons'
 import { Page } from "../src/ui/Page"
+import { HostPlayersMenu } from "../src/ui/HostPlayersMenu"
 import { PrimaryButton } from "../src/ui/PrimaryButton"
 import { COLORS } from "../src/ui/theme"
 import { useGameSessionStore } from "../src/state/gameSessionStore"
@@ -36,6 +37,7 @@ const Results = () => {
 
   return (
     <Page
+      headerRight={<HostPlayersMenu room={room} />}
       title="Game Results"
       onBack={leaveGame}
     >
