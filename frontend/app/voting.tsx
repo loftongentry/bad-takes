@@ -9,7 +9,6 @@ import { VoteButton } from "../src/ui/VoteButton"
 import { useGameSessionStore } from "../src/state/gameSessionStore"
 import { useRoom } from "../src/hooks/useRoom"
 import { useRoomActions } from "../src/hooks/useRoomActions"
-import { useStatusRedirect } from "../src/hooks/useStatusRedirect"
 import { useSecondsLeft } from "../src/hooks/useSecondsLeft"
 
 // "Voting closes in 12s"; the server counts whatever votes are in when it hits zero
@@ -65,23 +64,28 @@ const Voting = () => {
   const { room } = useRoom(roomId || undefined)
   const { leaveGame, submitVote } = useRoomActions(roomId || undefined)
 
-  const [hasVoted, setHasVoted] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
 
   const currentTurn = room?.gameState?.currentTurn
   const isDefender = currentTurn?.defenderId === myPlayerId
   const defenderName = room?.players.find(p => p.id === currentTurn?.defenderId)?.name || 'Defendant'
 
-  useStatusRedirect(room?.status, { DEFENSE: '/defense', RESULTS: '/results' })
+  // Each voting round has its own deadline; null until the room is actually voting
+  // (before that, the deadline is still the defense's)
+  const votingRound = room?.status === 'VOTING' ? room.gameState?.deadline ?? null : null
+  const secondsLeft = useSecondsLeft(votingRound)
 
-  // Only once the room is actually voting; until then the deadline is still the defense's
-  const secondsLeft = useSecondsLeft(room?.status === 'VOTING' ? room.gameState?.deadline : null)
+  // Remember which round this player voted in, so a vote never carries over to the next turn
+  // if this screen stays open from one vote to the next
+  const [votedRound, setVotedRound] = useState<string | null>(null)
+  const hasVoted = votingRound !== null && votedRound === votingRound
 
   const handleVote = async (value: number) => {
+    const round = votingRound
     setLoading(true)
     try {
       await submitVote(value)
-      setHasVoted(true)
+      setVotedRound(round)
     } catch (error) {
       console.error("Failed to submit vote:", error)
       alert("Failed to submit vote. Please try again.")

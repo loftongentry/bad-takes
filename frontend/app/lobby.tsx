@@ -12,7 +12,6 @@ import { COLORS } from '../src/ui/theme'
 import { useGameSessionStore } from '../src/state/gameSessionStore'
 import { useRoom } from '../src/hooks/useRoom'
 import { useRoomActions } from '../src/hooks/useRoomActions'
-import { useStatusRedirect } from '../src/hooks/useStatusRedirect'
 import type { Player } from '../src/graphql/types'
 
 const MIN_PLAYERS = 2
@@ -25,8 +24,6 @@ const LobbyScreen = () => {
   const { room, loading } = useRoom(roomId || undefined)
   const { leaveGame, kickPlayer, startGame } = useRoomActions(roomId || undefined)
   const [startLoading, setStartLoading] = useState<boolean>(false)
-
-  useStatusRedirect(room?.status, { PROMPT_ENTRY: '/prompt-entry' })
 
   if (!roomId || !playerId || (!room && loading)) {
     return (

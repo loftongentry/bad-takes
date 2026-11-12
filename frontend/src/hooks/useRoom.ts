@@ -1,13 +1,26 @@
 import { useEffect } from "react";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { useQuery, useSubscription } from "@apollo/client/react";
 import { useGameSessionStore } from "../state/gameSessionStore";
 import { ROOM_OPS } from "../graphql/operations";
 import type { Room } from "../graphql/types";
 
-// Live view of a room. Also sends the player home if the room closes or they get kicked.
+// The screen for each phase of the game. The server decides the phase; every in-game screen
+// follows it from here, so any change (including the game ending early because players left)
+// moves every player to the right screen, whichever screen they're on.
+const SCREEN_FOR_STATUS: Record<string, string> = {
+  LOBBY: "/lobby",
+  PROMPT_ENTRY: "/prompt-entry",
+  DEFENSE: "/defense",
+  VOTING: "/voting",
+  RESULTS: "/results",
+};
+
+// Live view of a room. Keeps the player on the screen for the room's current phase, and sends
+// them home if the room closes or they get kicked.
 export function useRoom(roomId?: string) {
   const router = useRouter();
+  const pathname = usePathname();
   const { session, clearSession } = useGameSessionStore();
 
   const myPlayerId = session?.playerId || null;
@@ -66,6 +79,15 @@ export function useRoom(roomId?: string) {
       }
     }
   }, [room, roomClosed, loading, myPlayerId, roomId]);
+
+  // Follow the room to the screen for its current phase
+  const status = room?.status;
+  useEffect(() => {
+    const target = status ? SCREEN_FOR_STATUS[status] : undefined;
+    if (target && pathname !== target) {
+      router.replace(target);
+    }
+  }, [status, pathname]);
 
   return { room, loading, error };
 }

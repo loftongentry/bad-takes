@@ -11,7 +11,6 @@ import { ActionRow } from "../src/ui/ActionRow"
 import { useGameSessionStore } from "../src/state/gameSessionStore"
 import { useRoom } from "../src/hooks/useRoom"
 import { useRoomActions } from "../src/hooks/useRoomActions"
-import { useStatusRedirect } from "../src/hooks/useStatusRedirect"
 
 const CHAR_LIMIT = 140
 
@@ -22,8 +21,6 @@ const PromptEntry = () => {
   const [badTake, setBadTake] = useState<string>('')
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
-
-  useStatusRedirect(room?.status, { DEFENSE: '/defense' })
 
   const handleSubmitPrompt = async () => {
     Keyboard.dismiss();

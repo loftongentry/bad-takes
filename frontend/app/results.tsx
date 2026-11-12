@@ -7,7 +7,6 @@ import { COLORS } from "../src/ui/theme"
 import { useGameSessionStore } from "../src/state/gameSessionStore"
 import { useRoom } from "../src/hooks/useRoom"
 import { useRoomActions } from "../src/hooks/useRoomActions"
-import { useStatusRedirect } from "../src/hooks/useStatusRedirect"
 
 const Results = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
@@ -22,8 +21,6 @@ const Results = () => {
   const players = room?.players || []
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
   const winner = sortedPlayers[0]
-
-  useStatusRedirect(room?.status, { LOBBY: '/lobby' })
 
   const handlePlayAgain = async () => {
     setLoading(true)

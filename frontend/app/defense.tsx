@@ -8,7 +8,6 @@ import { ActionRow } from '../src/ui/ActionRow'
 import { useGameSessionStore } from '../src/state/gameSessionStore'
 import { useRoom } from '../src/hooks/useRoom'
 import { useRoomActions } from '../src/hooks/useRoomActions'
-import { useStatusRedirect } from '../src/hooks/useStatusRedirect'
 import { useDefenseTimer } from '../src/hooks/useDefenseTimer'
 
 // Must match PREP_SECONDS in backend/src/game/turns.ts (the server's deadline includes it)
@@ -25,8 +24,6 @@ const Defense = () => {
   const defenderName = room?.players.find(p => p.id === currentTurn?.defenderId)?.name || 'Unknown'
 
   const DEFEND_TIME = room?.settings.timeLimit || 60
-
-  useStatusRedirect(room?.status, { VOTING: '/voting' })
 
   // Counts down to the server's deadline; the server moves everyone to voting when it passes
   const { phase, timeLeft, maxTime } = useDefenseTimer(room?.gameState?.deadline, PREP_TIME, DEFEND_TIME)
