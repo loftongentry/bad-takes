@@ -62,14 +62,8 @@ export async function submitPrompt(roomId: string, playerId: string, prompt: str
       text: prompt
     });
 
-    // Check to see if everyone has submitted
     if (submittedCount >= room.players.length) {
-      // Generate the turn queue (who defends what)
-      const prompts = await repo.getPrompts(roomId);
-      const state = { ...emptyGameState(), prompts, queue: generateQueue(room.players, prompts) };
-
-      // Transition to first turn. If the last few prompts arrive together, only one request starts it.
-      await advanceToNextTurn(roomId, "PROMPT_ENTRY", state, room.settings.timeLimit);
+      await startTurnsIfAllPromptsIn(roomId);
     }
 
     // Notify subscribers in room
@@ -80,4 +74,26 @@ export async function submitPrompt(roomId: string, playerId: string, prompt: str
     console.error(`[RoomStore.submitPrompt] Failed to submit prompt for room ${roomId}:`, error);
     throw error;
   }
+}
+
+// If every player still in the room has submitted a prompt, builds the turn queue and starts
+// the first turn. Called after each submission and when a player leaves during prompt entry.
+export async function startTurnsIfAllPromptsIn(roomId: string) {
+  const room = await repo.getRoom(roomId);
+  if (!room || room.status !== "PROMPT_ENTRY") {
+    return;
+  }
+
+  // Only prompts from players still in the room count
+  const playerIds = new Set(room.players.map((p) => p.id));
+  const prompts = (await repo.getPrompts(roomId)).filter((p) => playerIds.has(p.authorId));
+  if (prompts.length < room.players.length) {
+    return;
+  }
+
+  // Generate the turn queue (who defends what)
+  const state = { ...emptyGameState(), prompts, queue: generateQueue(room.players, prompts) };
+
+  // Transition to first turn. If the last few prompts arrive together, only one request starts it.
+  await advanceToNextTurn(room, "PROMPT_ENTRY", state);
 }

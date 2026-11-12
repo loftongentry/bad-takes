@@ -1,27 +1,34 @@
 // Defense/voting loop: advancing turns, timing and ending a defense, and tallying votes
 import * as repo from "../db/roomRepo";
-import type { Player, RoomStatus, StoredGameState } from "../types";
+import type { Player, Room, RoomStatus, StoredGameState } from "../types";
 
 // "Get ready" countdown before each defense. The app's defense screen uses the same value.
 export const PREP_SECONDS = 5;
 
 // Starts the next turn in the queue, or moves to RESULTS when the queue is empty.
+// Turns belonging to players who have since left are skipped.
 // Only happens if the room is still in `fromStatus`: when several requests race to advance
 // the same turn (e.g. the last two votes arriving together), exactly one wins and the rest
 // do nothing. Returns whether this call advanced the room.
 export async function advanceToNextTurn(
-  roomId: string,
+  room: Room,
   fromStatus: RoomStatus,
   state: StoredGameState,
-  timeLimitSeconds: number,
   scoredPlayer?: Player
 ) {
-  // Pop the next turn from queue
-  const nextTurn = state.queue.shift();
+  const roomId = room.id;
+  const stillHere = new Set(room.players.map((p) => p.id));
+
+  // Pop the next turn from queue, skipping anyone who left
+  let nextTurn = state.queue.shift();
+  while (nextTurn && !stillHere.has(nextTurn.defenderId)) {
+    nextTurn = state.queue.shift();
+  }
+
   if (nextTurn) {
     state.currentTurn = nextTurn;
     // Absolute end of this defense. Every client counts down to it, and the server ends the turn when it passes.
-    state.deadline = new Date(Date.now() + (PREP_SECONDS + timeLimitSeconds) * 1000).toISOString();
+    state.deadline = new Date(Date.now() + (PREP_SECONDS + room.settings.timeLimit) * 1000).toISOString();
   } else {
     state.deadline = null;
     console.log(`[GameLogic] No more turns in room ${roomId}, transitioning to RESULTS`);
@@ -131,34 +138,10 @@ export async function submitVote(roomId: string, playerId: string, value: number
     }
 
     await repo.recordVote(roomId, playerId, value);
+    console.log(`[GameLogic] Player ${playerId} voted in room ${roomId}`);
 
-    // Get the exact number of votes right now
-    const votesData = await repo.getVotes(roomId);
-    const votersCount = Object.keys(votesData).length;
-
-    const requiredVotes = room.players.length - 1;
-
-    console.log(`[GameLogic] Player ${playerId} voted in room ${roomId} (${votersCount}/${requiredVotes})`);
-
-    if (votersCount >= requiredVotes) {
-      console.log(`[GameLogic] All votes in for room ${roomId}, tallying votes`);
-
-      // Calculate score from fetched data
-      let roundScore = 0;
-      for (const vote of Object.values(votesData)) {
-        roundScore += Number(vote);
-      }
-
-      // Defender's new score is saved in the same atomic step that advances the turn,
-      // so it can't be applied twice if another final vote arrives at the same moment
-      const defender = room.players.find((p) => p.id === defenderId);
-      const scoredDefender = defender ? { ...defender, score: defender.score + roundScore } : undefined;
-
-      const state = await repo.getStoredGameState(roomId);
-      if (state) {
-        await advanceToNextTurn(roomId, "VOTING", state, room.settings.timeLimit, scoredDefender);
-      }
-    } else {
+    const tallied = await tallyIfAllVotesIn(roomId);
+    if (!tallied) {
       const updatedRoom = await repo.getRoom(roomId);
       await repo.publishRoom(updatedRoom);
     }
@@ -168,4 +151,40 @@ export async function submitVote(roomId: string, playerId: string, value: number
     console.error(`[RoomStore.submitVote] Failed to submit vote for room ${roomId}:`, error);
     throw error;
   }
+}
+
+// If everyone still in the room (other than the defender) has voted, scores the defender
+// and starts the next turn. Called after each vote and when a player leaves mid-vote.
+// Returns whether it tallied.
+export async function tallyIfAllVotesIn(roomId: string) {
+  const room = await repo.getRoom(roomId);
+  if (!room || room.status !== "VOTING") {
+    return false;
+  }
+
+  const defenderId = room.gameState?.currentTurn?.defenderId;
+  const voterIds = new Set(room.players.filter((p) => p.id !== defenderId).map((p) => p.id));
+
+  // Only votes from players still in the room count
+  const votes = Object.entries(await repo.getVotes(roomId)).filter(([voterId]) => voterIds.has(voterId));
+
+  console.log(`[GameLogic] Room ${roomId} has ${votes.length}/${voterIds.size} votes`);
+  if (votes.length < voterIds.size) {
+    return false;
+  }
+
+  console.log(`[GameLogic] All votes in for room ${roomId}, tallying votes`);
+  const roundScore = votes.reduce((sum, [, vote]) => sum + Number(vote), 0);
+
+  // Defender's new score is saved in the same atomic step that advances the turn,
+  // so it can't be applied twice if another final vote arrives at the same moment
+  const defender = room.players.find((p) => p.id === defenderId);
+  const scoredDefender = defender ? { ...defender, score: defender.score + roundScore } : undefined;
+
+  const state = await repo.getStoredGameState(roomId);
+  if (!state) {
+    return false;
+  }
+  await advanceToNextTurn(room, "VOTING", state, scoredDefender);
+  return true;
 }

@@ -421,6 +421,82 @@ test('defense timers survive a server restart', async () => {
   }
 });
 
+// Sets up a started game with all prompts in. Returns { roomId, players, room }
+async function gameInDefense(names) {
+  const { roomId, players } = await setupRoom(names);
+  await startGame(roomId);
+  for (const p of players) await submitPrompt(roomId, p.id, `take from ${p.name}`);
+  return { roomId, players, room: await getRoom(roomId) };
+}
+
+test('leaving during prompt entry: the game starts once everyone remaining has submitted', async () => {
+  const { roomId, players } = await setupRoom(['Host', 'B', 'C']);
+  await startGame(roomId);
+  await submitPrompt(roomId, players[0].id, 'one');
+  await submitPrompt(roomId, players[1].id, 'two');
+  await leaveRoom(roomId, players[2].id); // C leaves without submitting
+  const room = await getRoom(roomId);
+  assert(room.status === 'DEFENSE', `game should start with the 2 remaining players (status ${room.status})`);
+});
+
+test("leaving during voting: the remaining votes are enough", async () => {
+  const { roomId, players, room } = await gameInDefense(['Host', 'B', 'C']);
+  const defenderId = room.gameState.currentTurn.defenderId;
+  const voters = players.filter((p) => p.id !== defenderId);
+  // The leaver can't be the host, since a host leaving closes the room
+  const leaver = voters.find((p) => p.id !== players[0].id);
+  const stayer = voters.find((p) => p !== leaver);
+  await endTurn(roomId);
+  await submitVote(roomId, stayer.id, 1);
+  await leaveRoom(roomId, leaver.id);
+  const after = await getRoom(roomId);
+  assert(after.status !== 'VOTING', 'voting should finish once everyone still in the room has voted');
+});
+
+test('the current defender leaving skips straight to the next turn', async () => {
+  // Retry until a non-host defends first, since a host leaving closes the room
+  let game;
+  for (let i = 0; i < 20; i++) {
+    game = await gameInDefense(['Host', 'B', 'C']);
+    if (game.room.gameState.currentTurn.defenderId !== game.players[0].id) break;
+  }
+  const { roomId, room } = game;
+  const leaverId = room.gameState.currentTurn.defenderId;
+  await leaveRoom(roomId, leaverId);
+  const after = await getRoom(roomId);
+  assert(after.status === 'DEFENSE', `a new turn should start right away (status ${after.status})`);
+  assert(after.gameState.currentTurn.defenderId !== leaverId, 'the player who left should no longer be defending');
+});
+
+test("a player who leaves is skipped when their turn comes up", async () => {
+  const { roomId, players, room } = await gameInDefense(['Host', 'B', 'C', 'D']);
+  const firstDefender = room.gameState.currentTurn.defenderId;
+  const leaver = players.find((p) => p.id !== firstDefender && p.id !== players[0].id);
+  await leaveRoom(roomId, leaver.id);
+  const remaining = players.filter((p) => p.id !== leaver.id);
+
+  const { defenders, room: end } = await playAllTurns(roomId, remaining);
+  assert(!defenders.includes(leaver.id), 'the player who left should never be the defender');
+  assert(defenders.length === 3, `expected 3 turns for the 3 remaining players, got ${defenders.length}`);
+  assert(end.status === 'RESULTS', `game should finish (status ${end.status})`);
+});
+
+test('a game that drops below 2 players ends', async () => {
+  const { roomId, players } = await gameInDefense(['Host', 'B']);
+  await leaveRoom(roomId, players[1].id);
+  const room = await getRoom(roomId);
+  assert(room.status === 'RESULTS', `with one player left the game should end (status ${room.status})`);
+});
+
+test('kicking a player mid-game is handled like leaving', async () => {
+  const { roomId, players } = await setupRoom(['Host', 'B', 'C']);
+  await startGame(roomId);
+  await submitPrompt(roomId, players[0].id, 'one');
+  await submitPrompt(roomId, players[1].id, 'two');
+  assert(!(await kickAs(roomId, players[0].id, players[2].id)).errors, 'host should be able to kick');
+  assert((await getRoom(roomId)).status === 'DEFENSE', 'game should start once the kicked player is gone');
+});
+
 test('active rooms outlive the expiry time; idle rooms still expire', async () => {
   // A separate backend whose rooms expire after 3 seconds of inactivity
   const port = '3597';

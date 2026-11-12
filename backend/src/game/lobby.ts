@@ -4,6 +4,7 @@ import { makeJoinCode } from "../utils/joinCode";
 import * as repo from "../db/roomRepo";
 import { emptyGameState } from "./state";
 import { requireHost } from "./permissions";
+import { handlePlayerLeft } from "./departures";
 import type { Player, RoomSettings } from "../types";
 
 export async function createRoom(hostName: string, settings: RoomSettings) {
@@ -76,7 +77,7 @@ export async function joinRoom(joinCode: string, playerName: string) {
   }
 }
 
-// TODO: need to handle removing a prompt if a player leaves mid-game (if their prompt has already been used, decrease the prompt count, else remove the user who lefts's prompt)
+// A host leaving closes the room. Anyone else leaving mid-game is handled by handlePlayerLeft.
 export async function leaveRoom(roomId: string, playerId: string) {
   try {
     const room = await repo.getRoom(roomId);
@@ -100,6 +101,7 @@ export async function leaveRoom(roomId: string, playerId: string) {
       console.log(`[RoomStore.leave] Player ${playerId} left room ${roomId}`);
 
       await repo.removePlayer(roomId, playerId);
+      await handlePlayerLeft(roomId, playerId);
       const updatedRoom = await repo.getRoom(roomId);
       await repo.publishRoom(updatedRoom);
     }
@@ -131,6 +133,7 @@ export async function kickPlayer(roomId: string, hostId: string, playerId: strin
     console.log(`[RoomStore.kick] Kicking player ${playerId} from ${roomId}`);
 
     await repo.removePlayer(roomId, playerId);
+    await handlePlayerLeft(roomId, playerId);
     const updatedRoom = await repo.getRoom(roomId);
     await repo.publishRoom(updatedRoom);
 

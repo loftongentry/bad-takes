@@ -222,6 +222,14 @@ export async function advanceRoom(
   return result === 1;
 }
 
+export function removePrompt(roomId: string, playerId: string) {
+  return redis.hdel(promptsKey(roomId), playerId);
+}
+
+export function removeVote(roomId: string, playerId: string) {
+  return redis.hdel(votesKey(roomId), playerId);
+}
+
 export function recordVote(roomId: string, playerId: string, value: number) {
   return redis.multi()
     .hset(votesKey(roomId), playerId, value.toString())
