@@ -73,6 +73,7 @@ export const ROOM_OPS = {
         timeLimit: $timeLimit
       ) {
         hostId
+        playerToken
         room {
           ...RoomData
         }
@@ -85,6 +86,7 @@ export const ROOM_OPS = {
     mutation JoinRoom($code: String!, $playerName: String!) {
       joinRoom(code: $code, playerName: $playerName) {
         playerId
+        playerToken
         room {
           ...RoomData
         }
@@ -92,51 +94,55 @@ export const ROOM_OPS = {
     }
   `,
 
+  // Every action identifies the caller by their secret playerToken (from create/join).
+  // The server checks it, including that host-only actions come from the host.
+
   LEAVE: gql`
-    mutation Leave($roomId: ID!, $playerId: ID!) {
-      leaveRoom(roomId: $roomId, playerId: $playerId)
+    mutation Leave($roomId: ID!, $playerToken: String!) {
+      leaveRoom(roomId: $roomId, playerToken: $playerToken)
     }
   `,
 
-  // Host-only mutations send the caller's own player id as hostId; the server checks it
-
+  // Host only. $playerId is the public id of the player to remove.
   KICK: gql`
-    mutation Kick($roomId: ID!, $hostId: ID!, $playerId: ID!) {
-      kickPlayer(roomId: $roomId, hostId: $hostId, playerId: $playerId)
+    mutation Kick($roomId: ID!, $playerToken: String!, $playerId: ID!) {
+      kickPlayer(roomId: $roomId, playerToken: $playerToken, playerId: $playerId)
     }
   `,
 
+  // Host only
   START: gql`
     ${ROOM_FRAGMENT}
-    mutation Start($roomId: ID!, $hostId: ID!) {
-      startGame(roomId: $roomId, hostId: $hostId) {
+    mutation Start($roomId: ID!, $playerToken: String!) {
+      startGame(roomId: $roomId, playerToken: $playerToken) {
         ...RoomData
       }
     }
   `,
 
   SUBMIT_PROMPT: gql`
-    mutation SubmitPrompt($roomId: ID!, $playerId: ID!, $prompt: String!) {
-      submitPrompt(roomId: $roomId, playerId: $playerId, prompt: $prompt)
+    mutation SubmitPrompt($roomId: ID!, $playerToken: String!, $prompt: String!) {
+      submitPrompt(roomId: $roomId, playerToken: $playerToken, prompt: $prompt)
     }
   `,
 
   // Defender only. When time runs out, the server ends the turn itself.
   END_TURN: gql`
-    mutation EndTurn($roomId: ID!, $playerId: ID!) {
-      endTurn(roomId: $roomId, playerId: $playerId)
+    mutation EndTurn($roomId: ID!, $playerToken: String!) {
+      endTurn(roomId: $roomId, playerToken: $playerToken)
     }
   `,
 
   SUBMIT_VOTE: gql`
-    mutation SubmitVote($roomId: ID!, $playerId: ID!, $value: Int!) {
-      submitVote(roomId: $roomId, playerId: $playerId, value: $value)
+    mutation SubmitVote($roomId: ID!, $playerToken: String!, $value: Int!) {
+      submitVote(roomId: $roomId, playerToken: $playerToken, value: $value)
     }
   `,
 
+  // Host only
   RESET_GAME: gql`
-    mutation ResetGame($roomId: ID!, $hostId: ID!) {
-      resetGame(roomId: $roomId, hostId: $hostId)
+    mutation ResetGame($roomId: ID!, $playerToken: String!) {
+      resetGame(roomId: $roomId, playerToken: $playerToken)
     }
   `,
 };

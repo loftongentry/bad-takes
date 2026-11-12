@@ -32,7 +32,8 @@ export function useRoomActions(roomId?: string) {
   const client = useApolloClient();
   const { session, setSession, clearSession } = useGameSessionStore();
 
-  const myPlayerId = session?.playerId || null;
+  // Sent with every action so the server knows who is acting (see GameSession.playerToken)
+  const myToken = session?.playerToken || null;
 
   // Create and join already return the full room, so put it where the lobby's room query
   // looks. The lobby then shows immediately, without a first request that could fail.
@@ -57,13 +58,14 @@ export function useRoomActions(roomId?: string) {
         throw new Error("Failed to create room");
       }
 
-      const { room, hostId } = res.data.createRoom;
+      const { room, hostId, playerToken } = res.data.createRoom;
 
       rememberRoom(room);
       setSession({
         roomId: room.id,
         joinCode: room.joinCode,
         playerId: hostId,
+        playerToken,
         isHost: true,
       });
 
@@ -75,13 +77,14 @@ export function useRoomActions(roomId?: string) {
       if (!res.data) {
         throw new Error("Failed to join room");
       }
-      const { room, playerId } = res.data.joinRoom;
+      const { room, playerId, playerToken } = res.data.joinRoom;
 
       rememberRoom(room);
       setSession({
         roomId: room.id,
         joinCode: room.joinCode,
         playerId,
+        playerToken,
         isHost: false,
       });
 
@@ -90,7 +93,7 @@ export function useRoomActions(roomId?: string) {
 
     leaveGame: async () => {
       // Safety check, just force player back to home if missing data
-      if (!roomId || !myPlayerId) {
+      if (!roomId || !myToken) {
         clearSession();
         if (router.canGoBack()) {
           router.dismissAll();
@@ -100,7 +103,7 @@ export function useRoomActions(roomId?: string) {
 
       // This is a fire and forget; we do not wait for errors, as the goal is for the player to leave the room, which these accomplish.
       try {
-        await leaveFn({ variables: { roomId, playerId: myPlayerId } });
+        await leaveFn({ variables: { roomId, playerToken: myToken } });
       } catch (error) {
         console.warn("Network failed while leaving room (User forced exit):", error);
       } finally {
@@ -114,11 +117,11 @@ export function useRoomActions(roomId?: string) {
 
     // Unlike leaveGame, here we do want to know if it failed, as this is the host trying to kick someone.
     kickPlayer: withErrorLog("Error kicking player:", async (playerId: string) => {
-      if (!roomId || !myPlayerId) {
+      if (!roomId || !myToken) {
         throw new Error("Missing session data");
       }
 
-      const res = await kickFn({ variables: { roomId, hostId: myPlayerId, playerId } });
+      const res = await kickFn({ variables: { roomId, playerToken: myToken, playerId } });
 
       if (res.data?.kickPlayer !== true) {
         throw new Error("Failed to kick player (they may have already left)");
@@ -126,19 +129,19 @@ export function useRoomActions(roomId?: string) {
     }),
 
     startGame: withErrorLog("Error starting game:", async () => {
-      if (!roomId || !myPlayerId) {
+      if (!roomId || !myToken) {
         throw new Error("Missing session data");
       }
 
-      await startFn({ variables: { roomId, hostId: myPlayerId } });
+      await startFn({ variables: { roomId, playerToken: myToken } });
     }),
 
     submitPrompt: withErrorLog("Error submitting prompt:", async (prompt: string) => {
-      if (!roomId || !myPlayerId) {
+      if (!roomId || !myToken) {
         throw new Error("Missing session data");
       }
 
-      const res = await submitPromptFn({ variables: { roomId, playerId: myPlayerId, prompt } });
+      const res = await submitPromptFn({ variables: { roomId, playerToken: myToken, prompt } });
 
       if (res.data?.submitPrompt === true) {
         return true;
@@ -148,19 +151,19 @@ export function useRoomActions(roomId?: string) {
     }),
 
     endTurn: withErrorLog("Failed to end turn:", async () => {
-      if (!roomId || !myPlayerId) {
+      if (!roomId || !myToken) {
         throw new Error("Missing session data");
       }
 
-      await endTurnFn({ variables: { roomId, playerId: myPlayerId } });
+      await endTurnFn({ variables: { roomId, playerToken: myToken } });
     }),
 
     submitVote: withErrorLog("Error submitting vote:", async (value: number) => {
-      if (!roomId || !myPlayerId) {
+      if (!roomId || !myToken) {
         throw new Error("Missing session data");
       }
 
-      const res = await submitVoteFn({ variables: { roomId, playerId: myPlayerId, value } });
+      const res = await submitVoteFn({ variables: { roomId, playerToken: myToken, value } });
 
       if (res.data?.submitVote !== true) {
         throw new Error('Failed to submit vote');
@@ -168,11 +171,11 @@ export function useRoomActions(roomId?: string) {
     }),
 
     resetGame: withErrorLog("Error resetting game:", async () => {
-      if (!roomId || !myPlayerId) {
+      if (!roomId || !myToken) {
         throw new Error("Missing session data");
       }
 
-      const res = await resetGameFn({ variables: { roomId, hostId: myPlayerId } });
+      const res = await resetGameFn({ variables: { roomId, playerToken: myToken } });
 
       if (res.data?.resetGame !== true) {
         throw new Error('Failed to reset game');

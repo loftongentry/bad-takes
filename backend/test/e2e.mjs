@@ -64,64 +64,75 @@ const ROOM = `id joinCode status players { id name isHost score }
 
 const getRoom = async (roomId) => (await gql(`query($id:ID!){ room(id:$id){ ${ROOM} } }`, { id: roomId })).room;
 
-// roomId -> host's player id, so helpers can make host-only calls
-const hostOf = new Map();
+// Players act with a secret token, but tests mostly think in (public) player ids.
+// setupRoom records each player's token so helpers can take an id and act as that player.
+const tokenOf = new Map(); // playerId -> secret player token
+const hostOf = new Map(); // roomId -> host's player id
+const tok = (playerId) => tokenOf.get(playerId) ?? 'not-a-real-token';
 
 // Creates a room hosted by names[0] and joins the rest. Returns { roomId, players: [{ id, name }] }
 async function setupRoom(names, { timeLimit = 60, url = HTTP } = {}) {
   const c = await gql(
-    `mutation($h:String!,$t:Int!){ createRoom(hostName:$h, lobbyName:"E2E", rounds:1, playerLimit:20, timeLimit:$t) { hostId room { id joinCode } } }`,
+    `mutation($h:String!,$t:Int!){ createRoom(hostName:$h, lobbyName:"E2E", rounds:1, playerLimit:20, timeLimit:$t) { hostId playerToken room { id joinCode } } }`,
     { h: names[0], t: timeLimit },
     url
   );
   const roomId = c.createRoom.room.id;
   const players = [{ id: c.createRoom.hostId, name: names[0] }];
   hostOf.set(roomId, c.createRoom.hostId);
+  tokenOf.set(c.createRoom.hostId, c.createRoom.playerToken);
   for (const name of names.slice(1)) {
     const j = await gql(
-      `mutation($c:String!,$n:String!){ joinRoom(code:$c, playerName:$n) { playerId } }`,
+      `mutation($c:String!,$n:String!){ joinRoom(code:$c, playerName:$n) { playerId playerToken } }`,
       { c: c.createRoom.room.joinCode, n: name },
       url
     );
     players.push({ id: j.joinRoom.playerId, name });
+    tokenOf.set(j.joinRoom.playerId, j.joinRoom.playerToken);
   }
   return { roomId, players };
 }
 
-const startGameAs = (roomId, hostId) =>
-  gqlRaw(`mutation($r:ID!,$h:ID!){ startGame(roomId:$r, hostId:$h){ status } }`, { r: roomId, h: hostId });
+const startGameAs = (roomId, hostId, url = HTTP) =>
+  gqlRaw(`mutation($r:ID!,$t:String!){ startGame(roomId:$r, playerToken:$t){ status } }`, { r: roomId, t: tok(hostId) }, url);
 
-const startGame = (roomId) =>
-  gql(`mutation($r:ID!,$h:ID!){ startGame(roomId:$r, hostId:$h){ status } }`, { r: roomId, h: hostOf.get(roomId) });
+const startGame = async (roomId) => {
+  const res = await startGameAs(roomId, hostOf.get(roomId));
+  if (res.errors) throw new Error(res.errors.map((e) => e.message).join('; '));
+  return res.data;
+};
 
-const resetGameAs = (roomId, hostId) => gqlRaw(`mutation($r:ID!,$h:ID!){ resetGame(roomId:$r, hostId:$h) }`, { r: roomId, h: hostId });
+const resetGameAs = (roomId, hostId) =>
+  gqlRaw(`mutation($r:ID!,$t:String!){ resetGame(roomId:$r, playerToken:$t) }`, { r: roomId, t: tok(hostId) });
 
 const kickAs = (roomId, hostId, playerId) =>
-  gqlRaw(`mutation($r:ID!,$h:ID!,$p:ID!){ kickPlayer(roomId:$r, hostId:$h, playerId:$p) }`, { r: roomId, h: hostId, p: playerId });
+  gqlRaw(`mutation($r:ID!,$t:String!,$p:ID!){ kickPlayer(roomId:$r, playerToken:$t, playerId:$p) }`, { r: roomId, t: tok(hostId), p: playerId });
 
-const submitPrompt = (roomId, playerId, prompt) =>
-  gql(`mutation($r:ID!,$p:ID!,$t:String!){ submitPrompt(roomId:$r, playerId:$p, prompt:$t) }`, { r: roomId, p: playerId, t: prompt });
+const submitPrompt = (roomId, playerId, prompt, url = HTTP) =>
+  gql(`mutation($r:ID!,$t:String!,$x:String!){ submitPrompt(roomId:$r, playerToken:$t, prompt:$x) }`, { r: roomId, t: tok(playerId), x: prompt }, url);
 
 const endTurnAs = (roomId, playerId, url = HTTP) =>
-  gqlRaw(`mutation($r:ID!,$p:ID!){ endTurn(roomId:$r, playerId:$p) }`, { r: roomId, p: playerId }, url);
+  gqlRaw(`mutation($r:ID!,$t:String!){ endTurn(roomId:$r, playerToken:$t) }`, { r: roomId, t: tok(playerId) }, url);
 
 // Ends the current defense early, as the defender
 async function endTurn(roomId) {
   const room = await getRoom(roomId);
-  return gql(`mutation($r:ID!,$p:ID!){ endTurn(roomId:$r, playerId:$p) }`, {
-    r: roomId,
-    p: room.gameState.currentTurn.defenderId,
-  });
+  const res = await endTurnAs(roomId, room.gameState.currentTurn.defenderId);
+  if (res.errors) throw new Error(res.errors.map((e) => e.message).join('; '));
+  return res.data;
 }
 
-const submitVoteRaw = (roomId, playerId, value) =>
-  gqlRaw(`mutation($r:ID!,$p:ID!,$v:Int!){ submitVote(roomId:$r, playerId:$p, value:$v) }`, { r: roomId, p: playerId, v: value });
+const submitVoteRaw = (roomId, playerId, value, url = HTTP) =>
+  gqlRaw(`mutation($r:ID!,$t:String!,$v:Int!){ submitVote(roomId:$r, playerToken:$t, value:$v) }`, { r: roomId, t: tok(playerId), v: value }, url);
 
-const submitVote = (roomId, playerId, value) =>
-  gql(`mutation($r:ID!,$p:ID!,$v:Int!){ submitVote(roomId:$r, playerId:$p, value:$v) }`, { r: roomId, p: playerId, v: value });
+const submitVote = async (roomId, playerId, value, url = HTTP) => {
+  const res = await submitVoteRaw(roomId, playerId, value, url);
+  if (res.errors) throw new Error(res.errors.map((e) => e.message).join('; '));
+  return res.data;
+};
 
 const leaveRoom = (roomId, playerId) =>
-  gql(`mutation($r:ID!,$p:ID!){ leaveRoom(roomId:$r, playerId:$p) }`, { r: roomId, p: playerId });
+  gql(`mutation($r:ID!,$t:String!){ leaveRoom(roomId:$r, playerToken:$t) }`, { r: roomId, t: tok(playerId) });
 
 // Plays every defense/vote turn until RESULTS. Voters vote all at once when `concurrentVotes`.
 // Returns the defender ids in the order they defended.
@@ -243,9 +254,9 @@ test('resubmitting a prompt replaces it instead of counting twice', async () => 
 
 test('prompts are rejected outside the prompt phase', async () => {
   const { roomId, players } = await setupRoom(['A', 'B']);
-  const res = await gqlRaw(`mutation($r:ID!,$p:ID!){ submitPrompt(roomId:$r, playerId:$p, prompt:"too early") }`, {
+  const res = await gqlRaw(`mutation($r:ID!,$t:String!){ submitPrompt(roomId:$r, playerToken:$t, prompt:"too early") }`, {
     r: roomId,
-    p: players[0].id,
+    t: tok(players[0].id),
   });
   assert(res.errors, 'submitting in LOBBY should fail');
 });
@@ -346,6 +357,29 @@ test('only the host can start, reset, or kick', async () => {
   assert(!(await startGameAs(roomId, host.id)).errors, 'the host should be able to start');
 });
 
+test("a player's public id can't be used to act as them", async () => {
+  const { roomId, players } = await setupRoom(['Host', 'B', 'C']);
+  const [host, b, c] = players;
+  // Every player can see everyone's id (it's in the room data), so ids must not work as credentials
+  const asId = (query, extra = {}) => gqlRaw(query, { r: roomId, t: host.id, ...extra });
+
+  assert((await asId(`mutation($r:ID!,$t:String!){ startGame(roomId:$r, playerToken:$t){ status } }`)).errors,
+    "the host's public id should not start the game");
+  assert((await asId(`mutation($r:ID!,$t:String!,$p:ID!){ kickPlayer(roomId:$r, playerToken:$t, playerId:$p) }`, { p: c.id })).errors,
+    "the host's public id should not kick anyone");
+  assert((await getRoom(roomId)).status === 'LOBBY' && (await getRoom(roomId)).players.length === 3, 'nothing should have changed');
+
+  const tokenQuery = await gqlRaw(`query($id:ID!){ room(id:$id){ players { id playerToken } } }`, { id: roomId });
+  assert(tokenQuery.errors, 'player tokens must not be readable through the API');
+
+  // A player who leaves can't act with their old token
+  await leaveRoom(roomId, c.id);
+  await startGame(roomId);
+  const stale = await gqlRaw(`mutation($r:ID!,$t:String!){ submitPrompt(roomId:$r, playerToken:$t, prompt:"ghost") }`, { r: roomId, t: tok(c.id) });
+  assert(stale.errors, "a departed player's token should stop working");
+  await submitPrompt(roomId, b.id, 'still works');
+});
+
 test('only the defender can end their defense early', async () => {
   const { roomId, players } = await setupRoom(['A', 'B', 'C']);
   await startGame(roomId);
@@ -400,11 +434,8 @@ test('defense timers survive a server restart', async () => {
   try {
     await backend.ready;
     const { roomId, players } = await setupRoom(['A', 'B'], { timeLimit: 2, url });
-    const hostId = players[0].id;
-    await gql(`mutation($r:ID!,$h:ID!){ startGame(roomId:$r, hostId:$h){ status } }`, { r: roomId, h: hostId }, url);
-    for (const p of players) {
-      await gql(`mutation($r:ID!,$p:ID!,$t:String!){ submitPrompt(roomId:$r, playerId:$p, prompt:$t) }`, { r: roomId, p: p.id, t: 'x' }, url);
-    }
+    assert(!(await startGameAs(roomId, players[0].id, url)).errors, 'host should be able to start');
+    for (const p of players) await submitPrompt(roomId, p.id, 'x', url);
     const { deadline } = (await gql(`query($id:ID!){ room(id:$id){ gameState { deadline } } }`, { id: roomId }, url)).room.gameState;
 
     // Restart mid-defense: the original timer dies with the process
@@ -506,10 +537,8 @@ test('voting closes at its time limit and counts the votes that came in', async 
     await backend.ready;
     const { roomId, players } = await setupRoom(['A', 'B', 'C'], { url });
     const at = (query, variables) => gql(query, variables, url);
-    await at(`mutation($r:ID!,$h:ID!){ startGame(roomId:$r, hostId:$h){ status } }`, { r: roomId, h: players[0].id });
-    for (const p of players) {
-      await at(`mutation($r:ID!,$p:ID!,$t:String!){ submitPrompt(roomId:$r, playerId:$p, prompt:$t) }`, { r: roomId, p: p.id, t: p.name });
-    }
+    assert(!(await startGameAs(roomId, players[0].id, url)).errors, 'host should be able to start');
+    for (const p of players) await submitPrompt(roomId, p.id, p.name, url);
     const readRoom = async () => (await at(`query($id:ID!){ room(id:$id){ ${ROOM} } }`, { id: roomId })).room;
 
     const defenderId = (await readRoom()).gameState.currentTurn.defenderId;
@@ -520,7 +549,7 @@ test('voting closes at its time limit and counts the votes that came in', async 
 
     // Only one of the two voters votes before time runs out
     const [voter] = players.filter((p) => p.id !== defenderId);
-    await at(`mutation($r:ID!,$p:ID!,$v:Int!){ submitVote(roomId:$r, playerId:$p, value:$v) }`, { r: roomId, p: voter.id, v: 1 });
+    await submitVote(roomId, voter.id, 1, url);
 
     await sleep(Date.parse(voting.gameState.deadline) + 1000 - Date.now());
     const after = await readRoom();

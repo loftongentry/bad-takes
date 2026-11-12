@@ -3,6 +3,7 @@
 //   room:{id}:players  hash    playerId -> player JSON
 //   room:{id}:votes    hash    playerId -> vote value (current turn only)
 //   room:{id}:prompts  hash    playerId -> prompt JSON (one per player, current game only)
+//   room:{id}:tokens   hash    secret player token -> playerId (never sent to other players)
 //   join:{CODE}        string  join code -> roomId
 
 // How long a room survives with no activity. Every state change renews it (see touchRoom).
@@ -13,6 +14,7 @@ export const roomKey = (id: string) => `room:${id}`;
 export const playersKey = (id: string) => `room:${id}:players`;
 export const votesKey = (id: string) => `room:${id}:votes`;
 export const promptsKey = (id: string) => `room:${id}:prompts`;
+export const tokensKey = (id: string) => `room:${id}:tokens`;
 export const joinKey = (code: string) => `join:${code.toUpperCase()}`;
 
 // Pub/sub channel that room subscriptions listen on

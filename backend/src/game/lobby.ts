@@ -3,10 +3,11 @@ import { v4 as uuid } from "uuid";
 import { makeJoinCode } from "../utils/joinCode";
 import * as repo from "../db/roomRepo";
 import { emptyGameState } from "./state";
-import { requireHost } from "./permissions";
+import { newPlayerToken, requireHost } from "./permissions";
 import { handlePlayerLeft } from "./departures";
 import type { Player, RoomSettings } from "../types";
 
+// Returns the room plus the host's secret player token (only ever sent to the host)
 export async function createRoom(hostName: string, settings: RoomSettings) {
   const roomId = uuid();
   const joinCode = makeJoinCode();
@@ -14,6 +15,7 @@ export async function createRoom(hostName: string, settings: RoomSettings) {
   console.log(`[RoomStore.create] Starting creation for host "${hostName}" (Room: ${roomId})`);
 
   const host: Player = { id: uuid(), name: hostName, isHost: true, score: 0 };
+  const hostToken = newPlayerToken();
 
   const roomMeta = {
     id: roomId,
@@ -27,13 +29,13 @@ export async function createRoom(hostName: string, settings: RoomSettings) {
   };
 
   try {
-    await repo.insertRoom(roomId, joinCode, roomMeta, host);
+    await repo.insertRoom(roomId, joinCode, roomMeta, host, hostToken);
 
     console.log(`[RoomStore.create] Success. Room ID: ${roomId}, Join Code: ${joinCode}`);
 
     const room = await repo.getRoom(roomId);
     await repo.publishRoom(room);
-    return room;
+    return { room, hostId: host.id, hostToken };
 
   } catch (error) {
     console.error(`[RoomStore.create] Failed to create room:`, error);
@@ -62,14 +64,15 @@ export async function joinRoom(joinCode: string, playerName: string) {
     }
 
     const newPlayer: Player = { id: uuid(), name: playerName, isHost: false, score: 0 };
+    const playerToken = newPlayerToken();
 
-    await repo.savePlayer(roomId, newPlayer);
+    await repo.addPlayer(roomId, newPlayer, playerToken);
 
     const updatedRoom = await repo.getRoom(roomId);
     await repo.publishRoom(updatedRoom);
 
     console.log(`[RoomStore.join] ${playerName} joined room ${roomId}`);
-    return { room: updatedRoom, playerId: newPlayer.id };
+    return { room: updatedRoom, playerId: newPlayer.id, playerToken };
 
   } catch (error: any) {
     console.error(`[RoomStore.join] Error joining with code ${joinCode}:`, error.message);
@@ -78,7 +81,7 @@ export async function joinRoom(joinCode: string, playerName: string) {
 }
 
 // A host leaving closes the room. Anyone else leaving mid-game is handled by handlePlayerLeft.
-export async function leaveRoom(roomId: string, playerId: string) {
+export async function leaveRoom(roomId: string, playerToken: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
@@ -86,9 +89,10 @@ export async function leaveRoom(roomId: string, playerId: string) {
       return false;
     }
 
+    const playerId = await repo.findPlayerIdByToken(roomId, playerToken);
     const player = room.players.find((p) => p.id === playerId);
-    if (!player) {
-      console.warn(`[RoomStore.leave] Ignored: Player ${playerId} not in room ${roomId}`);
+    if (!player || !playerId) {
+      console.warn(`[RoomStore.leave] Ignored: unknown player token for room ${roomId}`);
       return false;
     }
 
@@ -113,14 +117,15 @@ export async function leaveRoom(roomId: string, playerId: string) {
   }
 }
 
-export async function kickPlayer(roomId: string, hostId: string, playerId: string) {
+// `playerId` is the (public) id of the player to remove
+export async function kickPlayer(roomId: string, hostToken: string, playerId: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
       throw new Error("Room not found");
     }
-    requireHost(room, hostId);
-    if (playerId === hostId) {
+    const host = await requireHost(room, hostToken);
+    if (playerId === host.id) {
       throw new Error("The host can't kick themselves");
     }
 
@@ -144,13 +149,13 @@ export async function kickPlayer(roomId: string, hostId: string, playerId: strin
   }
 }
 
-export async function resetGame(roomId: string, hostId: string) {
+export async function resetGame(roomId: string, hostToken: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
       throw new Error("Room not found");
     }
-    requireHost(room, hostId);
+    await requireHost(room, hostToken);
 
     console.log(`[GameLogic] Resetting game for room ${roomId}`);
 

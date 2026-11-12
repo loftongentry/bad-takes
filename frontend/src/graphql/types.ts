@@ -44,6 +44,7 @@ export type CreateRoomResult = {
   createRoom: {
     room: Room;
     hostId: string;
+    playerToken: string;
   };
 };
 
@@ -51,6 +52,7 @@ export type JoinRoomResult = {
   joinRoom: {
     room: Room;
     playerId: string;
+    playerToken: string;
   };
 };
 

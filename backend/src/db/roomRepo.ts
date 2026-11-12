@@ -1,7 +1,7 @@
 // Data access for rooms: every Redis read/write and pub/sub publish lives here.
 // Game rules live in ../game and only talk to Redis through these functions.
 import { redis, pubsub } from "./redis";
-import { roomKey, playersKey, votesKey, promptsKey, joinKey, roomChannel, ROOM_TTL_SECONDS } from "./keys";
+import { roomKey, playersKey, votesKey, promptsKey, tokensKey, joinKey, roomChannel, ROOM_TTL_SECONDS } from "./keys";
 import type { GameState, Player, Prompt, Room, RoomStatus, StoredGameState } from "../types";
 
 // --- Reads ---
@@ -132,13 +132,16 @@ export async function insertRoom(
   roomId: string,
   joinCode: string,
   roomMeta: Record<string, string | number>,
-  host: Player
+  host: Player,
+  hostToken: string
 ) {
   const results = await redis.multi()
     .hset(roomKey(roomId), roomMeta)
     .expire(roomKey(roomId), ROOM_TTL_SECONDS)
     .hset(playersKey(roomId), host.id, JSON.stringify(host))
     .expire(playersKey(roomId), ROOM_TTL_SECONDS)
+    .hset(tokensKey(roomId), hostToken, host.id)
+    .expire(tokensKey(roomId), ROOM_TTL_SECONDS)
     .setex(joinKey(joinCode), ROOM_TTL_SECONDS, roomId)
     .exec();
 
@@ -155,6 +158,7 @@ export function deleteRoom(roomId: string, joinCode: string) {
     .del(playersKey(roomId))
     .del(votesKey(roomId))
     .del(promptsKey(roomId))
+    .del(tokensKey(roomId))
     .del(joinKey(joinCode))
     .exec();
 }
@@ -163,8 +167,29 @@ export function savePlayer(roomId: string, player: Player) {
   return redis.hset(playersKey(roomId), player.id, JSON.stringify(player));
 }
 
-export function removePlayer(roomId: string, playerId: string) {
-  return redis.hdel(playersKey(roomId), playerId);
+// A new player and the secret token that identifies them
+export function addPlayer(roomId: string, player: Player, token: string) {
+  return redis.multi()
+    .hset(playersKey(roomId), player.id, JSON.stringify(player))
+    .hset(tokensKey(roomId), token, player.id)
+    .expire(tokensKey(roomId), ROOM_TTL_SECONDS)
+    .exec();
+}
+
+// The player a secret token belongs to, or null
+export function findPlayerIdByToken(roomId: string, token: string) {
+  return redis.hget(tokensKey(roomId), token);
+}
+
+// Removes the player and their token, so the token stops working
+export async function removePlayer(roomId: string, playerId: string) {
+  const tokens = await redis.hgetall(tokensKey(roomId));
+  const theirTokens = Object.keys(tokens).filter((token) => tokens[token] === playerId);
+  const tx = redis.multi().hdel(playersKey(roomId), playerId);
+  if (theirTokens.length > 0) {
+    tx.hdel(tokensKey(roomId), ...theirTokens);
+  }
+  return tx.exec();
 }
 
 export function setStatus(roomId: string, status: RoomStatus) {
@@ -259,6 +284,7 @@ export function touchRoom(room: Room) {
     .expire(playersKey(room.id), ROOM_TTL_SECONDS)
     .expire(votesKey(room.id), ROOM_TTL_SECONDS)
     .expire(promptsKey(room.id), ROOM_TTL_SECONDS)
+    .expire(tokensKey(room.id), ROOM_TTL_SECONDS)
     .expire(joinKey(room.joinCode), ROOM_TTL_SECONDS)
     .exec();
 }

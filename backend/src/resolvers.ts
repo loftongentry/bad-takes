@@ -8,6 +8,9 @@ import type { RoomSettings } from "./types";
 
 type CreateRoomArgs = RoomSettings & { hostName: string };
 
+// Every action that needs to know who is acting takes the caller's secret playerToken
+type ByPlayer = { roomId: string; playerToken: string };
+
 export const resolvers = {
   Query: {
     room: (_: unknown, { id }: { id: string }) => {
@@ -19,35 +22,35 @@ export const resolvers = {
       const { hostName, lobbyName, rounds, playerLimit, timeLimit } = args;
       const settings = { lobbyName, rounds, playerLimit, timeLimit };
 
-      const room = await createRoom(hostName, settings);
+      const { room, hostId, hostToken } = await createRoom(hostName, settings);
       if (!room) throw new Error("Failed to create room");
 
-      return { room, hostId: room.players[0]?.id };
+      return { room, hostId, playerToken: hostToken };
     },
     joinRoom: async (_: unknown, { code, playerName }: { code: string; playerName: string }) => {
-      const { room, playerId } = await joinRoom(code, playerName);
-      return { room, playerId }
+      const { room, playerId, playerToken } = await joinRoom(code, playerName);
+      return { room, playerId, playerToken }
     },
-    leaveRoom: async (_: unknown, { roomId, playerId }: { roomId: string; playerId: string }) => {
-      return await leaveRoom(roomId, playerId);
+    leaveRoom: async (_: unknown, { roomId, playerToken }: ByPlayer) => {
+      return await leaveRoom(roomId, playerToken);
     },
-    kickPlayer: async (_: unknown, { roomId, hostId, playerId }: { roomId: string; hostId: string; playerId: string }) => {
-      return await kickPlayer(roomId, hostId, playerId);
+    kickPlayer: async (_: unknown, { roomId, playerToken, playerId }: ByPlayer & { playerId: string }) => {
+      return await kickPlayer(roomId, playerToken, playerId);
     },
-    startGame: async (_: unknown, { roomId, hostId }: { roomId: string; hostId: string }) => {
-      return await startGame(roomId, hostId);
+    startGame: async (_: unknown, { roomId, playerToken }: ByPlayer) => {
+      return await startGame(roomId, playerToken);
     },
-    submitPrompt: async (_: unknown, { roomId, playerId, prompt }: { roomId: string; playerId: string; prompt: string }) => {
-      return await submitPrompt(roomId, playerId, prompt);
+    submitPrompt: async (_: unknown, { roomId, playerToken, prompt }: ByPlayer & { prompt: string }) => {
+      return await submitPrompt(roomId, playerToken, prompt);
     },
-    endTurn: async (_: unknown, { roomId, playerId }: { roomId: string; playerId: string }) => {
-      return await endTurn(roomId, playerId);
+    endTurn: async (_: unknown, { roomId, playerToken }: ByPlayer) => {
+      return await endTurn(roomId, playerToken);
     },
-    submitVote: async (_: unknown, { roomId, playerId, value }: { roomId: string; playerId: string; value: number }) => {
-      return await submitVote(roomId, playerId, value);
+    submitVote: async (_: unknown, { roomId, playerToken, value }: ByPlayer & { value: number }) => {
+      return await submitVote(roomId, playerToken, value);
     },
-    resetGame: async (_: unknown, { roomId, hostId }: { roomId: string; hostId: string }) => {
-      return await resetGame(roomId, hostId);
+    resetGame: async (_: unknown, { roomId, playerToken }: ByPlayer) => {
+      return await resetGame(roomId, playerToken);
     }
   },
   Subscription: {

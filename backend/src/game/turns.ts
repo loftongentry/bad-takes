@@ -1,5 +1,6 @@
 // Defense/voting loop: advancing turns, timing each phase, ending a defense, and tallying votes
 import * as repo from "../db/roomRepo";
+import { requirePlayer } from "./permissions";
 import type { Player, Room, RoomStatus, StoredGameState } from "../types";
 
 // "Get ready" countdown before each defense. The app's defense screen uses the same value.
@@ -113,7 +114,7 @@ async function moveToVoting(roomId: string) {
 }
 
 // The defender ending their own defense early. (When time runs out the server ends it.)
-export async function endTurn(roomId: string, playerId: string) {
+export async function endTurn(roomId: string, playerToken: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
@@ -124,7 +125,8 @@ export async function endTurn(roomId: string, playerId: string) {
       return false;
     }
 
-    if (room.gameState?.currentTurn?.defenderId !== playerId) {
+    const player = await requirePlayer(room, playerToken);
+    if (room.gameState?.currentTurn?.defenderId !== player.id) {
       throw new Error("Only the defender can end their defense early");
     }
 
@@ -137,7 +139,7 @@ export async function endTurn(roomId: string, playerId: string) {
   }
 }
 
-export async function submitVote(roomId: string, playerId: string, value: number) {
+export async function submitVote(roomId: string, playerToken: string, value: number) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
@@ -149,9 +151,7 @@ export async function submitVote(roomId: string, playerId: string, value: number
     }
 
     const defenderId = room.gameState?.currentTurn?.defenderId;
-    if (!room.players.some((p) => p.id === playerId)) {
-      throw new Error("Player is not in this room");
-    }
+    const playerId = (await requirePlayer(room, playerToken)).id;
     if (playerId === defenderId) {
       throw new Error("The defender can't vote on their own defense");
     }

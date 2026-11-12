@@ -3,18 +3,18 @@ import { v4 as uuid } from "uuid";
 import * as repo from "../db/roomRepo";
 import { emptyGameState, generateQueue } from "./state";
 import { advanceToNextTurn } from "./turns";
-import { requireHost } from "./permissions";
+import { requireHost, requirePlayer } from "./permissions";
 
 export const MIN_PLAYERS = 2;
 
 // TODO: Need to add logic to force faster entry of prompts based on timeLimit setting (that also would need to be added into schema)
-export async function startGame(roomId: string, hostId: string) {
+export async function startGame(roomId: string, hostToken: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
       throw new Error("Room not found")
     };
-    requireHost(room, hostId);
+    await requireHost(room, hostToken);
     if (room.status !== "LOBBY") {
       throw new Error("The game has already started");
     }
@@ -41,7 +41,7 @@ export async function startGame(roomId: string, hostId: string) {
   }
 }
 
-export async function submitPrompt(roomId: string, playerId: string, prompt: string) {
+export async function submitPrompt(roomId: string, playerToken: string, prompt: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
@@ -50,15 +50,13 @@ export async function submitPrompt(roomId: string, playerId: string, prompt: str
     if (room.status !== "PROMPT_ENTRY") {
       throw new Error("Not accepting prompts right now");
     }
-    if (!room.players.some((p) => p.id === playerId)) {
-      throw new Error("Player is not in this room");
-    }
+    const player = await requirePlayer(room, playerToken);
 
     // One prompt per player, stored atomically: simultaneous submissions are all kept,
     // and a retry replaces the player's earlier prompt instead of counting twice
     const submittedCount = await repo.savePrompt(roomId, {
       id: uuid(),
-      authorId: playerId,
+      authorId: player.id,
       text: prompt
     });
 
