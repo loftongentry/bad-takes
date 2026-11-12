@@ -266,6 +266,18 @@ test('invalid votes are rejected', async () => {
   assert((await getRoom(roomId)).gameState.votesCast === 0, 'no invalid vote should have been recorded');
 });
 
+test('a game needs at least 2 players and can only be started once', async () => {
+  const solo = await setupRoom(['Solo']);
+  const res = await gqlRaw(`mutation($r:ID!){ startGame(roomId:$r){ status } }`, { r: solo.roomId });
+  assert(res.errors, 'starting with 1 player should fail');
+  assert((await getRoom(solo.roomId)).status === 'LOBBY', 'a failed start should leave the room in LOBBY');
+
+  const { roomId } = await setupRoom(['A', 'B']);
+  await startGame(roomId);
+  const again = await gqlRaw(`mutation($r:ID!){ startGame(roomId:$r){ status } }`, { r: roomId });
+  assert(again.errors, 'starting a game that already started should fail');
+});
+
 test('active rooms outlive the expiry time; idle rooms still expire', async () => {
   // A separate backend whose rooms expire after 3 seconds of inactivity
   const port = '3597';

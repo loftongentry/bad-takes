@@ -15,6 +15,8 @@ import { useRoomActions } from '../src/hooks/useRoomActions'
 import { useStatusRedirect } from '../src/hooks/useStatusRedirect'
 import type { Player } from '../src/graphql/types'
 
+const MIN_PLAYERS = 2
+
 const LobbyScreen = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const playerId = useGameSessionStore((s) => s.session?.playerId ?? null)
@@ -63,6 +65,9 @@ const LobbyScreen = () => {
       alert('Failed to kick player. Please try again.')
     }
   }
+
+  // Matches the server's rule: with one player there's nobody to vote
+  const hasEnoughPlayers = room.players.length >= MIN_PLAYERS
 
   const subText = `Join Code: ${room.joinCode} \n Rounds: ${room.settings.rounds} · Time: ${room.settings.timeLimit} seconds`
 
@@ -157,9 +162,14 @@ const LobbyScreen = () => {
 
       {isHost ? (
         <ActionRow>
-          <PrimaryButton disabled={loading || !room} onPress={handleStartGame}>
+          <PrimaryButton disabled={loading || !room || !hasEnoughPlayers} onPress={handleStartGame}>
             {startLoading ? <Spinner /> : 'Start Game'}
           </PrimaryButton>
+          {!hasEnoughPlayers ? (
+            <Text style={{ color: COLORS.light, opacity: 0.6, textAlign: 'center', marginTop: 10 }}>
+              Waiting for at least {MIN_PLAYERS} players to join...
+            </Text>
+          ) : null}
         </ActionRow>
       ) : null}
     </Page>

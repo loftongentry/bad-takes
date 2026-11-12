@@ -4,6 +4,8 @@ import * as repo from "../db/roomRepo";
 import { emptyGameState, generateQueue } from "./state";
 import { advanceToNextTurn } from "./turns";
 
+export const MIN_PLAYERS = 2;
+
 // TODO: Need to add logic to force faster entry of prompts based on timeLimit setting (that also would need to be added into schema)
 export async function startGame(roomId: string) {
   try {
@@ -11,6 +13,13 @@ export async function startGame(roomId: string) {
     if (!room) {
       throw new Error("Room not found")
     };
+    if (room.status !== "LOBBY") {
+      throw new Error("The game has already started");
+    }
+    // With one player there's nobody to vote, so the game could never finish
+    if (room.players.length < MIN_PLAYERS) {
+      throw new Error(`Need at least ${MIN_PLAYERS} players to start`);
+    }
 
     console.log(`[RoomStore.startGame] Starting game for room ${roomId}`);
 
