@@ -28,7 +28,7 @@ export function useRoom(roomId?: string) {
   // 1. THE WATCHER
   // This hook constantly watches the Apollo Cache for 'Room:roomId'.
   // If the cache changes (due to a subscription or mutation), 'data' updates automatically.
-  const { data, loading, error } = useQuery<{ room: Room }>(
+  const { data, loading, error, refetch } = useQuery<{ room: Room | null }>(
     ROOM_OPS.GET,
     {
       variables: { roomId },
@@ -49,6 +49,11 @@ export function useRoom(roomId?: string) {
 
   const room = data?.room || null;
 
+  // The server answered and the room doesn't exist. Distinct from a failed request, where
+  // `data` is undefined: a network error must not be mistaken for the room being gone, or the
+  // player is sent home while the server still counts them as in the game.
+  const roomMissing = data !== undefined && data.room === null;
+
   useEffect(() => {
     // 1. Safety check: Don't run if we are still loading or have no room ID
     if (!roomId || loading) return;
@@ -66,7 +71,7 @@ export function useRoom(roomId?: string) {
     };
 
     // Room was closed: the server said so, or the room no longer exists
-    if (roomClosed || room === null) {
+    if (roomClosed || roomMissing) {
       handleExit();
       return;
     }
@@ -78,7 +83,7 @@ export function useRoom(roomId?: string) {
         handleExit();
       }
     }
-  }, [room, roomClosed, loading, myPlayerId, roomId]);
+  }, [room, roomClosed, roomMissing, loading, myPlayerId, roomId]);
 
   // Follow the room to the screen for its current phase
   const status = room?.status;
@@ -89,5 +94,5 @@ export function useRoom(roomId?: string) {
     }
   }, [status, pathname]);
 
-  return { room, loading, error };
+  return { room, loading, error, refetch };
 }

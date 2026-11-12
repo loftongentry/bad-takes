@@ -21,22 +21,39 @@ const LobbyScreen = () => {
   const playerId = useGameSessionStore((s) => s.session?.playerId ?? null)
   const isHost = useGameSessionStore((s) => s.session?.isHost ?? false)
 
-  const { room, loading } = useRoom(roomId || undefined)
+  const { room, loading, error, refetch } = useRoom(roomId || undefined)
   const { leaveGame, kickPlayer, startGame } = useRoomActions(roomId || undefined)
   const [startLoading, setStartLoading] = useState<boolean>(false)
 
+  // Back buttons below call leaveGame so the server drops this player too; clearing only the
+  // local session would leave a ghost player behind that holds up everyone else.
   if (!roomId || !playerId || (!room && loading)) {
     return (
-      <Page title="Loading...">
+      <Page title="Loading..." onBack={leaveGame}>
         <Spinner />
         <Text style={{ textAlign: 'center', marginTop: 20 }}>Connecting to Lobby...</Text>
       </Page>
     )
   }
 
+  // The request failed (as opposed to the room not existing): stay in the room and let the
+  // player retry, instead of treating it as the room being closed
+  if (!room && error) {
+    return (
+      <Page title="Can't Reach the Game" onBack={leaveGame}>
+        <Text style={{ textAlign: 'center', marginTop: 20, marginBottom: 20 }}>
+          Check your connection, then try again. You're still in the lobby.
+        </Text>
+        <ActionRow>
+          <PrimaryButton onPress={() => refetch()}>Try Again</PrimaryButton>
+        </ActionRow>
+      </Page>
+    )
+  }
+
   if (!room) {
     return (
-      <Page title="Lobby Not Found">
+      <Page title="Lobby Not Found" onBack={leaveGame}>
         <Text style={{ textAlign: 'center', marginTop: 20 }}>The lobby you are trying to join does not exist or has been closed.</Text>
       </Page>
     )

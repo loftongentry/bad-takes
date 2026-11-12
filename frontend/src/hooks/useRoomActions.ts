@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useMutation } from "@apollo/client/react";
+import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useGameSessionStore } from "../state/gameSessionStore";
 import { ROOM_OPS } from "../graphql/operations";
 import type {
@@ -8,6 +8,7 @@ import type {
   JoinRoomResult,
   KickPlayerResult,
   ResetGameResult,
+  Room,
   SubmitPromptResult,
   SubmitVoteResult,
 } from "../graphql/types";
@@ -28,9 +29,16 @@ const withErrorLog = <Args extends unknown[], Result>(
 // Every game mutation, bound to the current room and player
 export function useRoomActions(roomId?: string) {
   const router = useRouter();
+  const client = useApolloClient();
   const { session, setSession, clearSession } = useGameSessionStore();
 
   const myPlayerId = session?.playerId || null;
+
+  // Create and join already return the full room, so put it where the lobby's room query
+  // looks. The lobby then shows immediately, without a first request that could fail.
+  const rememberRoom = (room: Room) => {
+    client.writeQuery({ query: ROOM_OPS.GET, variables: { roomId: room.id }, data: { room } });
+  };
 
   const [createFn] = useMutation<CreateRoomResult>(ROOM_OPS.CREATE)
   const [joinFn] = useMutation<JoinRoomResult>(ROOM_OPS.JOIN)
@@ -51,6 +59,7 @@ export function useRoomActions(roomId?: string) {
 
       const { room, hostId } = res.data.createRoom;
 
+      rememberRoom(room);
       setSession({
         roomId: room.id,
         joinCode: room.joinCode,
@@ -68,6 +77,7 @@ export function useRoomActions(roomId?: string) {
       }
       const { room, playerId } = res.data.joinRoom;
 
+      rememberRoom(room);
       setSession({
         roomId: room.id,
         joinCode: room.joinCode,
