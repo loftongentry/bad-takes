@@ -28,7 +28,9 @@ export function cleanText(value: string, label: string, max: number) {
 
 function checkRange(value: number, label: string, { min, max }: { min: number; max: number }) {
   if (!Number.isInteger(value) || value < min || value > max) {
-    throw new Error(min === max ? `${label} must be ${min}` : `${label} must be between ${min} and ${max}`);
+    throw new Error(
+      min === max ? `${label} must be ${min}` : `${label} must be between ${min} and ${max}`,
+    );
   }
 }
 

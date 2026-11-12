@@ -7,7 +7,7 @@ export function emptyGameState(): StoredGameState {
     queue: [],
     votes: {},
     currentTurn: null,
-    deadline: null
+    deadline: null,
   };
 }
 
@@ -42,6 +42,6 @@ export function generateQueue(players: Player[], prompts: Prompt[]): Turn[] {
   return defenders.map((player, i) => ({
     defenderId: player.id,
     promptId: promptFor(assigned, i).id,
-    promptText: promptFor(assigned, i).text
+    promptText: promptFor(assigned, i).text,
   }));
 }

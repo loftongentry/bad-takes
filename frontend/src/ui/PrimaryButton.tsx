@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
-import { Button, Text } from 'tamagui'
-import { COLORS } from './theme'
+import type { ReactNode } from "react";
+import { Button, Text } from "tamagui";
+import { COLORS } from "./theme";
 
 export const PrimaryButton = ({
   children,
@@ -10,16 +10,16 @@ export const PrimaryButton = ({
   invert,
   height = 56,
 }: {
-  children: ReactNode
-  onPress: () => void
-  disabled?: boolean
-  icon?: any
-  invert?: boolean
-  height?: number
+  children: ReactNode;
+  onPress: () => void;
+  disabled?: boolean;
+  icon?: any;
+  invert?: boolean;
+  height?: number;
 }) => {
-  const bg = invert ? COLORS.light : undefined
-  const textColor = invert ? COLORS.dark : COLORS.light
-  const opacity = disabled ? 0.45 : 1
+  const bg = invert ? COLORS.light : undefined;
+  const textColor = invert ? COLORS.dark : COLORS.light;
+  const opacity = disabled ? 0.45 : 1;
 
   return (
     <Button
@@ -34,9 +34,7 @@ export const PrimaryButton = ({
         opacity,
       }}
     >
-      <Text style={{ color: textColor, fontSize: 20, fontWeight: '800' }}>
-        {children}
-      </Text>
+      <Text style={{ color: textColor, fontSize: 20, fontWeight: "800" }}>{children}</Text>
     </Button>
-  )
-}
+  );
+};

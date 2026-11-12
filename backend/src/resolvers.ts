@@ -15,7 +15,7 @@ export const resolvers = {
   Query: {
     room: (_: unknown, { id }: { id: string }) => {
       return getRoom(id);
-    }
+    },
   },
   Mutation: {
     createRoom: async (_: unknown, args: CreateRoomArgs) => {
@@ -29,35 +29,44 @@ export const resolvers = {
     },
     joinRoom: async (_: unknown, { code, playerName }: { code: string; playerName: string }) => {
       const { room, playerId, playerToken } = await joinRoom(code, playerName);
-      return { room, playerId, playerToken }
+      return { room, playerId, playerToken };
     },
     leaveRoom: async (_: unknown, { roomId, playerToken }: ByPlayer) => {
       return await leaveRoom(roomId, playerToken);
     },
-    kickPlayer: async (_: unknown, { roomId, playerToken, playerId }: ByPlayer & { playerId: string }) => {
+    kickPlayer: async (
+      _: unknown,
+      { roomId, playerToken, playerId }: ByPlayer & { playerId: string },
+    ) => {
       return await kickPlayer(roomId, playerToken, playerId);
     },
     startGame: async (_: unknown, { roomId, playerToken }: ByPlayer) => {
       return await startGame(roomId, playerToken);
     },
-    submitPrompt: async (_: unknown, { roomId, playerToken, prompt }: ByPlayer & { prompt: string }) => {
+    submitPrompt: async (
+      _: unknown,
+      { roomId, playerToken, prompt }: ByPlayer & { prompt: string },
+    ) => {
       return await submitPrompt(roomId, playerToken, prompt);
     },
     endTurn: async (_: unknown, { roomId, playerToken }: ByPlayer) => {
       return await endTurn(roomId, playerToken);
     },
-    submitVote: async (_: unknown, { roomId, playerToken, value }: ByPlayer & { value: number }) => {
+    submitVote: async (
+      _: unknown,
+      { roomId, playerToken, value }: ByPlayer & { value: number },
+    ) => {
       return await submitVote(roomId, playerToken, value);
     },
     resetGame: async (_: unknown, { roomId, playerToken }: ByPlayer) => {
       return await resetGame(roomId, playerToken);
-    }
+    },
   },
   Subscription: {
     room: {
       subscribe: (_: unknown, { roomId }: { roomId: string }) => {
         return pubsub.asyncIterator(roomChannel(roomId));
-      }
-    }
-  }
-}
+      },
+    },
+  },
+};

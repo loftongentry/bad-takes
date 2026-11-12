@@ -1,4 +1,4 @@
-// TODO: Track who submitted prompts 
+// TODO: Track who submitted prompts
 // TODO: Track votes to be able to display users who have and have not voted on when waiting between players' defenses (who are we waiting to vote - should also implement a timer on that as well to force timely voting)
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { resolvers } from "./resolvers";
@@ -70,7 +70,7 @@ const typeDefs = `
   type Subscription {
     room(roomId: ID!): Room
   }
-`
+`;
 
 export const schema = makeExecutableSchema({
   typeDefs,

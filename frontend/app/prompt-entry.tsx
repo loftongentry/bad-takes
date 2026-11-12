@@ -1,35 +1,37 @@
 // TODO: Derive state from server data instead of local state
 // TODO: Add a 'Game starting!' screen after all player have submitted their bad takes before shifting to defense screen
-import { useState } from "react"
-import { TextArea, Text, XStack, Spinner } from "tamagui"
-import { Keyboard, TouchableWithoutFeedback } from "react-native"
-import { Page } from "../src/ui/Page"
-import { HostPlayersMenu } from "../src/ui/HostPlayersMenu"
-import { PrimaryButton } from "../src/ui/PrimaryButton"
-import { PromptCard, promptTextStyle } from "../src/ui/PromptCard"
-import { SpinnerMessage } from "../src/ui/SpinnerMessage"
-import { ActionRow } from "../src/ui/ActionRow"
-import { useGameSessionStore } from "../src/state/gameSessionStore"
-import { useRoom } from "../src/hooks/useRoom"
-import { useRoomActions } from "../src/hooks/useRoomActions"
-import { useSecondsLeft } from "../src/hooks/useSecondsLeft"
+import { useState } from "react";
+import { TextArea, Text, XStack, Spinner } from "tamagui";
+import { Keyboard, TouchableWithoutFeedback } from "react-native";
+import { Page } from "../src/ui/Page";
+import { HostPlayersMenu } from "../src/ui/HostPlayersMenu";
+import { PrimaryButton } from "../src/ui/PrimaryButton";
+import { PromptCard, promptTextStyle } from "../src/ui/PromptCard";
+import { SpinnerMessage } from "../src/ui/SpinnerMessage";
+import { ActionRow } from "../src/ui/ActionRow";
+import { useGameSessionStore } from "../src/state/gameSessionStore";
+import { useRoom } from "../src/hooks/useRoom";
+import { useRoomActions } from "../src/hooks/useRoomActions";
+import { useSecondsLeft } from "../src/hooks/useSecondsLeft";
 
-const CHAR_LIMIT = 140
+const CHAR_LIMIT = 140;
 
 const PromptEntry = () => {
-  const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
-  const { room } = useRoom(roomId || undefined)
-  const { leaveGame, submitPrompt } = useRoomActions(roomId || undefined)
-  const [badTake, setBadTake] = useState<string>('')
-  const [isSubmitted, setIsSubmitted] = useState<boolean>(false)
-  const [loading, setLoading] = useState<boolean>(false)
+  const roomId = useGameSessionStore((s) => s.session?.roomId ?? null);
+  const { room } = useRoom(roomId || undefined);
+  const { leaveGame, submitPrompt } = useRoomActions(roomId || undefined);
+  const [badTake, setBadTake] = useState<string>("");
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   // Writing time set by the host; when it runs out the game starts with the takes that are in
-  const secondsLeft = useSecondsLeft(room?.status === 'PROMPT_ENTRY' ? room.gameState?.deadline : null)
+  const secondsLeft = useSecondsLeft(
+    room?.status === "PROMPT_ENTRY" ? room.gameState?.deadline : null,
+  );
 
   const handleSubmitPrompt = async () => {
     Keyboard.dismiss();
-    setLoading(true)
+    setLoading(true);
 
     try {
       const success = await submitPrompt(badTake);
@@ -55,11 +57,12 @@ const PromptEntry = () => {
         onBack={leaveGame}
       >
         <SpinnerMessage>
-          Waiting on {total - count} {total - count > 1 ? 'players' : 'player'} to finish their terrible opinions...
-          {secondsLeft !== null ? `\nStarting in ${secondsLeft}s at the latest.` : ''}
+          Waiting on {total - count} {total - count > 1 ? "players" : "player"} to finish their
+          terrible opinions...
+          {secondsLeft !== null ? `\nStarting in ${secondsLeft}s at the latest.` : ""}
         </SpinnerMessage>
       </Page>
-    )
+    );
   }
 
   return (
@@ -67,7 +70,11 @@ const PromptEntry = () => {
       <Page
         headerRight={<HostPlayersMenu room={room} />}
         title="Enter Bad Take"
-        subtitle={secondsLeft !== null ? `Enter a controversial opinion · ${secondsLeft}s left` : "Enter a controversial opinion below"}
+        subtitle={
+          secondsLeft !== null
+            ? `Enter a controversial opinion · ${secondsLeft}s left`
+            : "Enter a controversial opinion below"
+        }
         onBack={leaveGame}
       >
         <PromptCard>
@@ -85,12 +92,13 @@ const PromptEntry = () => {
           />
           <XStack
             style={{
-              justifyContent: 'flex-end',
-              marginTop: 10
-            }}>
+              justifyContent: "flex-end",
+              marginTop: 10,
+            }}
+          >
             <Text
               fontSize={14}
-              color={badTake.length > CHAR_LIMIT - 10 ? 'red' : 'rgba(0,0,0,0.4)'}
+              color={badTake.length > CHAR_LIMIT - 10 ? "red" : "rgba(0,0,0,0.4)"}
               fontWeight="700"
             >
               {badTake.length}/{CHAR_LIMIT}
@@ -108,7 +116,7 @@ const PromptEntry = () => {
         </ActionRow>
       </Page>
     </TouchableWithoutFeedback>
-  )
-}
+  );
+};
 
-export default PromptEntry
+export default PromptEntry;

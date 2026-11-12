@@ -1,7 +1,7 @@
-import { Button, Text, View } from 'tamagui'
-import { Minus, Plus } from '@tamagui/lucide-icons'
-import { COLORS } from './theme'
-import { FormRow } from './FormRow'
+import { Button, Text, View } from "tamagui";
+import { Minus, Plus } from "@tamagui/lucide-icons";
+import { COLORS } from "./theme";
+import { FormRow } from "./FormRow";
 
 export const StepperRow = ({
   label,
@@ -12,20 +12,20 @@ export const StepperRow = ({
   incrementDisabled,
   showDivider = true,
 }: {
-  label: string
-  valueText: string
-  onDecrement: () => void
-  onIncrement: () => void
-  decrementDisabled?: boolean
-  incrementDisabled?: boolean
-  showDivider?: boolean
+  label: string;
+  valueText: string;
+  onDecrement: () => void;
+  onIncrement: () => void;
+  decrementDisabled?: boolean;
+  incrementDisabled?: boolean;
+  showDivider?: boolean;
 }) => {
   return (
     <FormRow
       label={label}
       showDivider={showDivider}
       right={
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Button
             bordered
             disabled={decrementDisabled}
@@ -34,8 +34,8 @@ export const StepperRow = ({
               height: 34,
               width: 44,
               borderRadius: 12,
-              justifyContent: 'center',
-              alignItems: 'center',
+              justifyContent: "center",
+              alignItems: "center",
               opacity: decrementDisabled ? 0.35 : 1,
             }}
             icon={<Minus color={COLORS.light} />}
@@ -44,9 +44,9 @@ export const StepperRow = ({
             style={{
               color: COLORS.light,
               fontSize: 16,
-              fontWeight: '800',
+              fontWeight: "800",
               minWidth: 92,
-              textAlign: 'center',
+              textAlign: "center",
             }}
           >
             {valueText}
@@ -59,8 +59,8 @@ export const StepperRow = ({
               height: 34,
               width: 44,
               borderRadius: 12,
-              justifyContent: 'center',
-              alignItems: 'center',
+              justifyContent: "center",
+              alignItems: "center",
               opacity: incrementDisabled ? 0.35 : 1,
             }}
             icon={<Plus color={COLORS.light} />}
@@ -68,5 +68,5 @@ export const StepperRow = ({
         </View>
       }
     />
-  )
-}
+  );
+};

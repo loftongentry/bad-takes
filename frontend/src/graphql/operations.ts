@@ -27,7 +27,7 @@ const ROOM_FRAGMENT = gql`
         defenderId
         promptId
         promptText
-      } 
+      }
     }
   }
 `;
@@ -60,19 +60,19 @@ export const ROOM_OPS = {
   CREATE: gql`
     ${ROOM_FRAGMENT}
     mutation CreateRoom(
-      $hostName: String!, 
-      $lobbyName: String!, 
-      $rounds: Int!, 
-      $playerLimit: Int!, 
-      $timeLimit: Int!,
+      $hostName: String!
+      $lobbyName: String!
+      $rounds: Int!
+      $playerLimit: Int!
+      $timeLimit: Int!
       $promptTimeLimit: Int!
     ) {
       createRoom(
-        hostName: $hostName, 
-        lobbyName: $lobbyName, 
-        rounds: $rounds, 
-        playerLimit: $playerLimit, 
-        timeLimit: $timeLimit,
+        hostName: $hostName
+        lobbyName: $lobbyName
+        rounds: $rounds
+        playerLimit: $playerLimit
+        timeLimit: $timeLimit
         promptTimeLimit: $promptTimeLimit
       ) {
         hostId

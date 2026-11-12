@@ -28,14 +28,11 @@ export function useRoom(roomId?: string) {
   // 1. THE WATCHER
   // This hook constantly watches the Apollo Cache for 'Room:roomId'.
   // If the cache changes (due to a subscription or mutation), 'data' updates automatically.
-  const { data, loading, error, refetch } = useQuery<{ room: Room | null }>(
-    ROOM_OPS.GET,
-    {
-      variables: { roomId },
-      skip: !roomId,
-      fetchPolicy: "cache-and-network", // Always try to get the latest data
-    }
-  );
+  const { data, loading, error, refetch } = useQuery<{ room: Room | null }>(ROOM_OPS.GET, {
+    variables: { roomId },
+    skip: !roomId,
+    fetchPolicy: "cache-and-network", // Always try to get the latest data
+  });
 
   // 2. THE LISTENER
   // This opens the WebSocket. When a message arrives, it updates the Apollo Cache, which feeds the

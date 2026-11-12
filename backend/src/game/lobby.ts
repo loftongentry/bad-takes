@@ -29,7 +29,7 @@ export async function createRoom(rawHostName: string, rawSettings: RoomSettings)
     playerLimit: settings.playerLimit,
     timeLimit: settings.timeLimit,
     promptTimeLimit: settings.promptTimeLimit,
-    gameState: JSON.stringify(emptyGameState())
+    gameState: JSON.stringify(emptyGameState()),
   };
 
   try {
@@ -40,7 +40,6 @@ export async function createRoom(rawHostName: string, rawSettings: RoomSettings)
     const room = await repo.getRoom(roomId);
     await repo.publishRoom(room);
     return { room, hostId: host.id, hostToken };
-
   } catch (error) {
     console.error(`[RoomStore.create] Failed to create room:`, error);
     throw error;
@@ -77,9 +76,11 @@ export async function joinRoom(joinCode: string, rawPlayerName: string) {
 
     console.log(`[RoomStore.join] ${playerName} joined room ${roomId}`);
     return { room: updatedRoom, playerId: newPlayer.id, playerToken };
-
   } catch (error) {
-    console.error(`[RoomStore.join] Error joining with code ${joinCode}:`, error instanceof Error ? error.message : error);
+    console.error(
+      `[RoomStore.join] Error joining with code ${joinCode}:`,
+      error instanceof Error ? error.message : error,
+    );
     throw error;
   }
 }
@@ -114,7 +115,7 @@ export async function leaveRoom(roomId: string, playerToken: string) {
       await repo.publishRoom(updatedRoom);
     }
 
-    return true
+    return true;
   } catch (error) {
     console.error(`[RoomStore.leave] Error handling leave for ${roomId}:`, error);
     return false;

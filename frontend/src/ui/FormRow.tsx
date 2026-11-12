@@ -1,35 +1,33 @@
-import type { ReactNode } from 'react'
-import { Separator, Text, View } from 'tamagui'
-import { COLORS } from './theme'
+import type { ReactNode } from "react";
+import { Separator, Text, View } from "tamagui";
+import { COLORS } from "./theme";
 
 export const FormRow = ({
   label,
   right,
   showDivider = true,
 }: {
-  label: string
-  right: ReactNode
-  showDivider?: boolean
+  label: string;
+  right: ReactNode;
+  showDivider?: boolean;
 }) => {
   return (
     <View>
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
           paddingVertical: 16,
           paddingHorizontal: 18,
         }}
       >
-        <Text style={{ color: COLORS.light, fontSize: 16, fontWeight: '700' }}>
-          {label}
-        </Text>
+        <Text style={{ color: COLORS.light, fontSize: 16, fontWeight: "700" }}>{label}</Text>
 
         {right}
       </View>
 
       {showDivider ? <Separator style={{ opacity: 0.22 }} /> : null}
     </View>
-  )
-}
+  );
+};

@@ -14,17 +14,16 @@ import type {
 } from "../graphql/types";
 
 // Wraps an action so a failure is logged under `label`, then rethrown for the screen to handle
-const withErrorLog = <Args extends unknown[], Result>(
-  label: string,
-  action: (...args: Args) => Promise<Result>
-) => async (...args: Args): Promise<Result> => {
-  try {
-    return await action(...args);
-  } catch (error) {
-    console.error(label, error);
-    throw error;
-  }
-};
+const withErrorLog =
+  <Args extends unknown[], Result>(label: string, action: (...args: Args) => Promise<Result>) =>
+  async (...args: Args): Promise<Result> => {
+    try {
+      return await action(...args);
+    } catch (error) {
+      console.error(label, error);
+      throw error;
+    }
+  };
 
 // Every game mutation, bound to the current room and player
 export function useRoomActions(roomId?: string) {
@@ -41,15 +40,15 @@ export function useRoomActions(roomId?: string) {
     client.writeQuery({ query: ROOM_OPS.GET, variables: { roomId: room.id }, data: { room } });
   };
 
-  const [createFn] = useMutation<CreateRoomResult>(ROOM_OPS.CREATE)
-  const [joinFn] = useMutation<JoinRoomResult>(ROOM_OPS.JOIN)
-  const [leaveFn] = useMutation(ROOM_OPS.LEAVE)
-  const [kickFn] = useMutation<KickPlayerResult>(ROOM_OPS.KICK)
-  const [startFn] = useMutation(ROOM_OPS.START)
-  const [submitPromptFn] = useMutation<SubmitPromptResult>(ROOM_OPS.SUBMIT_PROMPT)
-  const [endTurnFn] = useMutation(ROOM_OPS.END_TURN)
-  const [submitVoteFn] = useMutation<SubmitVoteResult>(ROOM_OPS.SUBMIT_VOTE)
-  const [resetGameFn] = useMutation<ResetGameResult>(ROOM_OPS.RESET_GAME)
+  const [createFn] = useMutation<CreateRoomResult>(ROOM_OPS.CREATE);
+  const [joinFn] = useMutation<JoinRoomResult>(ROOM_OPS.JOIN);
+  const [leaveFn] = useMutation(ROOM_OPS.LEAVE);
+  const [kickFn] = useMutation<KickPlayerResult>(ROOM_OPS.KICK);
+  const [startFn] = useMutation(ROOM_OPS.START);
+  const [submitPromptFn] = useMutation<SubmitPromptResult>(ROOM_OPS.SUBMIT_PROMPT);
+  const [endTurnFn] = useMutation(ROOM_OPS.END_TURN);
+  const [submitVoteFn] = useMutation<SubmitVoteResult>(ROOM_OPS.SUBMIT_VOTE);
+  const [resetGameFn] = useMutation<ResetGameResult>(ROOM_OPS.RESET_GAME);
 
   return {
     createGame: withErrorLog("Error creating room:", async (args: CreateArgs) => {
@@ -166,7 +165,7 @@ export function useRoomActions(roomId?: string) {
       const res = await submitVoteFn({ variables: { roomId, playerToken: myToken, value } });
 
       if (res.data?.submitVote !== true) {
-        throw new Error('Failed to submit vote');
+        throw new Error("Failed to submit vote");
       }
     }),
 
@@ -178,7 +177,7 @@ export function useRoomActions(roomId?: string) {
       const res = await resetGameFn({ variables: { roomId, playerToken: myToken } });
 
       if (res.data?.resetGame !== true) {
-        throw new Error('Failed to reset game');
+        throw new Error("Failed to reset game");
       }
     }),
   };

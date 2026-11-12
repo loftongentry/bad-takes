@@ -1,7 +1,16 @@
 // Data access for rooms: every Redis read/write and pub/sub publish lives here.
 // Game rules live in ../game and only talk to Redis through these functions.
 import { redis, pubsub } from "./redis";
-import { roomKey, playersKey, votesKey, promptsKey, tokensKey, joinKey, roomChannel, ROOM_TTL_SECONDS } from "./keys";
+import {
+  roomKey,
+  playersKey,
+  votesKey,
+  promptsKey,
+  tokensKey,
+  joinKey,
+  roomChannel,
+  ROOM_TTL_SECONDS,
+} from "./keys";
 import type { GameState, Player, Prompt, Room, RoomStatus, StoredGameState } from "../types";
 
 // Each command in a Redis pipeline yields [error, result]
@@ -14,18 +23,18 @@ export async function getRoom(roomId: string): Promise<Room | null> {
 
   try {
     // Pipeline: Fetch room metadata + players in one trip
-    const [roomRes, playersRes, votesRes, promptCountRes] = await redis
+    const [roomRes, playersRes, votesRes, promptCountRes] = (await redis
       .pipeline()
       .hgetall(roomKey(roomId))
       .hgetall(playersKey(roomId))
       .hgetall(votesKey(roomId))
       .hlen(promptsKey(roomId))
-      .exec() as [
-        PipelineResult<Record<string, string>>,
-        PipelineResult<Record<string, string>>,
-        PipelineResult<Record<string, string>>,
-        PipelineResult<number>,
-      ];
+      .exec()) as [
+      PipelineResult<Record<string, string>>,
+      PipelineResult<Record<string, string>>,
+      PipelineResult<Record<string, string>>,
+      PipelineResult<number>,
+    ];
 
     // Check for Pipeline Errors
     if (roomRes[0]) {
@@ -84,9 +93,8 @@ export async function getRoom(roomId: string): Promise<Room | null> {
         promptTimeLimit: Number(roomData.promptTimeLimit) || 90,
       },
       players: players,
-      gameState
+      gameState,
     };
-
   } catch (error) {
     console.error(`[RoomStore.get] Critical failure fetching room ${roomId}:`, error);
     throw new Error("Internal database error");
@@ -112,7 +120,11 @@ export async function getPrompts(roomId: string): Promise<Prompt[]> {
   return raw.map((p) => JSON.parse(p));
 }
 
-type PhaseDeadline = { roomId: string; status: "PROMPT_ENTRY" | "DEFENSE" | "VOTING"; deadline: string };
+type PhaseDeadline = {
+  roomId: string;
+  status: "PROMPT_ENTRY" | "DEFENSE" | "VOTING";
+  deadline: string;
+};
 
 // Every room currently in a timed phase (writing, defense or voting), with its deadline. Used
 // on startup to restore the in-memory phase timers that a server restart would otherwise lose.
@@ -126,7 +138,8 @@ export async function getPhaseDeadlines(): Promise<PhaseDeadline[]> {
       // Only the room hashes themselves (room:{id}), not room:{id}:players and friends
       if (key.split(":").length !== 2) continue;
       const [status, rawState] = await redis.hmget(key, "status", "gameState");
-      if ((status !== "PROMPT_ENTRY" && status !== "DEFENSE" && status !== "VOTING") || !rawState) continue;
+      if ((status !== "PROMPT_ENTRY" && status !== "DEFENSE" && status !== "VOTING") || !rawState)
+        continue;
       const deadline = JSON.parse(rawState).deadline;
       if (deadline) {
         found.push({ roomId: key.slice("room:".length), status, deadline });
@@ -155,9 +168,10 @@ export async function insertRoom(
   roomId: string,
   roomMeta: Record<string, string | number>,
   host: Player,
-  hostToken: string
+  hostToken: string,
 ) {
-  const results = await redis.multi()
+  const results = await redis
+    .multi()
     .hset(roomKey(roomId), roomMeta)
     .expire(roomKey(roomId), ROOM_TTL_SECONDS)
     .hset(playersKey(roomId), host.id, JSON.stringify(host))
@@ -167,14 +181,15 @@ export async function insertRoom(
     .exec();
 
   // Check transaction results
-  const errors = results?.filter(r => r[0] !== null);
+  const errors = results?.filter((r) => r[0] !== null);
   if (errors && errors.length > 0) {
     throw new Error(`Redis Transaction Failed: ${errors[0][0]}`);
   }
 }
 
 export function deleteRoom(roomId: string, joinCode: string) {
-  return redis.multi()
+  return redis
+    .multi()
     .del(roomKey(roomId))
     .del(playersKey(roomId))
     .del(votesKey(roomId))
@@ -211,7 +226,7 @@ export async function addPlayerIfOpen(roomId: string, player: Player, token: str
     player.id,
     JSON.stringify(player),
     token,
-    ROOM_TTL_SECONDS
+    ROOM_TTL_SECONDS,
   )) as "ok" | "gone" | "started" | "full";
 }
 
@@ -234,7 +249,8 @@ export async function removePlayer(roomId: string, playerId: string) {
 // Stores a player's prompt (replacing any earlier one from them) and returns how many players
 // have submitted. A single HSET per player means simultaneous submissions can't overwrite each other.
 export async function savePrompt(roomId: string, prompt: Prompt): Promise<number> {
-  const results = await redis.multi()
+  const results = await redis
+    .multi()
     .hset(promptsKey(roomId), prompt.authorId, JSON.stringify(prompt))
     .expire(promptsKey(roomId), ROOM_TTL_SECONDS)
     .hlen(promptsKey(roomId))
@@ -283,12 +299,12 @@ export async function advanceRoom({
   state,
   updatedPlayer,
 }: {
-  roomId: string
-  from: RoomStatus
-  to: RoomStatus
-  expectedDeadline: string | null | undefined
-  state: StoredGameState
-  updatedPlayer?: Player
+  roomId: string;
+  from: RoomStatus;
+  to: RoomStatus;
+  expectedDeadline: string | null | undefined;
+  state: StoredGameState;
+  updatedPlayer?: Player;
 }): Promise<boolean> {
   const result = await redis.eval(
     ADVANCE_ROOM_SCRIPT,
@@ -301,7 +317,7 @@ export async function advanceRoom({
     JSON.stringify(state),
     updatedPlayer?.id ?? "",
     updatedPlayer ? JSON.stringify(updatedPlayer) : "",
-    expectedDeadline ?? ""
+    expectedDeadline ?? "",
   );
   return result === 1;
 }
@@ -315,7 +331,8 @@ export function removeVote(roomId: string, playerId: string) {
 }
 
 export function recordVote(roomId: string, playerId: string, value: number) {
-  return redis.multi()
+  return redis
+    .multi()
     .hset(votesKey(roomId), playerId, value.toString())
     .expire(votesKey(roomId), ROOM_TTL_SECONDS)
     .exec();
@@ -349,7 +366,7 @@ export async function resetToLobby(roomId: string, state: StoredGameState): Prom
     playersKey(roomId),
     votesKey(roomId),
     promptsKey(roomId),
-    JSON.stringify(state)
+    JSON.stringify(state),
   );
   return result === 1;
 }
@@ -357,7 +374,8 @@ export async function resetToLobby(roomId: string, state: StoredGameState): Prom
 // Renews the expiry on all of a room's keys, so a room only expires after ROOM_TTL_SECONDS
 // with no activity, not that long after it was created. Keys that don't exist are skipped.
 export function touchRoom(room: Room) {
-  return redis.multi()
+  return redis
+    .multi()
     .expire(roomKey(room.id), ROOM_TTL_SECONDS)
     .expire(playersKey(room.id), ROOM_TTL_SECONDS)
     .expire(votesKey(room.id), ROOM_TTL_SECONDS)

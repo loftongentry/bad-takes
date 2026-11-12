@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
-import { Spinner, Text, View } from 'tamagui'
-import { COLORS } from './theme'
+import type { ReactNode } from "react";
+import { Spinner, Text, View } from "tamagui";
+import { COLORS } from "./theme";
 
 // Large spinner over a centered message, for "waiting on other players" states
 export const SpinnerMessage = ({ children }: { children: ReactNode }) => {
@@ -8,8 +8,9 @@ export const SpinnerMessage = ({ children }: { children: ReactNode }) => {
     <View
       style={{
         flex: 1,
-        paddingHorizontal: 40
-      }}>
+        paddingHorizontal: 40,
+      }}
+    >
       <Spinner
         size="large"
         color={COLORS.light}
@@ -21,13 +22,13 @@ export const SpinnerMessage = ({ children }: { children: ReactNode }) => {
         style={{
           color: COLORS.light,
           fontSize: 18,
-          textAlign: 'center',
+          textAlign: "center",
           opacity: 0.8,
-          lineHeight: 28
+          lineHeight: 28,
         }}
       >
         {children}
       </Text>
     </View>
-  )
-}
+  );
+};

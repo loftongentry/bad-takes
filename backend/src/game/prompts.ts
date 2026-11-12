@@ -12,8 +12,8 @@ export async function startGame(roomId: string, hostToken: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
-      throw new Error("Room not found")
-    };
+      throw new Error("Room not found");
+    }
     await requireHost(room, hostToken);
     if (room.status !== "LOBBY") {
       throw new Error("The game has already started");
@@ -49,7 +49,6 @@ export async function startGame(roomId: string, hostToken: string) {
 
     await repo.publishRoom(updatedRoom);
     return updatedRoom;
-
   } catch (error) {
     console.error(`[RoomStore.startGame] Failed to start game ${roomId}:`, error);
     throw error;
@@ -73,7 +72,7 @@ export async function submitPrompt(roomId: string, playerToken: string, prompt: 
     const submittedCount = await repo.savePrompt(roomId, {
       id: uuid(),
       authorId: player.id,
-      text
+      text,
     });
 
     if (submittedCount >= room.players.length) {
@@ -98,7 +97,7 @@ export async function submitPrompt(roomId: string, playerToken: string, prompt: 
 // `deadline`, when given, limits this to that exact writing phase (the timer's own).
 export async function startTurnsIfAllPromptsIn(
   roomId: string,
-  { timeUp = false, deadline }: { timeUp?: boolean; deadline?: string } = {}
+  { timeUp = false, deadline }: { timeUp?: boolean; deadline?: string } = {},
 ) {
   const room = await repo.getRoom(roomId);
   if (!room || room.status !== "PROMPT_ENTRY") {

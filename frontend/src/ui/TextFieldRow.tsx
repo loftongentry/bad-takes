@@ -1,5 +1,5 @@
-import { Input, Text, View, Separator } from "tamagui"
-import { COLORS } from "./theme"
+import { Input, Text, View, Separator } from "tamagui";
+import { COLORS } from "./theme";
 
 export const TextFieldRow = ({
   label,
@@ -9,29 +9,27 @@ export const TextFieldRow = ({
   maxLength,
   showDivider = true,
 }: {
-  label: string
-  value: string
-  onChangeText: (t: string) => void
-  placeholder: string
-  maxLength?: number
-  showDivider?: boolean
+  label: string;
+  value: string;
+  onChangeText: (t: string) => void;
+  placeholder: string;
+  maxLength?: number;
+  showDivider?: boolean;
 }) => {
   return (
     <View>
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
           paddingVertical: 16,
           paddingHorizontal: 18,
         }}
       >
-        <Text style={{ color: COLORS.light, fontSize: 16, fontWeight: '700' }}>
-          {label}
-        </Text>
+        <Text style={{ color: COLORS.light, fontSize: 16, fontWeight: "700" }}>{label}</Text>
 
-        <View style={{ flex: 1, alignItems: 'flex-end', marginLeft: 16 }}>
+        <View style={{ flex: 1, alignItems: "flex-end", marginLeft: 16 }}>
           <Input
             value={value}
             onChangeText={onChangeText}
@@ -40,14 +38,14 @@ export const TextFieldRow = ({
             placeholderTextColor={COLORS.lightSecondary}
             style={{
               width: 170,
-              backgroundColor: 'transparent',
+              backgroundColor: "transparent",
               borderWidth: 0,
               paddingHorizontal: 0,
               paddingVertical: 0,
-              textAlign: 'right',
+              textAlign: "right",
               color: COLORS.light,
               fontSize: 16,
-              fontWeight: '700',
+              fontWeight: "700",
             }}
           />
         </View>
@@ -55,5 +53,5 @@ export const TextFieldRow = ({
 
       {showDivider ? <Separator style={{ opacity: 0.22 }} /> : null}
     </View>
-  )
-}
+  );
+};

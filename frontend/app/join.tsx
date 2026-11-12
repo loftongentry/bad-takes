@@ -1,45 +1,39 @@
-import { useState } from 'react'
-import { useRouter } from 'expo-router'
-import { View, Spinner } from 'tamagui'
-import { PrimaryButton } from '../src/ui/PrimaryButton'
-import { RoomCodeInput } from '../src/ui/RoomCodeInput'
-import { LabeledField } from '../src/ui/LabeledField'
-import { ActionRow } from '../src/ui/ActionRow'
-import { Page } from '../src/ui/Page'
-import { useRoomActions } from '../src/hooks/useRoomActions'
+import { useState } from "react";
+import { useRouter } from "expo-router";
+import { View, Spinner } from "tamagui";
+import { PrimaryButton } from "../src/ui/PrimaryButton";
+import { RoomCodeInput } from "../src/ui/RoomCodeInput";
+import { LabeledField } from "../src/ui/LabeledField";
+import { ActionRow } from "../src/ui/ActionRow";
+import { Page } from "../src/ui/Page";
+import { useRoomActions } from "../src/hooks/useRoomActions";
 
 const JoinScreen = () => {
-  const router = useRouter()
-  const { joinGame } = useRoomActions()
-  const [roomCode, setRoomCode] = useState<string>('')
-  const [yourName, setYourName] = useState<string>('')
-  const [loading, setLoading] = useState<boolean>(false)
+  const router = useRouter();
+  const { joinGame } = useRoomActions();
+  const [roomCode, setRoomCode] = useState<string>("");
+  const [yourName, setYourName] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const canJoin = roomCode.length === 5 && yourName.trim().length > 0
+  const canJoin = roomCode.length === 5 && yourName.trim().length > 0;
 
   const handleJoinLobby = async () => {
     try {
-      setLoading(true)
-      await joinGame(
-        roomCode,
-        yourName
-      );
+      setLoading(true);
+      await joinGame(roomCode, yourName);
 
       router.push(`/lobby`);
     } catch (error) {
-      console.error('Error joining lobby:', error)
-      alert('Failed to join lobby. Please try again.')
+      console.error("Error joining lobby:", error);
+      alert("Failed to join lobby. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <Page
-      title="Join Game"
-      onBack={() => router.back()}
-    >
-      <View style={{ width: '100%', maxWidth: 340 }}>
+    <Page title="Join Game" onBack={() => router.back()}>
+      <View style={{ width: "100%", maxWidth: 340 }}>
         <RoomCodeInput value={roomCode} onChange={setRoomCode} />
       </View>
 
@@ -54,16 +48,12 @@ const JoinScreen = () => {
       />
 
       <ActionRow>
-        <PrimaryButton
-          onPress={handleJoinLobby}
-          disabled={!canJoin || loading}
-          invert
-        >
-          {loading ? <Spinner /> : 'Join Lobby'}
+        <PrimaryButton onPress={handleJoinLobby} disabled={!canJoin || loading} invert>
+          {loading ? <Spinner /> : "Join Lobby"}
         </PrimaryButton>
       </ActionRow>
     </Page>
-  )
-}
+  );
+};
 
-export default JoinScreen
+export default JoinScreen;

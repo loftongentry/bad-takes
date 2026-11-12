@@ -20,6 +20,6 @@ const Layout = () => {
       </TamaguiProvider>
     </ApolloProvider>
   );
-}
+};
 
-export default Layout
+export default Layout;

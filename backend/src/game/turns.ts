@@ -23,7 +23,7 @@ export async function advanceToNextTurn(
   room: Room,
   fromStatus: RoomStatus,
   state: StoredGameState,
-  scoredPlayer?: Player
+  scoredPlayer?: Player,
 ) {
   const roomId = room.id;
   const stillHere = new Set(room.players.map((p) => p.id));
@@ -37,7 +37,9 @@ export async function advanceToNextTurn(
   if (nextTurn) {
     state.currentTurn = nextTurn;
     // Absolute end of this defense. Every client counts down to it, and the server ends the turn when it passes.
-    state.deadline = new Date(Date.now() + (PREP_SECONDS + room.settings.timeLimit) * 1000).toISOString();
+    state.deadline = new Date(
+      Date.now() + (PREP_SECONDS + room.settings.timeLimit) * 1000,
+    ).toISOString();
   } else {
     state.deadline = null;
     console.log(`[GameLogic] No more turns in room ${roomId}, transitioning to RESULTS`);
@@ -53,7 +55,9 @@ export async function advanceToNextTurn(
     updatedPlayer: scoredPlayer,
   });
   if (!advanced) {
-    console.log(`[GameLogic] Room ${roomId} already advanced past ${fromStatus} by another request`);
+    console.log(
+      `[GameLogic] Room ${roomId} already advanced past ${fromStatus} by another request`,
+    );
     return false;
   }
 
@@ -204,7 +208,7 @@ export async function submitVote(roomId: string, playerToken: string, value: num
 // `deadline`, when given, limits this to that exact voting round (the timer's own).
 export async function tallyIfAllVotesIn(
   roomId: string,
-  { votingClosed = false, deadline }: { votingClosed?: boolean; deadline?: string } = {}
+  { votingClosed = false, deadline }: { votingClosed?: boolean; deadline?: string } = {},
 ) {
   const room = await repo.getRoom(roomId);
   if (!room || room.status !== "VOTING") {
@@ -218,7 +222,9 @@ export async function tallyIfAllVotesIn(
   const voterIds = new Set(room.players.filter((p) => p.id !== defenderId).map((p) => p.id));
 
   // Only votes from players still in the room count
-  const votes = Object.entries(await repo.getVotes(roomId)).filter(([voterId]) => voterIds.has(voterId));
+  const votes = Object.entries(await repo.getVotes(roomId)).filter(([voterId]) =>
+    voterIds.has(voterId),
+  );
 
   console.log(`[GameLogic] Room ${roomId} has ${votes.length}/${voterIds.size} votes`);
   if (votes.length < voterIds.size && !votingClosed) {

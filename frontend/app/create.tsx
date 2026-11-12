@@ -1,48 +1,48 @@
-import { useState } from 'react'
-import { useRouter } from 'expo-router'
-import { Spinner } from 'tamagui'
-import { Page } from '../src/ui/Page'
-import { StepperRow } from '../src/ui/StepperRow'
-import { TextFieldRow } from '../src/ui/TextFieldRow'
-import { FormCard } from '../src/ui/FormCard'
-import { PrimaryButton } from '../src/ui/PrimaryButton'
-import { ActionRow } from '../src/ui/ActionRow'
-import { useRoomActions } from '../src/hooks/useRoomActions'
+import { useState } from "react";
+import { useRouter } from "expo-router";
+import { Spinner } from "tamagui";
+import { Page } from "../src/ui/Page";
+import { StepperRow } from "../src/ui/StepperRow";
+import { TextFieldRow } from "../src/ui/TextFieldRow";
+import { FormCard } from "../src/ui/FormCard";
+import { PrimaryButton } from "../src/ui/PrimaryButton";
+import { ActionRow } from "../src/ui/ActionRow";
+import { useRoomActions } from "../src/hooks/useRoomActions";
 
-const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
+const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
 // Constraints
 // TODO: Implement logic that handles multiple rounds instead of just 1
-const MIN_ROUNDS = 1
-const MAX_ROUNDS = 1
+const MIN_ROUNDS = 1;
+const MAX_ROUNDS = 1;
 
-const MIN_PLAYERS = 2
-const MAX_PLAYERS = 20
+const MIN_PLAYERS = 2;
+const MAX_PLAYERS = 20;
 
-const STEP_SECONDS = 15
+const STEP_SECONDS = 15;
 // Defense time
-const MIN_SECONDS = 60
-const MAX_SECONDS = 5 * 60 // 5 Minutes
+const MIN_SECONDS = 60;
+const MAX_SECONDS = 5 * 60; // 5 Minutes
 // Writing time (to write a take)
-const MIN_WRITING_SECONDS = 30
-const MAX_WRITING_SECONDS = 3 * 60
+const MIN_WRITING_SECONDS = 30;
+const MAX_WRITING_SECONDS = 3 * 60;
 
 const CreateScreen = () => {
-  const router = useRouter()
-  const { createGame } = useRoomActions()
-  const [lobbyName, setLobbyName] = useState<string>('')
-  const [rounds, setRounds] = useState<number>(1)
-  const [playerLimit, setPlayerLimit] = useState<number>(5)
-  const [timeLimit, setTimeLimit] = useState<number>(60)
-  const [promptTimeLimit, setPromptTimeLimit] = useState<number>(90)
-  const [yourName, setYourName] = useState<string>('')
-  const [loading, setLoading] = useState<boolean>(false)
+  const router = useRouter();
+  const { createGame } = useRoomActions();
+  const [lobbyName, setLobbyName] = useState<string>("");
+  const [rounds, setRounds] = useState<number>(1);
+  const [playerLimit, setPlayerLimit] = useState<number>(5);
+  const [timeLimit, setTimeLimit] = useState<number>(60);
+  const [promptTimeLimit, setPromptTimeLimit] = useState<number>(90);
+  const [yourName, setYourName] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const canCreate = lobbyName.trim().length > 0 && yourName.trim().length > 0
+  const canCreate = lobbyName.trim().length > 0 && yourName.trim().length > 0;
 
   const handleCreateLobby = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       await createGame({
         hostName: yourName,
         lobbyName,
@@ -54,18 +54,15 @@ const CreateScreen = () => {
 
       router.push(`/lobby`);
     } catch (error) {
-      console.error('Error creating lobby:', error)
-      alert('Failed to create lobby. Please try again.')
+      console.error("Error creating lobby:", error);
+      alert("Failed to create lobby. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <Page
-      title="Create Game"
-      onBack={() => router.back()}
-    >
+    <Page title="Create Game" onBack={() => router.back()}>
       <FormCard>
         <TextFieldRow
           label="Lobby Name"
@@ -99,10 +96,14 @@ const CreateScreen = () => {
           decrementDisabled={promptTimeLimit <= MIN_WRITING_SECONDS}
           incrementDisabled={promptTimeLimit >= MAX_WRITING_SECONDS}
           onDecrement={() =>
-            setPromptTimeLimit((s) => clamp(s - STEP_SECONDS, MIN_WRITING_SECONDS, MAX_WRITING_SECONDS))
+            setPromptTimeLimit((s) =>
+              clamp(s - STEP_SECONDS, MIN_WRITING_SECONDS, MAX_WRITING_SECONDS),
+            )
           }
           onIncrement={() =>
-            setPromptTimeLimit((s) => clamp(s + STEP_SECONDS, MIN_WRITING_SECONDS, MAX_WRITING_SECONDS))
+            setPromptTimeLimit((s) =>
+              clamp(s + STEP_SECONDS, MIN_WRITING_SECONDS, MAX_WRITING_SECONDS),
+            )
           }
         />
 
@@ -111,12 +112,8 @@ const CreateScreen = () => {
           valueText={`${timeLimit}s`}
           decrementDisabled={timeLimit <= MIN_SECONDS}
           incrementDisabled={timeLimit >= MAX_SECONDS}
-          onDecrement={() =>
-            setTimeLimit((s) => clamp(s - STEP_SECONDS, MIN_SECONDS, MAX_SECONDS))
-          }
-          onIncrement={() =>
-            setTimeLimit((s) => clamp(s + STEP_SECONDS, MIN_SECONDS, MAX_SECONDS))
-          }
+          onDecrement={() => setTimeLimit((s) => clamp(s - STEP_SECONDS, MIN_SECONDS, MAX_SECONDS))}
+          onIncrement={() => setTimeLimit((s) => clamp(s + STEP_SECONDS, MIN_SECONDS, MAX_SECONDS))}
         />
 
         <TextFieldRow
@@ -130,15 +127,12 @@ const CreateScreen = () => {
       </FormCard>
 
       <ActionRow>
-        <PrimaryButton
-          onPress={handleCreateLobby}
-          disabled={!canCreate || loading}
-        >
-          {loading ? <Spinner /> : 'Create Lobby'}
+        <PrimaryButton onPress={handleCreateLobby} disabled={!canCreate || loading}>
+          {loading ? <Spinner /> : "Create Lobby"}
         </PrimaryButton>
       </ActionRow>
     </Page>
-  )
-}
+  );
+};
 
-export default CreateScreen
+export default CreateScreen;

@@ -3,10 +3,10 @@
 A party game: everyone writes a controversial "bad take", then players take turns
 defending a random one against the clock while everyone else votes.
 
-| Folder | What | Stack |
-|---|---|---|
-| [`frontend/`](frontend) | Mobile app | Expo, expo-router, Tamagui, Apollo Client, Zustand |
-| [`backend/`](backend) | GraphQL API + game logic | Express, Apollo Server, graphql-ws, Redis |
+| Folder                  | What                     | Stack                                              |
+| ----------------------- | ------------------------ | -------------------------------------------------- |
+| [`frontend/`](frontend) | Mobile app               | Expo, expo-router, Tamagui, Apollo Client, Zustand |
+| [`backend/`](backend)   | GraphQL API + game logic | Express, Apollo Server, graphql-ws, Redis          |
 
 The frontend and backend are independent npm packages (separate `package.json` and
 lockfiles). The root `package.json` only holds convenience scripts.
