@@ -102,10 +102,12 @@ export async function getPrompts(roomId: string): Promise<Prompt[]> {
   return raw.map((p) => JSON.parse(p));
 }
 
-// Every room currently in DEFENSE, with its deadline. Used on startup to restore the
-// in-memory turn timers that a server restart would otherwise lose.
-export async function getDefenseDeadlines(): Promise<Array<{ roomId: string; deadline: string }>> {
-  const found: Array<{ roomId: string; deadline: string }> = [];
+type PhaseDeadline = { roomId: string; status: "DEFENSE" | "VOTING"; deadline: string };
+
+// Every room currently in a timed phase (DEFENSE or VOTING), with its deadline. Used on
+// startup to restore the in-memory phase timers that a server restart would otherwise lose.
+export async function getPhaseDeadlines(): Promise<PhaseDeadline[]> {
+  const found: PhaseDeadline[] = [];
   let cursor = "0";
   do {
     const [next, keys] = await redis.scan(cursor, "MATCH", "room:*", "COUNT", 200);
@@ -114,10 +116,10 @@ export async function getDefenseDeadlines(): Promise<Array<{ roomId: string; dea
       // Only the room hashes themselves (room:{id}), not room:{id}:players and friends
       if (key.split(":").length !== 2) continue;
       const [status, rawState] = await redis.hmget(key, "status", "gameState");
-      if (status !== "DEFENSE" || !rawState) continue;
+      if ((status !== "DEFENSE" && status !== "VOTING") || !rawState) continue;
       const deadline = JSON.parse(rawState).deadline;
       if (deadline) {
-        found.push({ roomId: key.slice("room:".length), deadline });
+        found.push({ roomId: key.slice("room:".length), status, deadline });
       }
     }
   } while (cursor !== "0");

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useSecondsLeft } from "./useSecondsLeft";
 
 export type DefensePhase = 'PREP' | 'DEFEND'
 
@@ -8,16 +8,7 @@ export type DefensePhase = 'PREP' | 'DEFEND'
 // (Display only: it uses this device's clock, so a phone whose clock is off by a few seconds
 // shows a slightly different countdown, but the turn still ends at the same moment for all.)
 export function useDefenseTimer(deadline: string | null | undefined, prepTime: number, defendTime: number) {
-  const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 250)
-    return () => clearInterval(timer)
-  }, [])
-
-  const secondsLeft = deadline
-    ? Math.max(0, Math.ceil((Date.parse(deadline) - now) / 1000))
-    : prepTime + defendTime
+  const secondsLeft = useSecondsLeft(deadline) ?? prepTime + defendTime
 
   const phase: DefensePhase = secondsLeft > defendTime ? 'PREP' : 'DEFEND'
   const timeLeft = phase === 'PREP' ? secondsLeft - defendTime : secondsLeft

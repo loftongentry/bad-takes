@@ -10,9 +10,28 @@ import { useGameSessionStore } from "../src/state/gameSessionStore"
 import { useRoom } from "../src/hooks/useRoom"
 import { useRoomActions } from "../src/hooks/useRoomActions"
 import { useStatusRedirect } from "../src/hooks/useStatusRedirect"
+import { useSecondsLeft } from "../src/hooks/useSecondsLeft"
+
+// "Voting closes in 12s"; the server counts whatever votes are in when it hits zero
+const VotingClock = ({ secondsLeft }: { secondsLeft: number | null }) =>
+  secondsLeft === null ? null : (
+    <Text style={{ color: COLORS.light, opacity: 0.7, fontSize: 16, marginBottom: 10 }}>
+      Voting closes in {secondsLeft}s
+    </Text>
+  )
 
 // Shown to the defender while the jury votes, and to voters after they've voted
-const WaitingPage = ({ title, message, onBack }: { title: string; message: string; onBack: () => void }) => (
+const WaitingPage = ({
+  title,
+  message,
+  secondsLeft,
+  onBack,
+}: {
+  title: string
+  message: string
+  secondsLeft: number | null
+  onBack: () => void
+}) => (
   <Page
     title={title}
     onBack={onBack}
@@ -33,6 +52,7 @@ const WaitingPage = ({ title, message, onBack }: { title: string; message: strin
       >
         {message}
       </Text>
+      <VotingClock secondsLeft={secondsLeft} />
       <Spinner size="large" />
     </View>
   </Page>
@@ -54,6 +74,9 @@ const Voting = () => {
 
   useStatusRedirect(room?.status, { DEFENSE: '/defense', RESULTS: '/results' })
 
+  // Only once the room is actually voting; until then the deadline is still the defense's
+  const secondsLeft = useSecondsLeft(room?.status === 'VOTING' ? room.gameState?.deadline : null)
+
   const handleVote = async (value: number) => {
     setLoading(true)
     try {
@@ -68,11 +91,11 @@ const Voting = () => {
   }
 
   if (isDefender) {
-    return <WaitingPage title="Judgement Time" message="The jury is deciding..." onBack={leaveGame} />
+    return <WaitingPage title="Judgement Time" message="The jury is deciding..." secondsLeft={secondsLeft} onBack={leaveGame} />
   }
 
   if (hasVoted) {
-    return <WaitingPage title="Vote Locked In" message="Waiting for others to vote..." onBack={leaveGame} />
+    return <WaitingPage title="Vote Locked In" message="Waiting for others to vote..." secondsLeft={secondsLeft} onBack={leaveGame} />
   }
 
   return (
@@ -94,6 +117,8 @@ const Voting = () => {
         >
           Did <Text style={{ fontWeight: 'bold' }}>{defenderName}</Text> defend this well?
         </Text>
+
+        <VotingClock secondsLeft={secondsLeft} />
 
         <PromptCard>
           <PromptText>{currentTurn?.promptText}</PromptText>

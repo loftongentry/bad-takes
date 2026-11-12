@@ -497,6 +497,41 @@ test('kicking a player mid-game is handled like leaving', async () => {
   assert((await getRoom(roomId)).status === 'DEFENSE', 'game should start once the kicked player is gone');
 });
 
+test('voting closes at its time limit and counts the votes that came in', async () => {
+  // A separate backend where voting lasts 2 seconds
+  const port = '3595';
+  const url = `http://localhost:${port}/graphql`;
+  const backend = startBackend(port, { VOTE_SECONDS: '2' });
+  try {
+    await backend.ready;
+    const { roomId, players } = await setupRoom(['A', 'B', 'C'], { url });
+    const at = (query, variables) => gql(query, variables, url);
+    await at(`mutation($r:ID!,$h:ID!){ startGame(roomId:$r, hostId:$h){ status } }`, { r: roomId, h: players[0].id });
+    for (const p of players) {
+      await at(`mutation($r:ID!,$p:ID!,$t:String!){ submitPrompt(roomId:$r, playerId:$p, prompt:$t) }`, { r: roomId, p: p.id, t: p.name });
+    }
+    const readRoom = async () => (await at(`query($id:ID!){ room(id:$id){ ${ROOM} } }`, { id: roomId })).room;
+
+    const defenderId = (await readRoom()).gameState.currentTurn.defenderId;
+    await endTurnAs(roomId, defenderId, url);
+    const voting = await readRoom();
+    assert(voting.status === 'VOTING', 'should be voting');
+    assert(voting.gameState.deadline, 'voting should have a deadline');
+
+    // Only one of the two voters votes before time runs out
+    const [voter] = players.filter((p) => p.id !== defenderId);
+    await at(`mutation($r:ID!,$p:ID!,$v:Int!){ submitVote(roomId:$r, playerId:$p, value:$v) }`, { r: roomId, p: voter.id, v: 1 });
+
+    await sleep(Date.parse(voting.gameState.deadline) + 1000 - Date.now());
+    const after = await readRoom();
+    assert(after.status === 'DEFENSE', `voting should close and the next turn start (status ${after.status})`);
+    const defender = after.players.find((p) => p.id === defenderId);
+    assert(defender.score === 1, `the vote that came in should count (score ${defender.score})`);
+  } finally {
+    backend.stop();
+  }
+});
+
 test('active rooms outlive the expiry time; idle rooms still expire', async () => {
   // A separate backend whose rooms expire after 3 seconds of inactivity
   const port = '3597';
