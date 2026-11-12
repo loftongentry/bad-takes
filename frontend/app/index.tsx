@@ -17,10 +17,12 @@ const WelcomeScreen = () => {
       <KraftBackground />
       <CautionTape
         text="BAD TAKES AHEAD"
+        direction="right"
         style={[styles.tapeTop, compact ? styles.tapeTopCompact : null]}
       />
       <CautionTape
         text="DO NOT CROSS"
+        direction="left"
         style={[styles.tapeBottom, compact ? styles.tapeBottomCompact : null]}
       />
 
