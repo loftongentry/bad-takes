@@ -26,13 +26,25 @@ export const VoteStamp = ({
       accessibilityState={{ disabled: !!disabled }}
       style={({ pressed }) => [
         styles.stamp,
-        { borderColor: look.color, transform: [{ rotate: `${look.tilt}deg` }] },
+        {
+          borderColor: look.color,
+          // Keeps its tilt while pressed, just squashed a little
+          transform: [{ rotate: `${look.tilt}deg` }, { scale: pressed && !disabled ? 0.94 : 1 }],
+        },
         pressed && !disabled ? styles.pressed : null,
         disabled ? styles.disabled : null,
       ]}
     >
       <View style={[styles.inner, { borderColor: look.color }]}>
-        <Text style={[styles.word, { color: look.color }]}>{look.word}</Text>
+        {/* One line, shrinking to fit if a phone draws the font wider than expected */}
+        <Text
+          style={[styles.word, { color: look.color }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+        >
+          {look.word}
+        </Text>
       </View>
     </Pressable>
   );
@@ -49,12 +61,22 @@ const styles = StyleSheet.create({
   },
   inner: {
     height: 92,
+    paddingHorizontal: 4,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
     borderRadius: 3,
   },
-  word: { fontFamily: FONTS.heading, fontSize: 30, letterSpacing: 1 },
-  pressed: { opacity: 0.7, transform: [{ scale: 0.94 }] },
+  // iOS adds the letter spacing after the last letter too, which pushes a centered word left;
+  // the matching padding on the left puts it back in the middle
+  word: {
+    alignSelf: "stretch",
+    textAlign: "center",
+    fontFamily: FONTS.heading,
+    fontSize: 24,
+    letterSpacing: 1,
+    paddingLeft: 1,
+  },
+  pressed: { opacity: 0.7 },
   disabled: { opacity: 0.45 },
 });

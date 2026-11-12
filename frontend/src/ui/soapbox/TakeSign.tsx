@@ -23,7 +23,14 @@ const StampMark = ({ kind }: { kind: StampKind }) => (
   <View style={styles.markLayer} pointerEvents="none">
     <Flourish kind="stamp" style={[styles.mark, { borderColor: STAMPS[kind].color }]}>
       <View style={[styles.markInner, { borderColor: STAMPS[kind].color }]}>
-        <Text style={[styles.markWord, { color: STAMPS[kind].color }]}>{STAMPS[kind].word}</Text>
+        <Text
+          style={[styles.markWord, { color: STAMPS[kind].color }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+        >
+          {STAMPS[kind].word}
+        </Text>
       </View>
     </Flourish>
   </View>
@@ -70,5 +77,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(243, 231, 214, 0.35)",
   },
   markInner: { paddingHorizontal: 14, paddingVertical: 4, borderWidth: 2, borderRadius: 3 },
-  markWord: { fontFamily: FONTS.heading, fontSize: 36, letterSpacing: 2 },
+  // paddingLeft matches letterSpacing: iOS adds spacing after the last letter too
+  markWord: {
+    textAlign: "center",
+    fontFamily: FONTS.heading,
+    fontSize: 36,
+    letterSpacing: 2,
+    paddingLeft: 2,
+  },
 });
