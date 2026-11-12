@@ -36,6 +36,12 @@ export async function submitPrompt(roomId: string, playerId: string, prompt: str
     if (!room) {
       throw new Error("Room not found");
     }
+    if (room.status !== "PROMPT_ENTRY") {
+      throw new Error("Not accepting prompts right now");
+    }
+    if (!room.players.some((p) => p.id === playerId)) {
+      throw new Error("Player is not in this room");
+    }
 
     // One prompt per player, stored atomically: simultaneous submissions are all kept,
     // and a retry replaces the player's earlier prompt instead of counting twice

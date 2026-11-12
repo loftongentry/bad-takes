@@ -67,6 +67,17 @@ export async function submitVote(roomId: string, playerId: string, value: number
       throw new Error("Not in voting phase");
     }
 
+    const defenderId = room.gameState?.currentTurn?.defenderId;
+    if (!room.players.some((p) => p.id === playerId)) {
+      throw new Error("Player is not in this room");
+    }
+    if (playerId === defenderId) {
+      throw new Error("The defender can't vote on their own defense");
+    }
+    if (value !== 1 && value !== -1) {
+      throw new Error("Vote must be 1 or -1");
+    }
+
     await repo.recordVote(roomId, playerId, value);
 
     // Get the exact number of votes right now
@@ -88,7 +99,6 @@ export async function submitVote(roomId: string, playerId: string, value: number
 
       // Defender's new score is saved in the same atomic step that advances the turn,
       // so it can't be applied twice if another final vote arrives at the same moment
-      const defenderId = room.gameState?.currentTurn?.defenderId;
       const defender = room.players.find((p) => p.id === defenderId);
       const scoredDefender = defender ? { ...defender, score: defender.score + roundScore } : undefined;
 
