@@ -1,77 +1,92 @@
 import { useRouter } from "expo-router";
-import { Card, Separator, Text, View } from "tamagui";
-import { PrimaryButton } from "../src/ui/PrimaryButton";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { HowToPlay } from "../src/ui/HowToPlay";
-import { COLORS } from "../src/ui/theme";
+import { CautionTape } from "../src/ui/soapbox/CautionTape";
+import { KraftBackground } from "../src/ui/soapbox/KraftBackground";
+import { Sign } from "../src/ui/soapbox/Sign";
+import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
+import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 
 const WelcomeScreen = () => {
   const router = useRouter();
+  // Short phones (an iPhone SE is 667 points tall) get a smaller sign and tape closer to the edges
+  const compact = useWindowDimensions().height < 740;
 
   return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        paddingHorizontal: 20,
-      }}
-    >
-      <Card
-        style={{
-          width: "100%",
-          maxWidth: 320,
-          minHeight: 340,
-          paddingVertical: 44,
-          paddingHorizontal: 28,
-          borderRadius: 18,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-        bordered
-      >
-        <Text
-          style={{
-            textAlign: "center",
-            color: COLORS.light,
-            fontSize: 56,
-            fontWeight: "900",
-            lineHeight: 56,
-          }}
-        >
-          Bad{"\n"}Takes
-        </Text>
+    <View style={styles.screen}>
+      <KraftBackground />
+      <CautionTape
+        text="BAD TAKES AHEAD"
+        style={[styles.tapeTop, compact ? styles.tapeTopCompact : null]}
+      />
+      <CautionTape
+        text="DO NOT CROSS"
+        style={[styles.tapeBottom, compact ? styles.tapeBottomCompact : null]}
+      />
 
-        <Text
-          style={{
-            textAlign: "center",
-            color: COLORS.light,
-            marginTop: 20,
-            opacity: 0.85,
-            fontSize: 16,
-          }}
-        >
-          Defend the indefensible.
-        </Text>
-      </Card>
+      <View style={styles.content}>
+        <Sign compact={compact}>
+          <Text
+            style={[styles.title, compact ? styles.titleCompact : null]}
+            accessibilityRole="header"
+          >
+            Bad{"\n"}Takes
+          </Text>
+          <View style={styles.rule} />
+          <Text style={styles.tagline}>Defend the indefensible.</Text>
+        </Sign>
 
-      <View
-        style={{
-          width: "100%",
-          maxWidth: 380,
-          marginTop: 24,
-          gap: 16,
-        }}
-      >
-        <PrimaryButton onPress={() => router.push("/create")}>Create Game</PrimaryButton>
-
-        <PrimaryButton onPress={() => router.push("/join")}>Join Game</PrimaryButton>
-
-        <Separator style={{ margin: 10 }} />
-
-        <HowToPlay />
+        <View style={styles.actions}>
+          <SoapboxButton onPress={() => router.push("/create")}>Create Game</SoapboxButton>
+          <SoapboxButton variant="caution" onPress={() => router.push("/join")}>
+            Join Game
+          </SoapboxButton>
+          <HowToPlay />
+        </View>
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, overflow: "hidden", backgroundColor: SOAPBOX.kraft },
+  tapeTop: { top: 54, transform: [{ rotate: "-5deg" }] },
+  tapeBottom: { bottom: 40, transform: [{ rotate: "3deg" }] },
+  tapeTopCompact: { top: 14 },
+  tapeBottomCompact: { bottom: 2 },
+  content: {
+    flex: 1,
+    width: "100%",
+    maxWidth: 360,
+    alignSelf: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    zIndex: 1, // above the tape
+  },
+  title: {
+    fontFamily: FONTS.heading,
+    fontSize: 64,
+    lineHeight: 62,
+    textAlign: "center",
+    textTransform: "uppercase",
+    color: SOAPBOX.marker,
+  },
+  titleCompact: { fontSize: 50, lineHeight: 50 },
+  rule: {
+    width: 64,
+    height: 4,
+    marginTop: 16,
+    marginBottom: 12,
+    backgroundColor: SOAPBOX.marker,
+    borderRadius: 2,
+  },
+  tagline: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: 17,
+    textAlign: "center",
+    color: SOAPBOX.markerSoft,
+  },
+  actions: { marginTop: 36, gap: 14 },
+});
 
 export default WelcomeScreen;

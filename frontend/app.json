@@ -3,7 +3,7 @@
     "scheme": "badtakes",
     "name": "Bad Takes",
     "slug": "bad-takes",
-    "plugins": ["expo-router"],
+    "plugins": ["expo-router", "expo-font"],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
