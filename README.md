@@ -64,6 +64,27 @@ npm run dev:frontend
 
 `npm run redis:down` stops Redis.
 
+### Playing on one PC (browser)
+
+The app runs in a web browser too, which is the quickest way to play a whole game alone:
+
+1. Start Redis and the backend: `npm run redis:up`, then `npm run dev:backend`
+2. In another terminal, `npm run dev:frontend`, then press `w` to open the app in a browser
+3. Open the same address (usually http://localhost:8081) in a second and third window. Each
+   window is a separate player: create a game in one and join with the code in the others.
+
+Refreshing a window drops that player from the game (sessions aren't saved yet). The web
+version is close to, but not exactly, the phone app (keyboard and alert behavior differ),
+so do a final check on a real device.
+
+### Playing on a phone
+
+Install **Expo Go** (iOS or Android), make sure the phone is on the same Wi-Fi as this PC,
+and scan the QR code that `npm run dev:frontend` prints. No Mac is needed for an iPhone.
+An Android emulator (from Android Studio) also works: press `a` instead of scanning.
+If the phone can't reach the backend, set the PC's address yourself:
+`DEV_HOST_IP=192.168.x.x npm run dev:frontend`.
+
 ## Checks
 
 ```sh
