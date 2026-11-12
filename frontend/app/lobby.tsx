@@ -55,9 +55,9 @@ const LobbyScreen = () => {
     }
   }
 
-  const handleKickPlayer = (playerIdToKick: string) => {
+  const handleKickPlayer = async (playerIdToKick: string) => {
     try {
-      kickPlayer(playerIdToKick)
+      await kickPlayer(playerIdToKick)
     } catch (error) {
       console.error('Error kicking player:', error)
       alert('Failed to kick player. Please try again.')

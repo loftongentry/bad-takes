@@ -43,7 +43,6 @@ const PromptEntry = () => {
   };
 
   if (isSubmitted) {
-    // TODO: This isn't retrieving the submittedPromptsCount correctly after submission
     const count = room?.gameState?.submittedPromptsCount || 0;
     const total = room?.players.length || 0;
 
