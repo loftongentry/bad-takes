@@ -1,7 +1,12 @@
-import { useMemo, useRef } from 'react'
+import { useRef } from 'react'
 import { Pressable, TextInput, View } from 'react-native'
 import { Text } from 'tamagui'
 import { COLORS } from './theme'
+
+const CODE_LENGTH = 5
+
+// Uppercase letters and digits only, at most CODE_LENGTH of them (so a pasted "ab-12-c" works)
+const sanitize = (text: string) => text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, CODE_LENGTH)
 
 export const RoomCodeInput = ({
   value,
@@ -12,17 +17,11 @@ export const RoomCodeInput = ({
 }) => {
   const inputRef = useRef<TextInput>(null)
 
-  const sanitized = useMemo(() => {
-    return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5)
-  }, [value])
+  // The parent only ever receives sanitized text (see onChangeText), so this is just a safeguard
+  const sanitized = sanitize(value)
 
-  // Keep parent state normalized
-  if (sanitized !== value) {
-    onChange(sanitized)
-  }
-
-  const boxes = Array.from({ length: 5 }).map((_, i) => sanitized[i] ?? '')
-  const isComplete = sanitized.length === 5
+  const boxes = Array.from({ length: CODE_LENGTH }).map((_, i) => sanitized[i] ?? '')
+  const isComplete = sanitized.length === CODE_LENGTH
 
   return (
     <Pressable onPress={() => inputRef.current?.focus()} style={{ width: '100%' }}>
@@ -70,12 +69,11 @@ export const RoomCodeInput = ({
         <TextInput
           ref={inputRef}
           value={sanitized}
-          onChangeText={onChange}
+          onChangeText={(text) => onChange(sanitize(text))}
           autoCapitalize="characters"
           autoCorrect={false}
           keyboardType="default"
           textContentType="oneTimeCode"
-          maxLength={5}
           style={{
             position: 'absolute',
             opacity: 0,
