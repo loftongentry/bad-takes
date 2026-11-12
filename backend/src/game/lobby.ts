@@ -3,6 +3,7 @@ import { v4 as uuid } from "uuid";
 import { makeJoinCode } from "../utils/joinCode";
 import * as repo from "../db/roomRepo";
 import { emptyGameState } from "./state";
+import { requireHost } from "./permissions";
 import type { Player, RoomSettings } from "../types";
 
 export async function createRoom(hostName: string, settings: RoomSettings) {
@@ -110,11 +111,15 @@ export async function leaveRoom(roomId: string, playerId: string) {
   }
 }
 
-export async function kickPlayer(roomId: string, playerId: string) {
+export async function kickPlayer(roomId: string, hostId: string, playerId: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
       throw new Error("Room not found");
+    }
+    requireHost(room, hostId);
+    if (playerId === hostId) {
+      throw new Error("The host can't kick themselves");
     }
 
     const player = room.players.find((p) => p.id === playerId);
@@ -136,12 +141,13 @@ export async function kickPlayer(roomId: string, playerId: string) {
   }
 }
 
-export async function resetGame(roomId: string) {
+export async function resetGame(roomId: string, hostId: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
       throw new Error("Room not found");
     }
+    requireHost(room, hostId);
 
     console.log(`[GameLogic] Resetting game for room ${roomId}`);
 

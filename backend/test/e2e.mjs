@@ -64,6 +64,9 @@ const ROOM = `id joinCode status players { id name isHost score }
 
 const getRoom = async (roomId) => (await gql(`query($id:ID!){ room(id:$id){ ${ROOM} } }`, { id: roomId })).room;
 
+// roomId -> host's player id, so helpers can make host-only calls
+const hostOf = new Map();
+
 // Creates a room hosted by names[0] and joins the rest. Returns { roomId, players: [{ id, name }] }
 async function setupRoom(names) {
   const c = await gql(
@@ -72,6 +75,7 @@ async function setupRoom(names) {
   );
   const roomId = c.createRoom.room.id;
   const players = [{ id: c.createRoom.hostId, name: names[0] }];
+  hostOf.set(roomId, c.createRoom.hostId);
   for (const name of names.slice(1)) {
     const j = await gql(`mutation($c:String!,$n:String!){ joinRoom(code:$c, playerName:$n) { playerId } }`, {
       c: c.createRoom.room.joinCode,
@@ -82,7 +86,16 @@ async function setupRoom(names) {
   return { roomId, players };
 }
 
-const startGame = (roomId) => gql(`mutation($r:ID!){ startGame(roomId:$r){ status } }`, { r: roomId });
+const startGameAs = (roomId, hostId) =>
+  gqlRaw(`mutation($r:ID!,$h:ID!){ startGame(roomId:$r, hostId:$h){ status } }`, { r: roomId, h: hostId });
+
+const startGame = (roomId) =>
+  gql(`mutation($r:ID!,$h:ID!){ startGame(roomId:$r, hostId:$h){ status } }`, { r: roomId, h: hostOf.get(roomId) });
+
+const resetGameAs = (roomId, hostId) => gqlRaw(`mutation($r:ID!,$h:ID!){ resetGame(roomId:$r, hostId:$h) }`, { r: roomId, h: hostId });
+
+const kickAs = (roomId, hostId, playerId) =>
+  gqlRaw(`mutation($r:ID!,$h:ID!,$p:ID!){ kickPlayer(roomId:$r, hostId:$h, playerId:$p) }`, { r: roomId, h: hostId, p: playerId });
 
 const submitPrompt = (roomId, playerId, prompt) =>
   gql(`mutation($r:ID!,$p:ID!,$t:String!){ submitPrompt(roomId:$r, playerId:$p, prompt:$t) }`, { r: roomId, p: playerId, t: prompt });
@@ -163,7 +176,7 @@ test('full 2-player game: every phase, scoring, reset, host leaving', async () =
   assert(room.status === 'RESULTS', `expected RESULTS, got ${room.status}`);
   assert(room.players.every((p) => p.score === 1), 'each defender should score +1');
 
-  await gql(`mutation($r:ID!){ resetGame(roomId:$r) }`, { r: roomId });
+  assert(!(await resetGameAs(roomId, alice.id)).errors, 'host should be able to reset');
   const reset = await getRoom(roomId);
   assert(reset.status === 'LOBBY' && reset.players.every((p) => p.score === 0), 'reset should return to LOBBY with 0 scores');
 
@@ -293,14 +306,32 @@ test('turns go in random order and nobody defends their own take (30 games x 3 p
 
 test('a game needs at least 2 players and can only be started once', async () => {
   const solo = await setupRoom(['Solo']);
-  const res = await gqlRaw(`mutation($r:ID!){ startGame(roomId:$r){ status } }`, { r: solo.roomId });
+  const res = await startGameAs(solo.roomId, solo.players[0].id);
   assert(res.errors, 'starting with 1 player should fail');
   assert((await getRoom(solo.roomId)).status === 'LOBBY', 'a failed start should leave the room in LOBBY');
 
-  const { roomId } = await setupRoom(['A', 'B']);
+  const { roomId, players } = await setupRoom(['A', 'B']);
   await startGame(roomId);
-  const again = await gqlRaw(`mutation($r:ID!){ startGame(roomId:$r){ status } }`, { r: roomId });
+  const again = await startGameAs(roomId, players[0].id);
   assert(again.errors, 'starting a game that already started should fail');
+});
+
+test('only the host can start, reset, or kick', async () => {
+  const { roomId, players } = await setupRoom(['Host', 'B', 'C']);
+  const [host, b, c] = players;
+
+  assert((await kickAs(roomId, b.id, c.id)).errors, 'a non-host should not be able to kick');
+  assert((await kickAs(roomId, b.id, host.id)).errors, 'a non-host should not be able to kick the host');
+  assert((await kickAs(roomId, host.id, host.id)).errors, 'the host should not be able to kick themselves');
+  assert((await getRoom(roomId)).players.length === 3, 'no one should have been removed');
+
+  assert((await startGameAs(roomId, b.id)).errors, 'a non-host should not be able to start');
+  assert((await getRoom(roomId)).status === 'LOBBY', 'the game should not have started');
+  assert((await resetGameAs(roomId, b.id)).errors, 'a non-host should not be able to reset');
+
+  assert(!(await kickAs(roomId, host.id, c.id)).errors, 'the host should be able to kick');
+  assert((await getRoom(roomId)).players.length === 2, 'the kicked player should be gone');
+  assert(!(await startGameAs(roomId, host.id)).errors, 'the host should be able to start');
 });
 
 test('active rooms outlive the expiry time; idle rooms still expire', async () => {

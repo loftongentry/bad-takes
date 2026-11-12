@@ -51,12 +51,13 @@ const typeDefs = `
     createRoom(hostName: String!, lobbyName: String!, rounds: Int!, playerLimit: Int!, timeLimit: Int!): CreateResponse!
     joinRoom(code: String!, playerName: String!): JoinResponse!
     leaveRoom(roomId: ID!, playerId: ID!): Boolean!
-    kickPlayer(roomId: ID!, playerId: ID!): Boolean!
-    startGame(roomId: ID!): Room!
+    # Host-only actions take the caller's id as hostId
+    kickPlayer(roomId: ID!, hostId: ID!, playerId: ID!): Boolean!
+    startGame(roomId: ID!, hostId: ID!): Room!
     submitPrompt(roomId: ID!, playerId: ID!, prompt: String!): Boolean!
     endTurn(roomId: ID!): Boolean!
     submitVote(roomId: ID!, playerId: ID!, value: Int!): Boolean!
-    resetGame(roomId: ID!): Boolean!
+    resetGame(roomId: ID!, hostId: ID!): Boolean!
   }
 
   type Subscription {

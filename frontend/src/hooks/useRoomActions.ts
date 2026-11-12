@@ -104,11 +104,11 @@ export function useRoomActions(roomId?: string) {
 
     // Unlike leaveGame, here we do want to know if it failed, as this is the host trying to kick someone.
     kickPlayer: withErrorLog("Error kicking player:", async (playerId: string) => {
-      if (!roomId) {
+      if (!roomId || !myPlayerId) {
         throw new Error("Missing session data");
       }
 
-      const res = await kickFn({ variables: { roomId, playerId } });
+      const res = await kickFn({ variables: { roomId, hostId: myPlayerId, playerId } });
 
       if (res.data?.kickPlayer !== true) {
         throw new Error("Failed to kick player (they may have already left)");
@@ -116,11 +116,11 @@ export function useRoomActions(roomId?: string) {
     }),
 
     startGame: withErrorLog("Error starting game:", async () => {
-      if (!roomId) {
+      if (!roomId || !myPlayerId) {
         throw new Error("Missing session data");
       }
 
-      await startFn({ variables: { roomId } });
+      await startFn({ variables: { roomId, hostId: myPlayerId } });
     }),
 
     submitPrompt: withErrorLog("Error submitting prompt:", async (prompt: string) => {
@@ -158,11 +158,11 @@ export function useRoomActions(roomId?: string) {
     }),
 
     resetGame: withErrorLog("Error resetting game:", async () => {
-      if (!roomId) {
+      if (!roomId || !myPlayerId) {
         throw new Error("Missing session data");
       }
 
-      const res = await resetGameFn({ variables: { roomId } });
+      const res = await resetGameFn({ variables: { roomId, hostId: myPlayerId } });
 
       if (res.data?.resetGame !== true) {
         throw new Error('Failed to reset game');

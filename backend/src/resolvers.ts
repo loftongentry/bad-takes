@@ -31,11 +31,11 @@ export const resolvers = {
     leaveRoom: async (_: unknown, { roomId, playerId }: { roomId: string; playerId: string }) => {
       return await leaveRoom(roomId, playerId);
     },
-    kickPlayer: async (_: unknown, { roomId, playerId }: { roomId: string; playerId: string }) => {
-      return await kickPlayer(roomId, playerId);
+    kickPlayer: async (_: unknown, { roomId, hostId, playerId }: { roomId: string; hostId: string; playerId: string }) => {
+      return await kickPlayer(roomId, hostId, playerId);
     },
-    startGame: async (_: unknown, { roomId }: { roomId: string }) => {
-      return await startGame(roomId);
+    startGame: async (_: unknown, { roomId, hostId }: { roomId: string; hostId: string }) => {
+      return await startGame(roomId, hostId);
     },
     submitPrompt: async (_: unknown, { roomId, playerId, prompt }: { roomId: string; playerId: string; prompt: string }) => {
       return await submitPrompt(roomId, playerId, prompt);
@@ -46,8 +46,8 @@ export const resolvers = {
     submitVote: async (_: unknown, { roomId, playerId, value }: { roomId: string; playerId: string; value: number }) => {
       return await submitVote(roomId, playerId, value);
     },
-    resetGame: async (_: unknown, { roomId }: { roomId: string }) => {
-      return await resetGame(roomId);
+    resetGame: async (_: unknown, { roomId, hostId }: { roomId: string; hostId: string }) => {
+      return await resetGame(roomId, hostId);
     }
   },
   Subscription: {

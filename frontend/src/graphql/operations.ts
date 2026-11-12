@@ -98,16 +98,18 @@ export const ROOM_OPS = {
     }
   `,
 
+  // Host-only mutations send the caller's own player id as hostId; the server checks it
+
   KICK: gql`
-    mutation Kick($roomId: ID!, $playerId: ID!) {
-      kickPlayer(roomId: $roomId, playerId: $playerId)
+    mutation Kick($roomId: ID!, $hostId: ID!, $playerId: ID!) {
+      kickPlayer(roomId: $roomId, hostId: $hostId, playerId: $playerId)
     }
   `,
 
   START: gql`
     ${ROOM_FRAGMENT}
-    mutation Start($roomId: ID!) {
-      startGame(roomId: $roomId) {
+    mutation Start($roomId: ID!, $hostId: ID!) {
+      startGame(roomId: $roomId, hostId: $hostId) {
         ...RoomData
       }
     }
@@ -132,8 +134,8 @@ export const ROOM_OPS = {
   `,
 
   RESET_GAME: gql`
-    mutation ResetGame($roomId: ID!) {
-      resetGame(roomId: $roomId)
+    mutation ResetGame($roomId: ID!, $hostId: ID!) {
+      resetGame(roomId: $roomId, hostId: $hostId)
     }
   `,
 };
