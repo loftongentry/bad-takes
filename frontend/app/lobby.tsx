@@ -42,7 +42,7 @@ const LobbyScreen = () => {
     return (
       <Page title="Can't Reach the Game" onBack={leaveGame}>
         <Text style={{ textAlign: 'center', marginTop: 20, marginBottom: 20 }}>
-          Check your connection, then try again. You're still in the lobby.
+          Check your connection, then try again. You’re still in the lobby.
         </Text>
         <ActionRow>
           <PrimaryButton onPress={() => refetch()}>Try Again</PrimaryButton>

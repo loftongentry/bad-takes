@@ -83,7 +83,7 @@ export function useRoom(roomId?: string) {
         handleExit();
       }
     }
-  }, [room, roomClosed, roomMissing, loading, myPlayerId, roomId]);
+  }, [room, roomClosed, roomMissing, loading, myPlayerId, roomId, router, clearSession]);
 
   // Follow the room to the screen for its current phase
   const status = room?.status;
@@ -92,7 +92,7 @@ export function useRoom(roomId?: string) {
     if (target && pathname !== target) {
       router.replace(target);
     }
-  }, [status, pathname]);
+  }, [status, pathname, router]);
 
   return { room, loading, error, refetch };
 }

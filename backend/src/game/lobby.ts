@@ -78,8 +78,8 @@ export async function joinRoom(joinCode: string, rawPlayerName: string) {
     console.log(`[RoomStore.join] ${playerName} joined room ${roomId}`);
     return { room: updatedRoom, playerId: newPlayer.id, playerToken };
 
-  } catch (error: any) {
-    console.error(`[RoomStore.join] Error joining with code ${joinCode}:`, error.message);
+  } catch (error) {
+    console.error(`[RoomStore.join] Error joining with code ${joinCode}:`, error instanceof Error ? error.message : error);
     throw error;
   }
 }

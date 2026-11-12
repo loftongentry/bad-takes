@@ -36,7 +36,9 @@ function startBackend(port, extraEnv = {}) {
     for (let i = 0; i < 60; i++) {
       try {
         if ((await fetch(`http://localhost:${port}/health`)).ok) return;
-      } catch {}
+      } catch {
+        // not listening yet; try again shortly
+      }
       await sleep(500);
     }
     throw new Error(`backend never came up on port ${port}\n${logs}`);

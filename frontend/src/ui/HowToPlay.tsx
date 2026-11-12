@@ -61,7 +61,7 @@ export const HowToPlay = () => {
 
             <Rule key="2" title="2) Write a prompt">
               When the round starts, each player writes a controversial “bad take” before the
-              writing timer runs out. If someone doesn't finish in time, the game plays on
+              writing timer runs out. If someone doesn’t finish in time, the game plays on
               with the takes that came in
             </Rule>
 
@@ -76,12 +76,12 @@ export const HowToPlay = () => {
             </Rule>
 
             <Rule key="5" title="5) Vote">
-              When time's up, everyone else votes thumbs up or down on how well the player defended
+              When time’s up, everyone else votes thumbs up or down on how well the player defended
               the prompt, with 30 seconds to decide
             </Rule>
 
             <Rule key="6" title="6) No repeats in a round">
-              After a player defends once, they can't be selected again until the
+              After a player defends once, they can’t be selected again until the
               next round (with new prompts)
             </Rule>
 

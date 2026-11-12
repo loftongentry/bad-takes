@@ -10,7 +10,8 @@
     "update-ip": "node ./scripts/update-ip.js",
     "predev": "npm run update-ip",
     "dev": "expo start -c",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@apollo/client": "^4.0.11",
@@ -33,6 +34,9 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~10.0.0",
+    "globals": "^16.5.0",
     "typescript": "~5.9.2"
   },
   "private": true,

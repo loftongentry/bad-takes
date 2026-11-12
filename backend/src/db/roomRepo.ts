@@ -4,6 +4,9 @@ import { redis, pubsub } from "./redis";
 import { roomKey, playersKey, votesKey, promptsKey, tokensKey, joinKey, roomChannel, ROOM_TTL_SECONDS } from "./keys";
 import type { GameState, Player, Prompt, Room, RoomStatus, StoredGameState } from "../types";
 
+// Each command in a Redis pipeline yields [error, result]
+type PipelineResult<T> = [Error | null, T];
+
 // --- Reads ---
 
 export async function getRoom(roomId: string): Promise<Room | null> {
@@ -17,7 +20,12 @@ export async function getRoom(roomId: string): Promise<Room | null> {
       .hgetall(playersKey(roomId))
       .hgetall(votesKey(roomId))
       .hlen(promptsKey(roomId))
-      .exec() as [any, any, any, any];
+      .exec() as [
+        PipelineResult<Record<string, string>>,
+        PipelineResult<Record<string, string>>,
+        PipelineResult<Record<string, string>>,
+        PipelineResult<number>,
+      ];
 
     // Check for Pipeline Errors
     if (roomRes[0]) {
@@ -43,7 +51,7 @@ export async function getRoom(roomId: string): Promise<Room | null> {
 
     let players: Player[] = [];
     try {
-      players = Object.values(playersData).map((p: any) => JSON.parse(p));
+      players = Object.values(playersData).map((p) => JSON.parse(p));
     } catch (parseErr) {
       console.error(`[RoomStore.get] Failed to parse players for room ${roomId}:`, parseErr);
       players = [];
