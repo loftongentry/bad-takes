@@ -25,7 +25,7 @@ const BackIconButton = ({ onBack }: { onBack?: () => void }) =>{
         alignItems: 'center',
         padding: 0,
       }}
-      icon={<ArrowLeft color={'#D0CCC3'} size={18} />}
+      icon={<ArrowLeft color={COLORS.light} size={18} />}
     />
   )
 }

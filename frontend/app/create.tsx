@@ -1,36 +1,37 @@
 import { useState } from 'react'
 import { useRouter } from 'expo-router'
-import { Spinner, View } from 'tamagui'
+import { Spinner } from 'tamagui'
 import { Page } from '../src/ui/Page'
 import { StepperRow } from '../src/ui/StepperRow'
 import { TextFieldRow } from '../src/ui/TextFieldRow'
 import { FormCard } from '../src/ui/FormCard'
 import { PrimaryButton } from '../src/ui/PrimaryButton'
-import { useLobby } from '../src/hooks/useLobby'
+import { ActionRow } from '../src/ui/ActionRow'
+import { useRoomActions } from '../src/hooks/useRoomActions'
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
 
+// Constraints
+// TODO: Implement logic that handles multiple rounds instead of just 1
+const MIN_ROUNDS = 1
+const MAX_ROUNDS = 1
+
+const MIN_PLAYERS = 2
+const MAX_PLAYERS = 20
+
+const STEP_SECONDS = 15
+const MIN_SECONDS = 60
+const MAX_SECONDS = 5 * 60 // 5 Minutes
+
 const CreateScreen = () => {
   const router = useRouter()
-  const { createGame } = useLobby()
+  const { createGame } = useRoomActions()
   const [lobbyName, setLobbyName] = useState<string>('')
   const [rounds, setRounds] = useState<number>(1)
   const [playerLimit, setPlayerLimit] = useState<number>(5)
   const [timeLimit, setTimeLimit] = useState<number>(60)
   const [yourName, setYourName] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
-
-  // Constraints
-  // TODO: Implement logic that handles multiple rounds instead of just 1
-  const MIN_ROUNDS = 1
-  const MAX_ROUNDS = 1
-
-  const MIN_PLAYERS = 2
-  const MAX_PLAYERS = 20
-
-  const STEP_SECONDS = 15
-  const MIN_SECONDS = 60
-  const MAX_SECONDS = 5 * 60 // 5 Minutes
 
   const canCreate = lobbyName.trim().length > 0 && yourName.trim().length > 0
 
@@ -107,14 +108,14 @@ const CreateScreen = () => {
         />
       </FormCard>
 
-      <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
+      <ActionRow>
         <PrimaryButton
           onPress={handleCreateLobby}
           disabled={!canCreate || loading}
         >
           {loading ? <Spinner /> : 'Create Lobby'}
         </PrimaryButton>
-      </View>
+      </ActionRow>
     </Page>
   )
 }

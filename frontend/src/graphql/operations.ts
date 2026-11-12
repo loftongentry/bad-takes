@@ -31,7 +31,7 @@ const ROOM_FRAGMENT = gql`
   }
 `;
 
-export const LOBBY_OPS = {
+export const ROOM_OPS = {
   // --- QUERIES ---
   GET: gql`
     ${ROOM_FRAGMENT}

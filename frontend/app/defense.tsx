@@ -1,55 +1,39 @@
-// TODO: Remove host authority logic when time hits zero, and instead implement an "absolute time countdown" that all clients follow.
-import { Card, Text, View, Spinner, Progress } from 'tamagui'
+import { Text, View, Progress } from 'tamagui'
 import { Page } from '../src/ui/Page'
 import { COLORS } from '../src/ui/theme'
-import { useGameSessionStore } from '../src/state/gameSessionStore'
-import { useLobby } from '../src/hooks/useLobby'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'expo-router'
 import { PrimaryButton } from '../src/ui/PrimaryButton'
+import { PromptCard, PromptText } from '../src/ui/PromptCard'
+import { SpinnerMessage } from '../src/ui/SpinnerMessage'
+import { ActionRow } from '../src/ui/ActionRow'
+import { useGameSessionStore } from '../src/state/gameSessionStore'
+import { useRoom } from '../src/hooks/useRoom'
+import { useRoomActions } from '../src/hooks/useRoomActions'
+import { useStatusRedirect } from '../src/hooks/useStatusRedirect'
+import { useDefenseTimer } from '../src/hooks/useDefenseTimer'
+
+const PREP_TIME = 5
 
 const Defense = () => {
-  const router = useRouter()
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const myPlayerId = useGameSessionStore((s) => s.session?.playerId ?? null)
-  const { room, endTurn } = useLobby(roomId || undefined)
+  const { room } = useRoom(roomId || undefined)
+  const { endTurn } = useRoomActions(roomId || undefined)
 
   const currentTurn = room?.gameState?.currentTurn
   const isMe = currentTurn?.defenderId === myPlayerId
   const isHost = room?.players.find(p => p.id === myPlayerId)?.isHost
   const defenderName = room?.players.find(p => p.id === currentTurn?.defenderId)?.name || 'Unknown'
 
-  const PREP_TIME = 5
   const DEFEND_TIME = room?.settings.timeLimit || 60
 
-  const [timeLeft, setTimeLeft] = useState<number>(PREP_TIME)
-  const [phase, setPhase] = useState<'PREP' | 'DEFEND'>('PREP')
+  useStatusRedirect(room?.status, { VOTING: '/voting' })
 
-  useEffect(() => {
-    if (room?.status === 'VOTING') {
-      router.replace('/voting')
+  // The host's client is the one that ends the turn when time runs out
+  const { phase, timeLeft, maxTime } = useDefenseTimer(PREP_TIME, DEFEND_TIME, () => {
+    if (isHost) {
+      endTurn()
     }
-  }, [room?.status])
-
-  useEffect(() => {
-    if (timeLeft <= 0) {
-      if (phase === 'PREP') {
-        setPhase('DEFEND')
-        setTimeLeft(DEFEND_TIME)
-      } else if (phase === 'DEFEND') {
-        if (isHost) {
-          endTurn()
-        }
-      }
-      return
-    }
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1)
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [timeLeft, phase, isHost, endTurn])
+  })
 
   if (!currentTurn) {
     return (
@@ -57,35 +41,11 @@ const Defense = () => {
         title="Loading..."
         showBack={false}
       >
-        <View
-          style={{
-            flex: 1,
-            paddingHorizontal: 40
-          }}>
-          <Spinner
-            size="large"
-            color={COLORS.light}
-            style={{
-              marginBottom: 20,
-            }}
-          />
-          <Text
-            style={{
-              color: COLORS.light,
-              fontSize: 18,
-              textAlign: 'center',
-              opacity: 0.8,
-              lineHeight: 28
-            }}
-          >
-            Preparing the next turn...
-          </Text>
-        </View>
+        <SpinnerMessage>Preparing the next turn...</SpinnerMessage>
       </Page>
     )
   }
 
-  const maxTime = phase === 'PREP' ? PREP_TIME : DEFEND_TIME
   const progressValue = Math.floor(100 - ((timeLeft / maxTime) * 100))
   const headerText = phase === 'PREP' ? "Get Ready!" : (isMe ? "DEFEND THIS!" : "Listen Up!")
 
@@ -106,7 +66,7 @@ const Defense = () => {
         <Progress.Indicator
           animation='bouncy'
           style={{
-            backgroundColor: (phase === 'DEFEND' && timeLeft < 10) ? '#FF4500' : COLORS.dark
+            backgroundColor: (phase === 'DEFEND' && timeLeft < 10) ? COLORS.danger : COLORS.dark
           }}
         />
       </Progress>
@@ -121,37 +81,12 @@ const Defense = () => {
           </Text>
         )}
       </View>
-      <Card
-        style={{
-          width: '100%',
-          maxWidth: 320,
-          minHeight: 340,
-          paddingVertical: 20,
-          paddingHorizontal: 20,
-          borderRadius: 18,
-          backgroundColor: COLORS.light,
-        }}
-        bordered
-      >
-        <Text
-          unstyled
-          style={{
-            flex: 1,
-            color: COLORS.dark,
-            fontSize: 18,
-            fontWeight: '600',
-            minHeight: 200,
-            textAlignVertical: 'top',
-            height: '100%',
-            width: '100%',
-          }}
-        >
-          {currentTurn.promptText}
-        </Text>
-      </Card>
+      <PromptCard>
+        <PromptText>{currentTurn.promptText}</PromptText>
+      </PromptCard>
 
       {isMe && phase === 'DEFEND' && (
-        <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
+        <ActionRow>
           <PrimaryButton
             onPress={() => endTurn()}
           >
@@ -165,7 +100,7 @@ const Defense = () => {
               End Defense
             </Text>
           </PrimaryButton>
-        </View>
+        </ActionRow>
       )}
     </Page>
   )

@@ -1,30 +1,29 @@
 // TODO: Derive state from server data instead of local state
 // TODO: Add a 'Game starting!' screen after all player have submitted their bad takes before shifting to defense screen
-import { useEffect, useState } from "react"
-import { Card, TextArea, View, Text, XStack, Spinner } from "tamagui"
+import { useState } from "react"
+import { TextArea, Text, XStack, Spinner } from "tamagui"
+import { Keyboard, TouchableWithoutFeedback } from "react-native"
 import { Page } from "../src/ui/Page"
 import { PrimaryButton } from "../src/ui/PrimaryButton"
-import { useLobby } from "../src/hooks/useLobby"
+import { PromptCard, promptTextStyle } from "../src/ui/PromptCard"
+import { SpinnerMessage } from "../src/ui/SpinnerMessage"
+import { ActionRow } from "../src/ui/ActionRow"
 import { useGameSessionStore } from "../src/state/gameSessionStore"
-import { COLORS } from "../src/ui/theme"
-import { Keyboard, TouchableWithoutFeedback } from "react-native"
-import { useRouter } from "expo-router"
+import { useRoom } from "../src/hooks/useRoom"
+import { useRoomActions } from "../src/hooks/useRoomActions"
+import { useStatusRedirect } from "../src/hooks/useStatusRedirect"
+
+const CHAR_LIMIT = 140
 
 const PromptEntry = () => {
-  const router = useRouter()
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
-  const { room, leaveGame, submitPrompt } = useLobby(roomId || undefined)
+  const { room } = useRoom(roomId || undefined)
+  const { leaveGame, submitPrompt } = useRoomActions(roomId || undefined)
   const [badTake, setBadTake] = useState<string>('')
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
 
-  const CHAR_LIMIT = 140
-
-  useEffect(() => {
-    if (room?.status === 'DEFENSE') {
-      router.replace('/defense')
-    }
-  }, [room?.status])
+  useStatusRedirect(room?.status, { DEFENSE: '/defense' })
 
   const handleSubmitPrompt = async () => {
     Keyboard.dismiss();
@@ -53,30 +52,9 @@ const PromptEntry = () => {
         title="Bad Take Submitted!"
         onBack={leaveGame}
       >
-        <View
-          style={{
-            flex: 1,
-            paddingHorizontal: 40
-          }}>
-          <Spinner
-            size="large"
-            color={COLORS.light}
-            style={{
-              marginBottom: 20,
-            }}
-          />
-          <Text
-            style={{
-              color: COLORS.light,
-              fontSize: 18,
-              textAlign: 'center',
-              opacity: 0.8,
-              lineHeight: 28
-            }}
-          >
-            Waiting on {total - count} {total - count > 1 ? 'players' : 'player'} to finish their terrible opinions...
-          </Text>
-        </View>
+        <SpinnerMessage>
+          Waiting on {total - count} {total - count > 1 ? 'players' : 'player'} to finish their terrible opinions...
+        </SpinnerMessage>
       </Page>
     )
   }
@@ -88,33 +66,13 @@ const PromptEntry = () => {
         subtitle="Enter a controversial opinion below"
         onBack={leaveGame}
       >
-        <Card
-          style={{
-            width: '100%',
-            maxWidth: 320,
-            minHeight: 340,
-            paddingVertical: 20,
-            paddingHorizontal: 20,
-            borderRadius: 18,
-            backgroundColor: COLORS.light,
-          }}
-          bordered
-        >
+        <PromptCard>
           <TextArea
             value={badTake}
             onChangeText={setBadTake}
             placeholder="Enter your bad take..."
             unstyled
-            style={{
-              flex: 1,
-              color: COLORS.dark,
-              fontSize: 18,
-              fontWeight: '600',
-              minHeight: 200,
-              textAlignVertical: 'top',
-              height: '100%',
-              width: '100%',
-            }}
+            style={promptTextStyle}
             multiline
             autoFocus
             maxLength={CHAR_LIMIT}
@@ -134,17 +92,17 @@ const PromptEntry = () => {
               {badTake.length}/{CHAR_LIMIT}
             </Text>
           </XStack>
-        </Card>
+        </PromptCard>
 
-        <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
+        <ActionRow>
           <PrimaryButton
             onPress={handleSubmitPrompt}
             disabled={loading || badTake.length === 0 || badTake.length > CHAR_LIMIT}
           >
             {loading ? <Spinner /> : "Submit Bad Take"}
           </PrimaryButton>
-        </View>
-      </Page >
+        </ActionRow>
+      </Page>
     </TouchableWithoutFeedback>
   )
 }

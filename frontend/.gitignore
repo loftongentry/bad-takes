@@ -43,3 +43,6 @@ yarn-error.*
 
 # Misx
 /example_images
+
+# Tamagui (generated at build time)
+.tamagui/

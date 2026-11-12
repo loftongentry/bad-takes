@@ -11,6 +11,30 @@ defending a random one against the clock while everyone else votes.
 The frontend and backend are independent npm packages (separate `package.json` and
 lockfiles). The root `package.json` only holds convenience scripts.
 
+## Code layout
+
+```
+frontend/
+  app/                 one file per screen (expo-router)
+  src/graphql/         Apollo client, operations, schema types
+  src/hooks/           useRoom (live room data), useRoomActions (mutations),
+                       useStatusRedirect, useDefenseTimer
+  src/state/           session store (Zustand)
+  src/ui/              shared components + theme colors
+
+backend/src/
+  index.ts             HTTP + WebSocket server
+  schema.ts            GraphQL schema
+  resolvers.ts         maps GraphQL fields to game functions
+  types.ts             Room, Player, GameState
+  db/                  Redis client, key layout, roomRepo (all reads/writes)
+  game/                rules: lobby, prompts, turns, pure state helpers
+```
+
+Game flow is driven by the room's `status` on the server:
+`LOBBY → PROMPT_ENTRY → DEFENSE ⇄ VOTING → RESULTS → (reset) LOBBY`.
+Each screen redirects when the status changes.
+
 ## Setup
 
 Requires Node and Docker.
