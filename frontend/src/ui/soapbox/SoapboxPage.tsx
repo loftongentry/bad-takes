@@ -4,7 +4,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft } from "@tamagui/lucide-icons";
 import { useGameSessionStore } from "../../state/gameSessionStore";
 import { goHome } from "../../navigation/home";
+import Animated from "react-native-reanimated";
 import { KraftBackground } from "./KraftBackground";
+import { punchIn, settleIn } from "./motion";
 import { FONTS, SOAPBOX } from "./tokens";
 
 const BackButton = ({ onPress }: { onPress: () => void }) => (
@@ -28,6 +30,7 @@ export const SoapboxPage = ({
   showBack = true,
   onBack,
   headerRight,
+  titleEntrance = "settle",
   children,
 }: {
   title: string;
@@ -36,6 +39,9 @@ export const SoapboxPage = ({
   // Defaults to leaving for the home screen
   onBack?: () => void;
   headerRight?: ReactNode;
+  // How the title arrives: settles in gently, or punches in for the game's big moments.
+  // It replays whenever the title changes (e.g. "Get Ready!" becoming "DEFEND THIS!").
+  titleEntrance?: "settle" | "punch";
   children: ReactNode;
 }) => {
   const clearSession = useGameSessionStore((s) => s.clearSession);
@@ -65,12 +71,14 @@ export const SoapboxPage = ({
             {headerRight}
           </View>
 
-          <Text
+          <Animated.Text
+            key={title}
+            entering={titleEntrance === "punch" ? punchIn : settleIn()}
             style={[styles.title, compact ? styles.titleCompact : null]}
             accessibilityRole="header"
           >
             {title}
-          </Text>
+          </Animated.Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           {/* Room for a Board's tape label, which sticks up above its top edge */}
           <View style={{ height: 30 }} />

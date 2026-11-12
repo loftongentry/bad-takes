@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { X } from "@tamagui/lucide-icons";
+import Animated, { FadeInRight, FadeOutLeft, LinearTransition } from "react-native-reanimated";
 import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { Board } from "../src/ui/soapbox/Board";
 import { CodeTiles } from "../src/ui/soapbox/CodeTiles";
@@ -93,12 +94,19 @@ const LobbyScreen = () => {
         </View>
       </Board>
 
-      <Board label={`Players · ${room.players.length}`} style={{ marginTop: 34 }}>
+      <Board label={`Players · ${room.players.length}`} delay={120} style={{ marginTop: 34 }}>
         {room.players.map((p: Player, idx: number) => {
           const isMe = p.id === playerId;
           const last = idx === room.players.length - 1;
           return (
-            <View key={p.id} style={[styles.player, last ? null : styles.playerDivider]}>
+            // New players slide in, leavers slide out, and the rest close the gap
+            <Animated.View
+              key={p.id}
+              entering={FadeInRight.springify().damping(15)}
+              exiting={FadeOutLeft.duration(200)}
+              layout={LinearTransition.springify().damping(18)}
+              style={[styles.player, last ? null : styles.playerDivider]}
+            >
               <Text style={styles.playerName} numberOfLines={1}>
                 {p.name}
                 {isMe ? " (you)" : ""}
@@ -124,7 +132,7 @@ const LobbyScreen = () => {
                   </Pressable>
                 ) : null}
               </View>
-            </View>
+            </Animated.View>
           );
         })}
       </Board>

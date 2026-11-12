@@ -1,11 +1,13 @@
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { HowToPlay } from "../src/ui/HowToPlay";
 import { useTrackHomeScreen } from "../src/navigation/home";
 import { CautionTape } from "../src/ui/soapbox/CautionTape";
 import { KraftBackground } from "../src/ui/soapbox/KraftBackground";
 import { Sign } from "../src/ui/soapbox/Sign";
 import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
+import { settleIn } from "../src/ui/soapbox/motion";
 import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 
 const WelcomeScreen = () => {
@@ -29,23 +31,31 @@ const WelcomeScreen = () => {
       />
 
       <View style={styles.content}>
-        <Sign compact={compact}>
-          <Text
-            style={[styles.title, compact ? styles.titleCompact : null]}
-            accessibilityRole="header"
-          >
-            Bad{"\n"}Takes
-          </Text>
-          <View style={styles.rule} />
-          <Text style={styles.tagline}>Defend the indefensible.</Text>
-        </Sign>
+        <Animated.View entering={settleIn(60)}>
+          <Sign compact={compact}>
+            <Text
+              style={[styles.title, compact ? styles.titleCompact : null]}
+              accessibilityRole="header"
+            >
+              Bad{"\n"}Takes
+            </Text>
+            <View style={styles.rule} />
+            <Text style={styles.tagline}>Defend the indefensible.</Text>
+          </Sign>
+        </Animated.View>
 
         <View style={styles.actions}>
-          <SoapboxButton onPress={() => router.push("/create")}>Create Game</SoapboxButton>
-          <SoapboxButton variant="caution" onPress={() => router.push("/join")}>
-            Join Game
-          </SoapboxButton>
-          <HowToPlay />
+          <Animated.View entering={settleIn(220)}>
+            <SoapboxButton onPress={() => router.push("/create")}>Create Game</SoapboxButton>
+          </Animated.View>
+          <Animated.View entering={settleIn(300)}>
+            <SoapboxButton variant="caution" onPress={() => router.push("/join")}>
+              Join Game
+            </SoapboxButton>
+          </Animated.View>
+          <Animated.View entering={settleIn(380)}>
+            <HowToPlay />
+          </Animated.View>
         </View>
       </View>
     </View>

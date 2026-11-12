@@ -1,26 +1,34 @@
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import Animated from "react-native-reanimated";
+import { settleIn } from "./motion";
 import { FONTS, SOAPBOX } from "./tokens";
 
 // A flat cardboard panel that holds a group of controls, with an optional strip of caution tape
-// across its top-left corner as a label ("The room", "House rules")
+// across its top-left corner as a label ("The room", "House rules"). It settles onto the screen
+// when it appears; `delay` (ms) lets a screen's boards land one after another.
 export const Board = ({
   label,
+  delay = 0,
   children,
   style,
 }: {
   label?: string;
+  delay?: number;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
 }) => (
-  <View style={[styles.board, label ? styles.labelled : null, style]}>
+  <Animated.View
+    entering={settleIn(delay)}
+    style={[styles.board, label ? styles.labelled : null, style]}
+  >
     {label ? (
       <View style={styles.label}>
         <Text style={styles.labelText}>{label}</Text>
       </View>
     ) : null}
     {children}
-  </View>
+  </Animated.View>
 );
 
 const styles = StyleSheet.create({

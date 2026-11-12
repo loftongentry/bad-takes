@@ -1,5 +1,6 @@
 import type { ReactNode, Ref } from "react";
 import { Pressable, StyleSheet, Text, type PressableInstance } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { FONTS, SOAPBOX } from "./tokens";
 
 type Variant = "primary" | "caution" | "outline";
@@ -19,7 +20,7 @@ const LOOKS: Record<Variant, { box: object; text: string }> = {
   outline: { box: { backgroundColor: "transparent" }, text: SOAPBOX.marker },
 };
 
-// Chunky uppercase button that presses down into its shadow
+// Chunky uppercase button that presses down into its shadow and springs back up
 export const SoapboxButton = ({
   children,
   onPress,
@@ -36,27 +37,41 @@ export const SoapboxButton = ({
   ref?: Ref<PressableInstance>;
 }) => {
   const look = LOOKS[variant];
+  // 0 = resting, 1 = pushed into the shadow; springs back with a little bounce on release
+  const press = useSharedValue(0);
+  const move = useAnimatedStyle(() => ({
+    transform: [{ translateX: press.value * 2 }, { translateY: press.value * 3 }],
+  }));
+
   return (
-    <Pressable
-      ref={ref}
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !!disabled }}
-      style={({ pressed }) => [
-        styles.base,
-        look.box,
-        pressed && !disabled ? styles.pressed : null,
-        disabled ? styles.disabled : null,
-      ]}
-    >
-      {icon}
-      {typeof children === "string" ? (
-        <Text style={[styles.label, { color: look.text }]}>{children}</Text>
-      ) : (
-        children
-      )}
-    </Pressable>
+    <Animated.View style={move}>
+      <Pressable
+        ref={ref}
+        onPress={onPress}
+        onPressIn={() => {
+          press.value = withSpring(1, { damping: 30, stiffness: 900 });
+        }}
+        onPressOut={() => {
+          press.value = withSpring(0, { damping: 8, stiffness: 320 });
+        }}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !!disabled }}
+        style={({ pressed }) => [
+          styles.base,
+          look.box,
+          pressed && !disabled ? styles.pressed : null,
+          disabled ? styles.disabled : null,
+        ]}
+      >
+        {icon}
+        {typeof children === "string" ? (
+          <Text style={[styles.label, { color: look.text }]}>{children}</Text>
+        ) : (
+          children
+        )}
+      </Pressable>
+    </Animated.View>
   );
 };
 
@@ -72,10 +87,8 @@ const styles = StyleSheet.create({
     borderColor: SOAPBOX.marker,
     borderRadius: 4,
   },
-  pressed: {
-    transform: [{ translateX: 2 }, { translateY: 3 }],
-    boxShadow: `1px 1px 0px ${SOAPBOX.marker}`,
-  },
+  // The movement is animated above; pressing also flattens the shadow
+  pressed: { boxShadow: `1px 1px 0px ${SOAPBOX.marker}` },
   disabled: { opacity: 0.45 },
   label: {
     fontFamily: FONTS.heading,

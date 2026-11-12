@@ -106,7 +106,7 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
         </FieldRow>
       </Board>
 
-      <Board label="House rules" style={{ marginTop: 34 }}>
+      <Board label="House rules" delay={120} style={{ marginTop: 34 }}>
         <RangeStepper label="Rounds" value={rounds} setValue={setRounds} range={rules.rounds} />
         <RangeStepper
           label="Player Limit"

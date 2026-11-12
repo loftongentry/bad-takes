@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Minus, Plus } from "@tamagui/lucide-icons";
+import Animated from "react-native-reanimated";
+import { popIn } from "./motion";
 import { FONTS, NO_WEB_OUTLINE, SOAPBOX } from "./tokens";
 
 // One labelled line inside a Board: the label on the left, a control on the right
@@ -97,7 +99,9 @@ export const Stepper = ({
       <StepButton onPress={onDecrement} disabled={decrementDisabled} label={`Less ${label}`}>
         <Minus color={SOAPBOX.marker} size={18} />
       </StepButton>
-      <Text style={styles.value}>{valueText}</Text>
+      <Animated.Text key={valueText} entering={popIn()} style={styles.value}>
+        {valueText}
+      </Animated.Text>
       <StepButton onPress={onIncrement} disabled={incrementDisabled} label={`More ${label}`}>
         <Plus color={SOAPBOX.marker} size={18} />
       </StepButton>

@@ -41,7 +41,7 @@ const JoinScreen = () => {
         <Text style={styles.hint}>The 5-character code on the host’s screen</Text>
       </Board>
 
-      <Board style={{ marginTop: 24 }}>
+      <Board delay={120} style={{ marginTop: 24 }}>
         <FieldRow label="Your Name" last>
           <InlineTextInput
             value={yourName}
