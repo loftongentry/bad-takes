@@ -17,10 +17,12 @@ lockfiles). The root `package.json` only holds convenience scripts.
 frontend/
   app/                 one file per screen (expo-router)
   src/graphql/         Apollo client, operations, schema types
-  src/hooks/           useRoom (live room data), useRoomActions (mutations),
-                       useStatusRedirect, useDefenseTimer
+  src/hooks/           useRoom (live room data and screen routing), useRoomActions
+                       (mutations), useRules, timers
   src/state/           session store (Zustand)
-  src/ui/              shared components + theme colors
+  src/ui/              shared components (How to Play, the host's Players menu, code input)
+  src/ui/soapbox/      the Soapbox look: colors and fonts (tokens.ts), page shell, buttons,
+                       signs, caution tape, stamps
 
 backend/src/
   index.ts             HTTP + WebSocket server
