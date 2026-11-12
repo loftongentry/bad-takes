@@ -1,17 +1,11 @@
 {
-  "name": "bad-takes-middleware",
+  "name": "bad-takes-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/index.ts",
-    "redis:up": "docker compose up -d redis",
-    "redis:down": "docker compose down"
+    "typecheck": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "@apollo/server": "^5.2.0",
