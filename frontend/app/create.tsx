@@ -107,7 +107,10 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
       </Board>
 
       <Board label="House rules" delay={120} style={{ marginTop: 34 }}>
-        <RangeStepper label="Rounds" value={rounds} setValue={setRounds} range={rules.rounds} />
+        {/* Only shown once the server allows more than one round (it's fixed at 1 for now) */}
+        {rules.rounds.max > rules.rounds.min ? (
+          <RangeStepper label="Rounds" value={rounds} setValue={setRounds} range={rules.rounds} />
+        ) : null}
         <RangeStepper
           label="Player Limit"
           value={playerLimit}
