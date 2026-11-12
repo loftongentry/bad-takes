@@ -1,4 +1,6 @@
-import { StyleSheet, Text, View } from "react-native";
+import { useEffect } from "react";
+import { StyleSheet, Text } from "react-native";
+import Animated from "react-native-reanimated";
 import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { HostPlayersMenu } from "../src/ui/HostPlayersMenu";
 import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
@@ -6,11 +8,16 @@ import { TakeSign } from "../src/ui/soapbox/TakeSign";
 import { TapeTimer } from "../src/ui/soapbox/TapeTimer";
 import { WaitingNote } from "../src/ui/soapbox/WaitingNote";
 import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
+import { settleIn, slamIn, thud } from "../src/ui/soapbox/motion";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
 import { useRules } from "../src/hooks/useRules";
 import { useDefenseTimer } from "../src/hooks/useDefenseTimer";
+
+// The take sign slams down shortly after a turn starts; the impact lands 55% into the slam
+const SLAM_DELAY_MS = 150;
+const SLAM_IMPACT_MS = 385;
 
 // "0:37"
 const clock = (seconds: number) =>
@@ -36,6 +43,16 @@ const Defense = () => {
     room?.settings.timeLimit ?? 0,
   );
 
+  // A new turn: the sign slams down, and phones thud as it hits
+  const turnKey = currentTurn ? `${currentTurn.defenderId}:${currentTurn.promptText}` : null;
+  useEffect(() => {
+    if (!turnKey) {
+      return;
+    }
+    const impact = setTimeout(thud, SLAM_DELAY_MS + SLAM_IMPACT_MS);
+    return () => clearTimeout(impact);
+  }, [turnKey]);
+
   if (!currentTurn || !rules) {
     return (
       <SoapboxPage
@@ -51,7 +68,12 @@ const Defense = () => {
   const headerText = phase === "PREP" ? "Get Ready!" : isMe ? "DEFEND THIS!" : "Listen Up!";
 
   return (
-    <SoapboxPage headerRight={<HostPlayersMenu room={room} />} title={headerText} showBack={false}>
+    <SoapboxPage
+      headerRight={<HostPlayersMenu room={room} />}
+      title={headerText}
+      titleEntrance="punch"
+      showBack={false}
+    >
       {/* During the prep countdown the tape is full and shows when the defense starts */}
       <TapeTimer
         fraction={phase === "PREP" ? 1 : timeLeft / maxTime}
@@ -59,7 +81,7 @@ const Defense = () => {
         urgent={phase === "DEFEND" && timeLeft < 10}
       />
 
-      <Text style={styles.who}>
+      <Animated.Text entering={settleIn(80)} style={styles.who}>
         {isMe ? (
           "You are defending:"
         ) : (
@@ -67,14 +89,16 @@ const Defense = () => {
             <Text style={styles.whoName}>{defenderName}</Text> is defending:
           </>
         )}
-      </Text>
+      </Animated.Text>
 
-      <TakeSign text={currentTurn.promptText} />
+      <Animated.View key={turnKey} entering={slamIn(SLAM_DELAY_MS)}>
+        <TakeSign text={currentTurn.promptText} />
+      </Animated.View>
 
       {isMe && phase === "DEFEND" ? (
-        <View style={{ marginTop: 32 }}>
+        <Animated.View entering={settleIn()} style={{ marginTop: 32 }}>
           <SoapboxButton onPress={() => endTurn()}>End Defense</SoapboxButton>
-        </View>
+        </Animated.View>
       ) : null}
     </SoapboxPage>
   );

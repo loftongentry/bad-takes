@@ -1,6 +1,7 @@
 // TODO: Add a 'Game starting!' screen after all player have submitted their bad takes before shifting to defense screen
 import { useState } from "react";
 import { ActivityIndicator, Keyboard, StyleSheet, Text, TextInput, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { HostPlayersMenu } from "../src/ui/HostPlayersMenu";
 import { Sign } from "../src/ui/soapbox/Sign";
@@ -9,6 +10,7 @@ import { TapeTimer } from "../src/ui/soapbox/TapeTimer";
 import { takeFontSize, takeTextStyle } from "../src/ui/soapbox/TakeSign";
 import { WaitingNote } from "../src/ui/soapbox/WaitingNote";
 import { FONTS, NO_WEB_OUTLINE, SOAPBOX } from "../src/ui/soapbox/tokens";
+import { throwOut } from "../src/ui/soapbox/motion";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
@@ -100,31 +102,37 @@ const PromptEntry = () => {
     >
       {timer}
 
-      <Sign tilt={-1}>
-        <TextInput
-          value={badTake}
-          onChangeText={setBadTake}
-          placeholder="Pineapple belongs on pizza..."
-          placeholderTextColor="rgba(31, 26, 23, 0.35)"
-          accessibilityLabel="Your bad take"
-          multiline
-          autoFocus
-          maxLength={charLimit}
-          editable={!loading}
-          submitBehavior="blurAndSubmit"
-          style={[
-            takeTextStyle,
-            styles.input,
-            NO_WEB_OUTLINE,
-            { fontSize: size, lineHeight: Math.round(size * 1.25) },
-          ]}
-        />
-        {charLimit !== undefined ? (
-          <Text style={[styles.counter, nearLimit ? styles.counterNear : null]}>
-            {badTake.length}/{charLimit}
-          </Text>
-        ) : null}
-      </Sign>
+      {/* No entrance (the field focuses itself as the screen opens, which an entrance would
+          block on the web); once submitted, the sign gets tossed off the top of the screen.
+          It ignores touches while sending, so the copy that flies away (made from it as it is
+          then) can't catch a tap meant for the buttons it passes over. */}
+      <Animated.View exiting={throwOut} style={{ pointerEvents: loading ? "none" : "auto" }}>
+        <Sign tilt={-1}>
+          <TextInput
+            value={badTake}
+            onChangeText={setBadTake}
+            placeholder="Pineapple belongs on pizza..."
+            placeholderTextColor="rgba(31, 26, 23, 0.35)"
+            accessibilityLabel="Your bad take"
+            multiline
+            autoFocus
+            maxLength={charLimit}
+            editable={!loading}
+            submitBehavior="blurAndSubmit"
+            style={[
+              takeTextStyle,
+              styles.input,
+              NO_WEB_OUTLINE,
+              { fontSize: size, lineHeight: Math.round(size * 1.25) },
+            ]}
+          />
+          {charLimit !== undefined ? (
+            <Text style={[styles.counter, nearLimit ? styles.counterNear : null]}>
+              {badTake.length}/{charLimit}
+            </Text>
+          ) : null}
+        </Sign>
+      </Animated.View>
 
       <View style={{ marginTop: 28 }}>
         <SoapboxButton
