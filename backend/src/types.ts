@@ -38,6 +38,7 @@ export type StoredGameState = {
 export type GameState = StoredGameState & {
   votesCast?: number
   votedPlayers?: string[]
+  submittedPromptsCount?: number
 }
 
 export type Room = {

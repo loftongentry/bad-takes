@@ -1,35 +1,35 @@
 // Defense/voting loop: advancing turns, ending a defense, and tallying votes
 import * as repo from "../db/roomRepo";
+import type { Player, RoomStatus, StoredGameState } from "../types";
 
+// Starts the next turn in the queue, or moves to RESULTS when the queue is empty.
+// Only happens if the room is still in `fromStatus`: when several requests race to advance
+// the same turn (e.g. the last two votes arriving together), exactly one wins and the rest
+// do nothing. Returns whether this call advanced the room.
 // TODO: implement server side timers
-export async function startTurn(roomId: string) {
-  const room = await repo.getRoom(roomId);
-  if (!room) {
-    throw new Error("Room not found");
-  }
-
-  // Get raw state object
-  const state = await repo.getStoredGameState(roomId);
-  if (!state) {
-    return;
-  }
-
+export async function advanceToNextTurn(
+  roomId: string,
+  fromStatus: RoomStatus,
+  state: StoredGameState,
+  scoredPlayer?: Player
+) {
   // Pop the next turn from queue
   const nextTurn = state.queue.shift();
-
-  if (!nextTurn) {
-    // No more turns, transition to RESULTS
-    console.log(`[GameLogic] No more turns in room ${roomId}, transitioning to RESULTS`);
-    await repo.setStatus(roomId, "RESULTS");
-  } else {
+  if (nextTurn) {
     state.currentTurn = nextTurn;
+  } else {
+    console.log(`[GameLogic] No more turns in room ${roomId}, transitioning to RESULTS`);
+  }
 
-    // Save updated state
-    await repo.beginTurn(roomId, state);
+  const advanced = await repo.advanceRoom(roomId, fromStatus, nextTurn ? "DEFENSE" : "RESULTS", state, scoredPlayer);
+  if (!advanced) {
+    console.log(`[GameLogic] Room ${roomId} already advanced past ${fromStatus} by another request`);
+    return false;
   }
 
   const finalRoom = await repo.getRoom(roomId);
   await repo.publishRoom(finalRoom);
+  return true;
 }
 
 export async function endTurn(roomId: string) {
@@ -86,19 +86,16 @@ export async function submitVote(roomId: string, playerId: string, value: number
         roundScore += Number(vote);
       }
 
-      // Update defender score
+      // Defender's new score is saved in the same atomic step that advances the turn,
+      // so it can't be applied twice if another final vote arrives at the same moment
       const defenderId = room.gameState?.currentTurn?.defenderId;
-      const playerIndex = room.players.findIndex((p) => p.id === defenderId);
+      const defender = room.players.find((p) => p.id === defenderId);
+      const scoredDefender = defender ? { ...defender, score: defender.score + roundScore } : undefined;
 
-      if (playerIndex !== -1) {
-        const player = room.players[playerIndex];
-        player.score += roundScore;
-
-        // Save updated player data
-        await repo.savePlayer(roomId, player);
+      const state = await repo.getStoredGameState(roomId);
+      if (state) {
+        await advanceToNextTurn(roomId, "VOTING", state, scoredDefender);
       }
-
-      await startTurn(roomId);
     } else {
       const updatedRoom = await repo.getRoom(roomId);
       await repo.publishRoom(updatedRoom);

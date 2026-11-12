@@ -1,8 +1,8 @@
 // Data access for rooms: every Redis read/write and pub/sub publish lives here.
 // Game rules live in ../game and only talk to Redis through these functions.
 import { redis, pubsub } from "./redis";
-import { roomKey, playersKey, votesKey, joinKey, roomChannel, ROOM_TTL_SECONDS } from "./keys";
-import type { GameState, Player, Room, RoomStatus, StoredGameState } from "../types";
+import { roomKey, playersKey, votesKey, promptsKey, joinKey, roomChannel, ROOM_TTL_SECONDS } from "./keys";
+import type { GameState, Player, Prompt, Room, RoomStatus, StoredGameState } from "../types";
 
 // --- Reads ---
 
@@ -11,12 +11,13 @@ export async function getRoom(roomId: string): Promise<Room | null> {
 
   try {
     // Pipeline: Fetch room metadata + players in one trip
-    const [roomRes, playersRes, votesRes] = await redis
+    const [roomRes, playersRes, votesRes, promptCountRes] = await redis
       .pipeline()
       .hgetall(roomKey(roomId))
       .hgetall(playersKey(roomId))
       .hgetall(votesKey(roomId))
-      .exec() as [any, any, any];
+      .hlen(promptsKey(roomId))
+      .exec() as [any, any, any, any];
 
     // Check for Pipeline Errors
     if (roomRes[0]) {
@@ -27,6 +28,9 @@ export async function getRoom(roomId: string): Promise<Room | null> {
     }
     if (votesRes[0]) {
       throw new Error(`Redis Pipeline Error (Votes): ${votesRes[0]}`);
+    }
+    if (promptCountRes[0]) {
+      throw new Error(`Redis Pipeline Error (Prompts): ${promptCountRes[0]}`);
     }
 
     const roomData = roomRes[1];
@@ -52,10 +56,11 @@ export async function getRoom(roomId: string): Promise<Room | null> {
       console.error(`[RoomStore.get] Failed to parse gameState for room ${roomId}:`, parseErr);
     }
 
-    // Injecting vote data manually
+    // Injecting vote and prompt counts, which live in their own hashes
     if (gameState) {
       gameState.votesCast = Object.keys(votesData).length;
       gameState.votedPlayers = Object.keys(votesData);
+      gameState.submittedPromptsCount = Number(promptCountRes[1]);
     }
 
     return {
@@ -92,6 +97,11 @@ export function getVotes(roomId: string) {
   return redis.hgetall(votesKey(roomId));
 }
 
+export async function getPrompts(roomId: string): Promise<Prompt[]> {
+  const raw = await redis.hvals(promptsKey(roomId));
+  return raw.map((p) => JSON.parse(p));
+}
+
 // --- Writes ---
 
 export async function insertRoom(
@@ -119,6 +129,8 @@ export function deleteRoom(roomId: string, joinCode: string) {
   return redis.multi()
     .del(roomKey(roomId))
     .del(playersKey(roomId))
+    .del(votesKey(roomId))
+    .del(promptsKey(roomId))
     .del(joinKey(joinCode))
     .exec();
 }
@@ -135,24 +147,67 @@ export function setStatus(roomId: string, status: RoomStatus) {
   return redis.hset(roomKey(roomId), "status", status);
 }
 
-export function saveGameState(roomId: string, state: StoredGameState) {
-  return redis.hset(roomKey(roomId), "gameState", JSON.stringify(state));
+// Stores a player's prompt (replacing any earlier one from them) and returns how many players
+// have submitted. A single HSET per player means simultaneous submissions can't overwrite each other.
+export async function savePrompt(roomId: string, prompt: Prompt): Promise<number> {
+  const results = await redis.multi()
+    .hset(promptsKey(roomId), prompt.authorId, JSON.stringify(prompt))
+    .expire(promptsKey(roomId), ROOM_TTL_SECONDS)
+    .hlen(promptsKey(roomId))
+    .exec();
+
+  const [err, count] = results?.[2] ?? [new Error("Redis transaction aborted"), 0];
+  if (err) throw err;
+  return Number(count);
 }
 
-// Saves the state with its new current turn, moves to DEFENSE, and clears last turn's votes
-export function beginTurn(roomId: string, state: StoredGameState) {
-  return redis.multi()
-    .hset(roomKey(roomId), "gameState", JSON.stringify(state))
-    .hset(roomKey(roomId), "status", "DEFENSE")
-    .del(votesKey(roomId))
-    .exec();
+// Runs atomically inside Redis: only advances if the room is still in the expected status,
+// so when several requests race to advance the same turn, exactly one wins.
+const ADVANCE_ROOM_SCRIPT = `
+  if redis.call('HGET', KEYS[1], 'status') ~= ARGV[1] then
+    return 0
+  end
+  redis.call('HSET', KEYS[1], 'status', ARGV[2], 'gameState', ARGV[3])
+  redis.call('DEL', KEYS[2])
+  if ARGV[4] ~= '' then
+    redis.call('HSET', KEYS[3], ARGV[4], ARGV[5])
+  end
+  return 1
+`;
+
+// Moves the room from `fromStatus` to `toStatus` with a new game state, clears the votes, and
+// optionally saves one player (the defender's new score). Returns false, changing nothing,
+// if the room was no longer in `fromStatus` because another request already advanced it.
+export async function advanceRoom(
+  roomId: string,
+  fromStatus: RoomStatus,
+  toStatus: RoomStatus,
+  state: StoredGameState,
+  updatedPlayer?: Player
+): Promise<boolean> {
+  const result = await redis.eval(
+    ADVANCE_ROOM_SCRIPT,
+    3,
+    roomKey(roomId),
+    votesKey(roomId),
+    playersKey(roomId),
+    fromStatus,
+    toStatus,
+    JSON.stringify(state),
+    updatedPlayer?.id ?? "",
+    updatedPlayer ? JSON.stringify(updatedPlayer) : ""
+  );
+  return result === 1;
 }
 
 export function recordVote(roomId: string, playerId: string, value: number) {
-  return redis.hset(votesKey(roomId), playerId, value.toString());
+  return redis.multi()
+    .hset(votesKey(roomId), playerId, value.toString())
+    .expire(votesKey(roomId), ROOM_TTL_SECONDS)
+    .exec();
 }
 
-// Back to LOBBY with a fresh game state and no votes
+// Back to LOBBY with a fresh game state and no votes or prompts
 export function resetRoomState(roomId: string, state: StoredGameState) {
   return redis.multi()
     .hset(roomKey(roomId), {
@@ -160,6 +215,7 @@ export function resetRoomState(roomId: string, state: StoredGameState) {
       "gameState": JSON.stringify(state)
     })
     .del(votesKey(roomId))
+    .del(promptsKey(roomId))
     .exec();
 }
 
