@@ -9,9 +9,12 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "dev": "npm run redis:up && concurrently -n backend,frontend -c blue,magenta \"npm:dev:backend\" \"npm:dev:frontend\"",
     "lint": "npm --prefix backend run lint && npm --prefix frontend run lint",
-    "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck"
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "concurrently": "^9.2.5"
+    "concurrently": "^9.2.5",
+    "prettier": "^3.10.1"
   }
 }

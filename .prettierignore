@@ -1,0 +1,7 @@
+# Generated or installed files
+package-lock.json
+**/node_modules
+**/dist
+**/.expo
+**/.tamagui
+frontend/assets
