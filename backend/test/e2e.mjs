@@ -21,9 +21,31 @@ function assert(cond, message) {
   if (!cond) throw new Error(message);
 }
 
+// Starts a backend process on `port`. `ready` resolves once it answers /health.
+function startBackend(port, extraEnv = {}) {
+  const child = spawn(process.execPath, ['--import', 'tsx', 'src/index.ts'], {
+    cwd: BACKEND_DIR,
+    env: { ...process.env, PORT: port, ...extraEnv },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let logs = '';
+  child.stdout.on('data', (d) => (logs += d));
+  child.stderr.on('data', (d) => (logs += d));
+  const ready = (async () => {
+    for (let i = 0; i < 60; i++) {
+      try {
+        if ((await fetch(`http://localhost:${port}/health`)).ok) return;
+      } catch {}
+      await sleep(500);
+    }
+    throw new Error(`backend never came up on port ${port}\n${logs}`);
+  })();
+  return { ready, stop: () => child.kill() };
+}
+
 // --- GraphQL helpers ---
-async function gqlRaw(query, variables = {}) {
-  const r = await fetch(HTTP, {
+async function gqlRaw(query, variables = {}, url = HTTP) {
+  const r = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ query, variables }),
@@ -31,8 +53,8 @@ async function gqlRaw(query, variables = {}) {
   return r.json();
 }
 
-async function gql(query, variables = {}) {
-  const j = await gqlRaw(query, variables);
+async function gql(query, variables = {}, url = HTTP) {
+  const j = await gqlRaw(query, variables, url);
   if (j.errors) throw new Error(j.errors.map((e) => e.message).join('; '));
   return j.data;
 }
@@ -244,27 +266,40 @@ test('invalid votes are rejected', async () => {
   assert((await getRoom(roomId)).gameState.votesCast === 0, 'no invalid vote should have been recorded');
 });
 
+test('active rooms outlive the expiry time; idle rooms still expire', async () => {
+  // A separate backend whose rooms expire after 3 seconds of inactivity
+  const port = '3597';
+  const url = `http://localhost:${port}/graphql`;
+  const backend = startBackend(port, { ROOM_TTL_SECONDS: '3' });
+  try {
+    await backend.ready;
+    const exists = async (roomId) => (await gql(`query($id:ID!){ room(id:$id){ id } }`, { id: roomId }, url)).room !== null;
+
+    const c = await gql(
+      `mutation { createRoom(hostName:"A", lobbyName:"TTL", rounds:1, playerLimit:5, timeLimit:60) { room { id joinCode } } }`,
+      {},
+      url
+    );
+    const { id: roomId, joinCode } = c.createRoom.room;
+    await sleep(2000);
+    await gql(`mutation($c:String!){ joinRoom(code:$c, playerName:"B") { playerId } }`, { c: joinCode }, url);
+    await sleep(2000); // 4s after creation, 2s after the last activity
+    assert(await exists(roomId), 'room expired 3s after creation even though a player joined at 2s');
+
+    await sleep(3500); // now 3.5s with no activity
+    assert(!(await exists(roomId)), 'a room with no activity should still expire');
+  } finally {
+    backend.stop();
+  }
+});
+
 // ---------------------------------------------------------------------------
 
-const child = spawn(process.execPath, ['--import', 'tsx', 'src/index.ts'], {
-  cwd: BACKEND_DIR,
-  env: { ...process.env, PORT },
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-let logs = '';
-child.stdout.on('data', (d) => (logs += d));
-child.stderr.on('data', (d) => (logs += d));
+const main = startBackend(PORT);
 
 let failed = 0;
 try {
-  let up = false;
-  for (let i = 0; i < 60 && !up; i++) {
-    try {
-      up = (await fetch(`http://localhost:${PORT}/health`)).ok;
-    } catch {}
-    if (!up) await sleep(500);
-  }
-  if (!up) throw new Error(`backend never came up on port ${PORT}\n${logs}`);
+  await main.ready;
 
   for (const { name, fn } of tests) {
     try {
@@ -279,7 +314,7 @@ try {
   failed++;
   console.log(`ERROR ${e.message}`);
 } finally {
-  child.kill();
+  main.stop();
   console.log(`\n${tests.length - failed}/${tests.length} passed`);
   process.exit(failed ? 1 : 0);
 }

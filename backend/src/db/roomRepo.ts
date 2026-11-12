@@ -219,10 +219,29 @@ export function resetRoomState(roomId: string, state: StoredGameState) {
     .exec();
 }
 
+// Renews the expiry on all of a room's keys, so a room only expires after ROOM_TTL_SECONDS
+// with no activity, not that long after it was created. Keys that don't exist are skipped.
+export function touchRoom(room: Room) {
+  return redis.multi()
+    .expire(roomKey(room.id), ROOM_TTL_SECONDS)
+    .expire(playersKey(room.id), ROOM_TTL_SECONDS)
+    .expire(votesKey(room.id), ROOM_TTL_SECONDS)
+    .expire(promptsKey(room.id), ROOM_TTL_SECONDS)
+    .expire(joinKey(room.joinCode), ROOM_TTL_SECONDS)
+    .exec();
+}
+
 // --- Pub/sub ---
 
+// Every state change ends by publishing the updated room, so this is also where the room's
+// expiry gets renewed.
 export async function publishRoom(room: Room | null) {
   if (room && room.id) {
+    try {
+      await touchRoom(room);
+    } catch (e) {
+      console.error(`[RoomStore.touch] Failed to renew expiry for ${room.id}:`, e);
+    }
     try {
       await pubsub.publish(roomChannel(room.id), { room });
     } catch (e) {
