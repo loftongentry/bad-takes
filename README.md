@@ -89,12 +89,20 @@ If the phone can't reach the backend, set the PC's address yourself:
 ## Checks
 
 ```sh
+npm run format          # format everything with Prettier (format:check to only check)
+npm run lint            # ESLint, both packages
+npm run typecheck       # TypeScript, both packages
 npm --prefix backend run test:e2e    # plays real games against the backend (needs Redis running)
-npm --prefix backend run typecheck
-npm --prefix frontend run typecheck
 ```
 
 The end-to-end tests start their own backend on port 3599, so they can run alongside `npm run dev`.
+
+GitHub Actions runs all four on every push to `main` and every pull request
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+
+The game's rules and limits (player counts, time ranges, text lengths) live in
+[`backend/src/game/rules.ts`](backend/src/game/rules.ts). The app reads them from the server's
+`rules` query, so change them there only.
 
 ## Environment
 
