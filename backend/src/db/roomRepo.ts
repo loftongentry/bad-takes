@@ -23,17 +23,17 @@ export async function getRoom(roomId: string): Promise<Room | null> {
 
   try {
     // Pipeline: Fetch room metadata + players in one trip
-    const [roomRes, playersRes, votesRes, promptCountRes] = (await redis
+    const [roomRes, playersRes, votesRes, promptAuthorsRes] = (await redis
       .pipeline()
       .hgetall(roomKey(roomId))
       .hgetall(playersKey(roomId))
       .hgetall(votesKey(roomId))
-      .hlen(promptsKey(roomId))
+      .hkeys(promptsKey(roomId))
       .exec()) as [
       PipelineResult<Record<string, string>>,
       PipelineResult<Record<string, string>>,
       PipelineResult<Record<string, string>>,
-      PipelineResult<number>,
+      PipelineResult<string[]>,
     ];
 
     // Check for Pipeline Errors
@@ -46,8 +46,8 @@ export async function getRoom(roomId: string): Promise<Room | null> {
     if (votesRes[0]) {
       throw new Error(`Redis Pipeline Error (Votes): ${votesRes[0]}`);
     }
-    if (promptCountRes[0]) {
-      throw new Error(`Redis Pipeline Error (Prompts): ${promptCountRes[0]}`);
+    if (promptAuthorsRes[0]) {
+      throw new Error(`Redis Pipeline Error (Prompts): ${promptAuthorsRes[0]}`);
     }
 
     const roomData = roomRes[1];
@@ -73,11 +73,14 @@ export async function getRoom(roomId: string): Promise<Room | null> {
       console.error(`[RoomStore.get] Failed to parse gameState for room ${roomId}:`, parseErr);
     }
 
-    // Injecting vote and prompt counts, which live in their own hashes
+    // Who has voted and who has written a take live in their own hashes (keyed by player)
     if (gameState) {
-      gameState.votesCast = Object.keys(votesData).length;
-      gameState.votedPlayers = Object.keys(votesData);
-      gameState.submittedPromptsCount = Number(promptCountRes[1]);
+      const votedPlayerIds = Object.keys(votesData);
+      const submittedPlayerIds = promptAuthorsRes[1] || [];
+      gameState.votedPlayerIds = votedPlayerIds;
+      gameState.votesCast = votedPlayerIds.length;
+      gameState.submittedPlayerIds = submittedPlayerIds;
+      gameState.submittedPromptsCount = submittedPlayerIds.length;
     }
 
     return {

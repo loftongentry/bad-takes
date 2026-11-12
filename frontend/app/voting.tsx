@@ -77,10 +77,15 @@ const Voting = () => {
   const votingRound = room?.status === "VOTING" ? (room.gameState?.deadline ?? null) : null;
   const secondsLeft = useSecondsLeft(votingRound);
 
-  // Remember which round this player voted in, so a vote never carries over to the next turn
-  // if this screen stays open from one vote to the next
+  // The server knows who has voted this round (it starts empty each turn). The local record of
+  // the round this player voted in only covers the moment before the room update arrives, and
+  // never carries over to the next turn if this screen stays open from one vote to the next.
   const [votedRound, setVotedRound] = useState<string | null>(null);
-  const hasVoted = votingRound !== null && votedRound === votingRound;
+  const votedOnServer =
+    room?.status === "VOTING" &&
+    !!myPlayerId &&
+    !!room.gameState?.votedPlayerIds.includes(myPlayerId);
+  const hasVoted = votedOnServer || (votingRound !== null && votedRound === votingRound);
 
   const handleVote = async (value: number) => {
     const round = votingRound;

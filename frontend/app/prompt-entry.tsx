@@ -1,4 +1,3 @@
-// TODO: Derive state from server data instead of local state
 // TODO: Add a 'Game starting!' screen after all player have submitted their bad takes before shifting to defense screen
 import { useState } from "react";
 import { TextArea, Text, XStack, Spinner } from "tamagui";
@@ -17,13 +16,19 @@ import { useSecondsLeft } from "../src/hooks/useSecondsLeft";
 
 const PromptEntry = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null);
+  const myPlayerId = useGameSessionStore((s) => s.session?.playerId ?? null);
   const { room } = useRoom(roomId || undefined);
   const { leaveGame, submitPrompt } = useRoomActions(roomId || undefined);
   // The server's limit on a take's length (undefined only until the rules load)
   const charLimit = useRules()?.promptMaxLength;
   const [badTake, setBadTake] = useState<string>("");
-  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [justSubmitted, setJustSubmitted] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+
+  // The server knows who has written a take. The local flag only covers the moment between
+  // the submit succeeding and the room update arriving.
+  const isSubmitted =
+    justSubmitted || (!!myPlayerId && !!room?.gameState?.submittedPlayerIds.includes(myPlayerId));
 
   // Writing time set by the host; when it runs out the game starts with the takes that are in
   const secondsLeft = useSecondsLeft(
@@ -37,7 +42,7 @@ const PromptEntry = () => {
     try {
       const success = await submitPrompt(badTake);
       if (success) {
-        setIsSubmitted(true);
+        setJustSubmitted(true);
       }
     } catch (error) {
       console.error("Failed to submit bad take:", error);

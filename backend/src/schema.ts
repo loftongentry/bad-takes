@@ -1,5 +1,3 @@
-// TODO: Track who submitted prompts
-// TODO: Track votes to be able to display users who have and have not voted on when waiting between players' defenses (who are we waiting to vote - should also implement a timer on that as well to force timely voting)
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { resolvers } from "./resolvers";
 
@@ -58,9 +56,14 @@ const typeDefs = `
   }
 
   type GameState {
+    # When the current phase ends (writing, defense or voting)
     deadline: String
-    votesCast: Int
-    submittedPromptsCount: Int
+    # Who has written a take this game, and how many have
+    submittedPlayerIds: [ID!]!
+    submittedPromptsCount: Int!
+    # Who has voted on the current turn, and how many have
+    votedPlayerIds: [ID!]!
+    votesCast: Int!
     currentTurn: TurnInfo
   }
 

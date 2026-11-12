@@ -21,8 +21,10 @@ const ROOM_FRAGMENT = gql`
     }
     gameState {
       deadline
-      votesCast
+      submittedPlayerIds
       submittedPromptsCount
+      votedPlayerIds
+      votesCast
       currentTurn {
         defenderId
         promptId

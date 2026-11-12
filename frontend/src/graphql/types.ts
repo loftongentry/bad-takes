@@ -43,6 +43,9 @@ export type Room = {
   players: Player[];
   gameState: {
     deadline: string | null;
+    // Who has written a take this game, and who has voted on the current turn
+    submittedPlayerIds: string[];
+    votedPlayerIds: string[];
     votesCast: number;
     submittedPromptsCount: number;
     currentTurn: {

@@ -620,6 +620,35 @@ test("the rules query reports the limits the server enforces", async () => {
   );
 });
 
+test("the room shows who has written a take and who has voted", async () => {
+  const { roomId, players } = await setupRoom(["A", "B", "C"]);
+  const ids = `gameState { submittedPlayerIds votedPlayerIds currentTurn { defenderId } }`;
+  const read = async () =>
+    (await gql(`query($id:ID!){ room(id:$id){ ${ids} } }`, { id: roomId })).room.gameState;
+  await startGame(roomId);
+
+  await submitPrompt(roomId, players[0].id, "take one");
+  assert(
+    JSON.stringify((await read()).submittedPlayerIds) === JSON.stringify([players[0].id]),
+    "only A has written",
+  );
+  await submitPrompt(roomId, players[1].id, "take two");
+  await submitPrompt(roomId, players[2].id, "take three");
+
+  let state = await read();
+  await endTurn(roomId);
+  const voters = players.filter((p) => p.id !== state.currentTurn.defenderId);
+  await submitVote(roomId, voters[0].id, 1);
+  state = await read();
+  assert(
+    JSON.stringify(state.votedPlayerIds) === JSON.stringify([voters[0].id]),
+    "only the first voter has voted",
+  );
+  await submitVote(roomId, voters[1].id, 1);
+  state = await read();
+  assert(state.votedPlayerIds.length === 0, "the next turn starts with nobody having voted");
+});
+
 test("a player's public id can't be used to act as them", async () => {
   const { roomId, players } = await setupRoom(["Host", "B", "C"]);
   const [host, b, c] = players;

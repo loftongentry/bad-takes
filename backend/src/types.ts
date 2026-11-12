@@ -32,16 +32,17 @@ export type Turn = {
 export type StoredGameState = {
   prompts: Prompt[];
   queue: Turn[];
-  votes: Record<string, number>;
   currentTurn: Turn | null;
   // When the current turn's defense ends (ISO time, including the prep countdown)
   deadline: string | null;
 };
 
-// What clients see: the stored state plus vote info derived from the votes hash
+// What clients see: the stored state plus who has voted / written a take, from the votes and
+// prompts hashes
 export type GameState = StoredGameState & {
+  votedPlayerIds?: string[];
   votesCast?: number;
-  votedPlayers?: string[];
+  submittedPlayerIds?: string[];
   submittedPromptsCount?: number;
 };
 
