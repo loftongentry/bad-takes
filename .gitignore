@@ -1,0 +1,8 @@
+# Repo-wide ignores. frontend/ and backend/ each keep their own .gitignore
+# for app-specific rules.
+
+node_modules/
+.env
+.env*.local
+*.log
+.DS_Store
