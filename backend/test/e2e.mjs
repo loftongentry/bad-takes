@@ -25,7 +25,8 @@ function assert(cond, message) {
 function startBackend(port, extraEnv = {}) {
   const child = spawn(process.execPath, ['--import', 'tsx', 'src/index.ts'], {
     cwd: BACKEND_DIR,
-    env: { ...process.env, PORT: port, ...extraEnv },
+    // Timer tests use defenses of a second or two, below the normal 60-second minimum
+    env: { ...process.env, MIN_TIME_LIMIT_SECONDS: '1', PORT: port, ...extraEnv },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let logs = '';
@@ -355,6 +356,58 @@ test('only the host can start, reset, or kick', async () => {
   assert(!(await kickAs(roomId, host.id, c.id)).errors, 'the host should be able to kick');
   assert((await getRoom(roomId)).players.length === 2, 'the kicked player should be gone');
   assert(!(await startGameAs(roomId, host.id)).errors, 'the host should be able to start');
+});
+
+test('names, lobby names and takes are trimmed and length-limited', async () => {
+  const create = (hostName, lobbyName = 'L') =>
+    gqlRaw(`mutation($h:String!,$l:String!){ createRoom(hostName:$h, lobbyName:$l, rounds:1, playerLimit:5, timeLimit:60) { room { id } } }`, { h: hostName, l: lobbyName });
+  assert((await create('x'.repeat(25))).errors, 'a 25-character name should be rejected');
+  assert((await create('   ')).errors, 'a blank name should be rejected');
+  assert((await create('Ann', 'y'.repeat(41))).errors, 'a 41-character lobby name should be rejected');
+
+  const { roomId, players } = await setupRoom(['  Ann  ', 'Bob']);
+  assert((await getRoom(roomId)).players.some((p) => p.name === 'Ann'), 'names should be stored trimmed');
+  const join = await gqlRaw(`mutation($c:String!){ joinRoom(code:$c, playerName:"${'z'.repeat(25)}") { playerId } }`, {
+    c: (await getRoom(roomId)).joinCode,
+  });
+  assert(join.errors, 'joining with a 25-character name should be rejected');
+
+  await startGame(roomId);
+  const tooLong = await gqlRaw(`mutation($r:ID!,$t:String!,$x:String!){ submitPrompt(roomId:$r, playerToken:$t, prompt:$x) }`, {
+    r: roomId, t: tok(players[0].id), x: 'w'.repeat(141),
+  });
+  assert(tooLong.errors, 'a 141-character take should be rejected');
+  await submitPrompt(roomId, players[0].id, '  spaced out take  ');
+  await submitPrompt(roomId, players[1].id, 'another take');
+  const room = await getRoom(roomId);
+  const texts = [room.gameState.currentTurn.promptText];
+  assert(texts.every((t) => t === t.trim()), 'takes should be stored trimmed');
+});
+
+test('room settings must be in range', async () => {
+  const create = (settings) =>
+    gqlRaw(`mutation($r:Int!,$p:Int!,$t:Int!){ createRoom(hostName:"A", lobbyName:"L", rounds:$r, playerLimit:$p, timeLimit:$t) { room { id } } }`, settings);
+  assert((await create({ r: 1, p: 1, t: 60 })).errors, 'a player limit of 1 should be rejected');
+  assert((await create({ r: 1, p: 500, t: 60 })).errors, 'a player limit of 500 should be rejected');
+  assert((await create({ r: 1, p: 5, t: 0 })).errors, 'a time limit of 0 should be rejected');
+  assert((await create({ r: 1, p: 5, t: 10_000_000 })).errors, 'a huge time limit should be rejected');
+  assert((await create({ r: 3, p: 5, t: 60 })).errors, 'more than 1 round should be rejected (not supported yet)');
+  assert(!(await create({ r: 1, p: 5, t: 60 })).errors, 'valid settings should be accepted');
+});
+
+test('oversized WebSocket messages are refused', async () => {
+  const closeCode = await new Promise((resolve) => {
+    const ws = new WebSocket(WS, 'graphql-transport-ws');
+    ws.onopen = () => ws.send(JSON.stringify({ type: 'connection_init' }));
+    ws.onmessage = (e) => {
+      if (JSON.parse(e.data).type === 'connection_ack') {
+        ws.send(JSON.stringify({ id: '1', type: 'subscribe', payload: { query: `query { room(id:"${'x'.repeat(200_000)}") { id } }` } }));
+      }
+    };
+    ws.onclose = (e) => resolve(e.code);
+    setTimeout(() => resolve('still open'), 5000);
+  });
+  assert(closeCode === 1009, `a 200 KB message should close the connection as too big (got ${closeCode})`);
 });
 
 test("a player's public id can't be used to act as them", async () => {

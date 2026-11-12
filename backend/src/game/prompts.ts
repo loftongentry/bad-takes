@@ -4,6 +4,7 @@ import * as repo from "../db/roomRepo";
 import { emptyGameState, generateQueue } from "./state";
 import { advanceToNextTurn } from "./turns";
 import { requireHost, requirePlayer } from "./permissions";
+import { PROMPT_MAX, cleanText } from "./rules";
 
 export const MIN_PLAYERS = 2;
 
@@ -51,13 +52,14 @@ export async function submitPrompt(roomId: string, playerToken: string, prompt: 
       throw new Error("Not accepting prompts right now");
     }
     const player = await requirePlayer(room, playerToken);
+    const text = cleanText(prompt, "Your take", PROMPT_MAX);
 
     // One prompt per player, stored atomically: simultaneous submissions are all kept,
     // and a retry replaces the player's earlier prompt instead of counting twice
     const submittedCount = await repo.savePrompt(roomId, {
       id: uuid(),
       authorId: player.id,
-      text: prompt
+      text
     });
 
     if (submittedCount >= room.players.length) {

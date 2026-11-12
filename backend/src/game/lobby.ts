@@ -5,10 +5,13 @@ import * as repo from "../db/roomRepo";
 import { emptyGameState } from "./state";
 import { newPlayerToken, requireHost } from "./permissions";
 import { handlePlayerLeft } from "./departures";
+import { PLAYER_NAME_MAX, checkSettings, cleanText } from "./rules";
 import type { Player, RoomSettings } from "../types";
 
 // Returns the room plus the host's secret player token (only ever sent to the host)
-export async function createRoom(hostName: string, settings: RoomSettings) {
+export async function createRoom(rawHostName: string, rawSettings: RoomSettings) {
+  const hostName = cleanText(rawHostName, "Name", PLAYER_NAME_MAX);
+  const settings = checkSettings(rawSettings);
   const roomId = uuid();
   const joinCode = makeJoinCode();
 
@@ -43,8 +46,9 @@ export async function createRoom(hostName: string, settings: RoomSettings) {
   }
 }
 
-export async function joinRoom(joinCode: string, playerName: string) {
+export async function joinRoom(joinCode: string, rawPlayerName: string) {
   try {
+    const playerName = cleanText(rawPlayerName, "Name", PLAYER_NAME_MAX);
     const roomId = await repo.findRoomIdByCode(joinCode);
     if (!roomId) {
       console.error(`[RoomStore.join] Invalid code attempt: ${joinCode}`);

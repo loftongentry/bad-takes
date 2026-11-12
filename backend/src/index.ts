@@ -12,11 +12,14 @@ import { restorePhaseTimers } from './game/turns';
 
 const GRAPH_QL = '/graphql'
 const PORT = process.env.PORT || 3500
+// Largest request accepted, over HTTP or WebSocket. Real requests are a few KB at most; without
+// a cap, WebSocket messages could be up to 100 MB and stall the server.
+const MAX_REQUEST_BYTES = 64 * 1024
 
 async function main() {
   const app = express();
   const httpServer = createServer(app);
-  const wsServer = new WebSocketServer({ server: httpServer, path: GRAPH_QL });
+  const wsServer = new WebSocketServer({ server: httpServer, path: GRAPH_QL, maxPayload: MAX_REQUEST_BYTES });
   const serverCleanup = useServer({ schema }, wsServer);
 
   const server = new ApolloServer({
@@ -47,7 +50,7 @@ async function main() {
   app.use(
     GRAPH_QL,
     cors(),
-    express.json(),
+    express.json({ limit: MAX_REQUEST_BYTES }),
     expressMiddleware(server)
   );
 

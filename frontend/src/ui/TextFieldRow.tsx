@@ -6,12 +6,14 @@ export const TextFieldRow = ({
   value,
   onChangeText,
   placeholder,
+  maxLength,
   showDivider = true,
 }: {
   label: string
   value: string
   onChangeText: (t: string) => void
   placeholder: string
+  maxLength?: number
   showDivider?: boolean
 }) => {
   return (
@@ -34,6 +36,7 @@ export const TextFieldRow = ({
             value={value}
             onChangeText={onChangeText}
             placeholder={placeholder}
+            maxLength={maxLength}
             placeholderTextColor={COLORS.lightSecondary}
             style={{
               width: 170,

@@ -66,6 +66,7 @@ const CreateScreen = () => {
           value={lobbyName}
           onChangeText={setLobbyName}
           placeholder="Lobby Name"
+          maxLength={40}
         />
 
         <StepperRow
@@ -104,6 +105,7 @@ const CreateScreen = () => {
           value={yourName}
           onChangeText={setYourName}
           placeholder="Enter name"
+          maxLength={24}
           showDivider={false}
         />
       </FormCard>

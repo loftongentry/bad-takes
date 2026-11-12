@@ -7,11 +7,13 @@ export const LabeledField = ({
   value,
   onChangeText,
   placeholder,
+  maxLength,
 }: {
   label: string
   value: string
   onChangeText: (t: string) => void
   placeholder: string
+  maxLength?: number
 }) => {
   return (
     <View style={{ width: '100%', maxWidth: 340 }}>
@@ -31,6 +33,7 @@ export const LabeledField = ({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
+        maxLength={maxLength}
         placeholderTextColor={COLORS.lightSecondary}
         autoCorrect={false}
         style={{

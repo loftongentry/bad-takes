@@ -50,6 +50,7 @@ const JoinScreen = () => {
         value={yourName}
         onChangeText={setYourName}
         placeholder="Enter name"
+        maxLength={24}
       />
 
       <ActionRow>
