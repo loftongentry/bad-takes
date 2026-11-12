@@ -1,16 +1,20 @@
-import { Text, View, Progress } from "tamagui";
-import { Page } from "../src/ui/Page";
+import { StyleSheet, Text, View } from "react-native";
+import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { HostPlayersMenu } from "../src/ui/HostPlayersMenu";
-import { COLORS } from "../src/ui/theme";
-import { PrimaryButton } from "../src/ui/PrimaryButton";
-import { PromptCard, PromptText } from "../src/ui/PromptCard";
-import { SpinnerMessage } from "../src/ui/SpinnerMessage";
-import { ActionRow } from "../src/ui/ActionRow";
+import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
+import { TakeSign } from "../src/ui/soapbox/TakeSign";
+import { TapeTimer } from "../src/ui/soapbox/TapeTimer";
+import { WaitingNote } from "../src/ui/soapbox/WaitingNote";
+import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
 import { useRules } from "../src/hooks/useRules";
 import { useDefenseTimer } from "../src/hooks/useDefenseTimer";
+
+// "0:37"
+const clock = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
 const Defense = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null);
@@ -34,65 +38,58 @@ const Defense = () => {
 
   if (!currentTurn || !rules) {
     return (
-      <Page headerRight={<HostPlayersMenu room={room} />} title="Loading..." showBack={false}>
-        <SpinnerMessage>Preparing the next turn...</SpinnerMessage>
-      </Page>
+      <SoapboxPage
+        headerRight={<HostPlayersMenu room={room} />}
+        title="Loading..."
+        showBack={false}
+      >
+        <WaitingNote>Preparing the next turn...</WaitingNote>
+      </SoapboxPage>
     );
   }
 
-  const progressValue = Math.floor(100 - (timeLeft / maxTime) * 100);
   const headerText = phase === "PREP" ? "Get Ready!" : isMe ? "DEFEND THIS!" : "Listen Up!";
 
   return (
-    <Page headerRight={<HostPlayersMenu room={room} />} title={headerText} showBack={false}>
-      <Progress
-        value={progressValue}
-        style={{
-          width: "100%",
-          maxWidth: 320,
-          marginBottom: 20,
-          backgroundColor: COLORS.light,
-        }}
-      >
-        <Progress.Indicator
-          animation="bouncy"
-          style={{
-            backgroundColor: phase === "DEFEND" && timeLeft < 10 ? COLORS.danger : COLORS.dark,
-          }}
-        />
-      </Progress>
-      <View style={{ marginBottom: 20, alignItems: "center" }}>
-        {isMe ? (
-          <Text style={{ color: COLORS.light, fontSize: 16, opacity: 0.8, marginBottom: 8 }}>
-            You are defending:
-          </Text>
-        ) : (
-          <Text style={{ color: COLORS.light, fontSize: 16, opacity: 0.8, marginBottom: 8 }}>
-            <Text style={{ fontWeight: "800" }}>{defenderName}</Text> is defending:
-          </Text>
-        )}
-      </View>
-      <PromptCard>
-        <PromptText>{currentTurn.promptText}</PromptText>
-      </PromptCard>
+    <SoapboxPage headerRight={<HostPlayersMenu room={room} />} title={headerText} showBack={false}>
+      {/* During the prep countdown the tape is full and shows when the defense starts */}
+      <TapeTimer
+        fraction={phase === "PREP" ? 1 : timeLeft / maxTime}
+        label={phase === "PREP" ? `Starts in ${timeLeft}` : clock(timeLeft)}
+        urgent={phase === "DEFEND" && timeLeft < 10}
+      />
 
-      {isMe && phase === "DEFEND" && (
-        <ActionRow>
-          <PrimaryButton onPress={() => endTurn()}>
-            <Text
-              style={{
-                color: COLORS.light,
-                fontWeight: "700",
-                fontSize: 16,
-              }}
-            >
-              End Defense
-            </Text>
-          </PrimaryButton>
-        </ActionRow>
-      )}
-    </Page>
+      <Text style={styles.who}>
+        {isMe ? (
+          "You are defending:"
+        ) : (
+          <>
+            <Text style={styles.whoName}>{defenderName}</Text> is defending:
+          </>
+        )}
+      </Text>
+
+      <TakeSign text={currentTurn.promptText} />
+
+      {isMe && phase === "DEFEND" ? (
+        <View style={{ marginTop: 32 }}>
+          <SoapboxButton onPress={() => endTurn()}>End Defense</SoapboxButton>
+        </View>
+      ) : null}
+    </SoapboxPage>
   );
 };
+
+const styles = StyleSheet.create({
+  who: {
+    marginTop: 22,
+    marginBottom: 26,
+    fontFamily: FONTS.body,
+    fontSize: 17,
+    textAlign: "center",
+    color: SOAPBOX.markerSoft,
+  },
+  whoName: { fontFamily: FONTS.heading, color: SOAPBOX.marker },
+});
 
 export default Defense;

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Minus, Plus } from "@tamagui/lucide-icons";
-import { FONTS, SOAPBOX } from "./tokens";
+import { FONTS, NO_WEB_OUTLINE, SOAPBOX } from "./tokens";
 
 // One labelled line inside a Board: the label on the left, a control on the right
 export const FieldRow = ({
@@ -45,7 +45,7 @@ export const InlineTextInput = ({
       accessibilityLabel={accessibilityLabel}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
-      style={[styles.input, focused ? styles.inputFocused : null]}
+      style={[styles.input, NO_WEB_OUTLINE, focused ? styles.inputFocused : null]}
     />
   );
 };
@@ -130,7 +130,6 @@ const styles = StyleSheet.create({
     color: SOAPBOX.marker,
     borderBottomWidth: 2,
     borderBottomColor: "rgba(31, 26, 23, 0.3)",
-    outlineWidth: 0,
   },
   inputFocused: { borderBottomColor: SOAPBOX.marker },
   stepper: { flexDirection: "row", alignItems: "center" },

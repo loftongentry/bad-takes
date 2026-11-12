@@ -7,7 +7,7 @@ import { TamaguiProvider, Theme } from "tamagui";
 import config from "../tamagui.config";
 import { ApolloProvider } from "@apollo/client/react";
 import { apolloClient } from "../src/graphql/client";
-import { COLORS } from "../src/ui/theme";
+import { SOAPBOX } from "../src/ui/soapbox/tokens";
 
 const Layout = () => {
   // The Soapbox fonts (see src/ui/soapbox/tokens.ts). If one fails to load, the app still
@@ -25,11 +25,11 @@ const Layout = () => {
   return (
     <ApolloProvider client={apolloClient}>
       <TamaguiProvider config={config}>
-        <Theme name="dark">
+        <Theme name="light">
           <Stack
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: COLORS.background },
+              contentStyle: { backgroundColor: SOAPBOX.kraft },
             }}
           />
         </Theme>

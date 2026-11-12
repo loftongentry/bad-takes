@@ -1,13 +1,14 @@
 // TODO: Add a 'Game starting!' screen after all player have submitted their bad takes before shifting to defense screen
 import { useState } from "react";
-import { TextArea, Text, XStack, Spinner } from "tamagui";
-import { Keyboard, TouchableWithoutFeedback } from "react-native";
-import { Page } from "../src/ui/Page";
+import { ActivityIndicator, Keyboard, StyleSheet, Text, TextInput, View } from "react-native";
+import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { HostPlayersMenu } from "../src/ui/HostPlayersMenu";
-import { PrimaryButton } from "../src/ui/PrimaryButton";
-import { PromptCard, promptTextStyle } from "../src/ui/PromptCard";
-import { SpinnerMessage } from "../src/ui/SpinnerMessage";
-import { ActionRow } from "../src/ui/ActionRow";
+import { Sign } from "../src/ui/soapbox/Sign";
+import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
+import { TapeTimer } from "../src/ui/soapbox/TapeTimer";
+import { takeFontSize, takeTextStyle } from "../src/ui/soapbox/TakeSign";
+import { WaitingNote } from "../src/ui/soapbox/WaitingNote";
+import { FONTS, NO_WEB_OUTLINE, SOAPBOX } from "../src/ui/soapbox/tokens";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
@@ -34,6 +35,16 @@ const PromptEntry = () => {
   const secondsLeft = useSecondsLeft(
     room?.status === "PROMPT_ENTRY" ? room.gameState?.deadline : null,
   );
+  const timer =
+    secondsLeft !== null && room ? (
+      <View style={styles.timer}>
+        <TapeTimer
+          fraction={secondsLeft / room.settings.promptTimeLimit}
+          label={`${secondsLeft}s`}
+          urgent={secondsLeft <= 10}
+        />
+      </View>
+    ) : null;
 
   const handleSubmitPrompt = async () => {
     Keyboard.dismiss();
@@ -57,79 +68,96 @@ const PromptEntry = () => {
     const total = room?.players.length || 0;
 
     return (
-      <Page
+      <SoapboxPage
         headerRight={<HostPlayersMenu room={room} />}
         title="Bad Take Submitted!"
         onBack={leaveGame}
       >
-        <SpinnerMessage>
+        {timer}
+        <WaitingNote
+          detail={secondsLeft !== null ? `Starting in ${secondsLeft}s at the latest.` : undefined}
+        >
           Waiting on {total - count} {total - count > 1 ? "players" : "player"} to finish their
           terrible opinions...
-          {secondsLeft !== null ? `\nStarting in ${secondsLeft}s at the latest.` : ""}
-        </SpinnerMessage>
-      </Page>
+        </WaitingNote>
+      </SoapboxPage>
     );
   }
 
-  return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <Page
-        headerRight={<HostPlayersMenu room={room} />}
-        title="Enter Bad Take"
-        subtitle={
-          secondsLeft !== null
-            ? `Enter a controversial opinion · ${secondsLeft}s left`
-            : "Enter a controversial opinion below"
-        }
-        onBack={leaveGame}
-      >
-        <PromptCard>
-          <TextArea
-            value={badTake}
-            onChangeText={setBadTake}
-            placeholder="Enter your bad take..."
-            unstyled
-            style={promptTextStyle}
-            multiline
-            autoFocus
-            maxLength={charLimit}
-            editable={!loading}
-            submitBehavior="blurAndSubmit"
-          />
-          <XStack
-            style={{
-              justifyContent: "flex-end",
-              marginTop: 10,
-            }}
-          >
-            {charLimit !== undefined ? (
-              <Text
-                fontSize={14}
-                color={badTake.length > charLimit - 10 ? "red" : "rgba(0,0,0,0.4)"}
-                fontWeight="700"
-              >
-                {badTake.length}/{charLimit}
-              </Text>
-            ) : null}
-          </XStack>
-        </PromptCard>
+  const nearLimit = charLimit !== undefined && badTake.length > charLimit - 10;
+  const size = takeFontSize(badTake);
 
-        <ActionRow>
-          <PrimaryButton
-            onPress={handleSubmitPrompt}
-            disabled={
-              loading ||
-              charLimit === undefined ||
-              badTake.trim().length === 0 ||
-              badTake.length > charLimit
-            }
-          >
-            {loading ? <Spinner /> : "Submit Bad Take"}
-          </PrimaryButton>
-        </ActionRow>
-      </Page>
-    </TouchableWithoutFeedback>
+  return (
+    <SoapboxPage
+      headerRight={<HostPlayersMenu room={room} />}
+      title="Enter Bad Take"
+      subtitle={
+        secondsLeft !== null
+          ? `Enter a controversial opinion · ${secondsLeft}s left`
+          : "Enter a controversial opinion below"
+      }
+      onBack={leaveGame}
+    >
+      {timer}
+
+      <Sign tilt={-1}>
+        <TextInput
+          value={badTake}
+          onChangeText={setBadTake}
+          placeholder="Pineapple belongs on pizza..."
+          placeholderTextColor="rgba(31, 26, 23, 0.35)"
+          accessibilityLabel="Your bad take"
+          multiline
+          autoFocus
+          maxLength={charLimit}
+          editable={!loading}
+          submitBehavior="blurAndSubmit"
+          style={[
+            takeTextStyle,
+            styles.input,
+            NO_WEB_OUTLINE,
+            { fontSize: size, lineHeight: Math.round(size * 1.25) },
+          ]}
+        />
+        {charLimit !== undefined ? (
+          <Text style={[styles.counter, nearLimit ? styles.counterNear : null]}>
+            {badTake.length}/{charLimit}
+          </Text>
+        ) : null}
+      </Sign>
+
+      <View style={{ marginTop: 28 }}>
+        <SoapboxButton
+          onPress={handleSubmitPrompt}
+          disabled={
+            loading ||
+            charLimit === undefined ||
+            badTake.trim().length === 0 ||
+            badTake.length > charLimit
+          }
+        >
+          {loading ? <ActivityIndicator color={SOAPBOX.paper} /> : "Submit Bad Take"}
+        </SoapboxButton>
+      </View>
+    </SoapboxPage>
   );
 };
+
+const styles = StyleSheet.create({
+  timer: { marginBottom: 30 },
+  input: {
+    width: "100%",
+    minHeight: 150,
+    textAlignVertical: "center",
+  },
+  counter: {
+    alignSelf: "flex-end",
+    marginTop: 8,
+    fontFamily: FONTS.bodyBold,
+    fontSize: 14,
+    color: SOAPBOX.markerSoft,
+  },
+  counterNear: { color: SOAPBOX.boo },
+});
 
 export default PromptEntry;

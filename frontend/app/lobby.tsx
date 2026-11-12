@@ -1,14 +1,12 @@
 // TODO: Add in (potentially) more settings
 import { useState } from "react";
-import { ScrollView, TouchableOpacity } from "react-native";
-import { Spinner, Text, View } from "tamagui";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { X } from "@tamagui/lucide-icons";
-import { Page } from "../src/ui/Page";
-import { FormCard } from "../src/ui/FormCard";
-import { FormRow } from "../src/ui/FormRow";
-import { PrimaryButton } from "../src/ui/PrimaryButton";
-import { ActionRow } from "../src/ui/ActionRow";
-import { COLORS } from "../src/ui/theme";
+import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
+import { Board } from "../src/ui/soapbox/Board";
+import { CodeTiles } from "../src/ui/soapbox/CodeTiles";
+import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
+import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
@@ -29,10 +27,10 @@ const LobbyScreen = () => {
   // local session would leave a ghost player behind that holds up everyone else.
   if (!roomId || !playerId || (!room && loading)) {
     return (
-      <Page title="Loading..." onBack={leaveGame}>
-        <Spinner />
-        <Text style={{ textAlign: "center", marginTop: 20 }}>Connecting to Lobby...</Text>
-      </Page>
+      <SoapboxPage title="Loading..." onBack={leaveGame}>
+        <ActivityIndicator size="large" color={SOAPBOX.marker} />
+        <Text style={[styles.note, { marginTop: 16 }]}>Connecting to Lobby...</Text>
+      </SoapboxPage>
     );
   }
 
@@ -40,24 +38,22 @@ const LobbyScreen = () => {
   // player retry, instead of treating it as the room being closed
   if (!room && error) {
     return (
-      <Page title="Can't Reach the Game" onBack={leaveGame}>
-        <Text style={{ textAlign: "center", marginTop: 20, marginBottom: 20 }}>
+      <SoapboxPage title="Can't Reach the Game" onBack={leaveGame}>
+        <Text style={[styles.note, { marginBottom: 24 }]}>
           Check your connection, then try again. You’re still in the lobby.
         </Text>
-        <ActionRow>
-          <PrimaryButton onPress={() => refetch()}>Try Again</PrimaryButton>
-        </ActionRow>
-      </Page>
+        <SoapboxButton onPress={() => refetch()}>Try Again</SoapboxButton>
+      </SoapboxPage>
     );
   }
 
   if (!room) {
     return (
-      <Page title="Lobby Not Found" onBack={leaveGame}>
-        <Text style={{ textAlign: "center", marginTop: 20 }}>
+      <SoapboxPage title="Lobby Not Found" onBack={leaveGame}>
+        <Text style={styles.note}>
           The lobby you are trying to join does not exist or has been closed.
         </Text>
-      </Page>
+      </SoapboxPage>
     );
   }
 
@@ -85,107 +81,122 @@ const LobbyScreen = () => {
   // The server's minimum (with one player there's nobody to vote)
   const hasEnoughPlayers = !!rules && room.players.length >= rules.minPlayers;
 
-  const subText = `Join Code: ${room.joinCode} \n Writing: ${room.settings.promptTimeLimit}s · Defense: ${room.settings.timeLimit}s`;
-
   return (
-    <Page title={room.settings.lobbyName || "Game Lobby"} subtitle={subText} onBack={leaveGame}>
-      <View style={{ width: "100%", maxWidth: 340 }}>
-        <FormCard>
-          {/* Header row inside card */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingVertical: 14,
-              paddingHorizontal: 18,
-            }}
-          >
-            <Text style={{ color: COLORS.light, fontSize: 16, fontWeight: "800" }}>Players</Text>
+    <SoapboxPage
+      title={room.settings.lobbyName || "Game Lobby"}
+      subtitle={`Writing: ${room.settings.promptTimeLimit}s · Defense: ${room.settings.timeLimit}s`}
+      onBack={leaveGame}
+    >
+      <Board label="Join code">
+        <View style={styles.code}>
+          <CodeTiles code={room.joinCode} large />
+        </View>
+      </Board>
 
-            <Text style={{ color: COLORS.light, fontSize: 14, fontWeight: "700", opacity: 0.75 }}>
-              {room.players.length}
-            </Text>
-          </View>
+      <Board label={`Players · ${room.players.length}`} style={{ marginTop: 34 }}>
+        {room.players.map((p: Player, idx: number) => {
+          const isMe = p.id === playerId;
+          const last = idx === room.players.length - 1;
+          return (
+            <View key={p.id} style={[styles.player, last ? null : styles.playerDivider]}>
+              <Text style={styles.playerName} numberOfLines={1}>
+                {p.name}
+                {isMe ? " (you)" : ""}
+              </Text>
 
-          <View style={{ height: 1, backgroundColor: "rgba(208,204,195,0.18)" }} />
+              <View style={styles.playerRight}>
+                {p.isHost ? (
+                  <View style={styles.hostTag}>
+                    <Text style={styles.hostTagText}>Host</Text>
+                  </View>
+                ) : null}
 
-          {/* Scroll list */}
-          <ScrollView
-            style={{ maxHeight: 320 }}
-            contentContainerStyle={{ paddingBottom: 4 }}
-            showsVerticalScrollIndicator={false}
-          >
-            {room.players.map((p: Player, idx: number) => {
-              const isMe = p.id === playerId;
-              const labelLeft = `${p.name}${isMe ? " (you)" : ""}`;
-              const rightLabel = p.isHost ? "Host" : "";
+                {/* Only the host can remove players, and not themselves */}
+                {isHost && !p.isHost ? (
+                  <Pressable
+                    onPress={() => handleKickPlayer(p.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${p.name}`}
+                    hitSlop={4}
+                    style={({ pressed }) => [styles.kick, pressed ? { opacity: 0.6 } : null]}
+                  >
+                    <X size={18} color={SOAPBOX.boo} />
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+          );
+        })}
+      </Board>
 
-              return (
-                <View key={p.id}>
-                  <FormRow
-                    label={labelLeft}
-                    showDivider={idx !== room.players.length - 1}
-                    right={
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                        {rightLabel ? (
-                          <Text
-                            style={{
-                              color: COLORS.light,
-                              fontSize: 14,
-                              fontWeight: "800",
-                              opacity: 0.75,
-                            }}
-                          >
-                            {rightLabel}
-                          </Text>
-                        ) : null}
-
-                        {/* Only host sees remove control; host can't remove self (UI only rule) */}
-                        {isHost && !p.isHost && (
-                          <TouchableOpacity
-                            onPress={() => handleKickPlayer(p.id)}
-                            activeOpacity={0.7}
-                            style={{
-                              height: 28,
-                              width: 28,
-                              borderRadius: 14,
-                              alignItems: "center",
-                              justifyContent: "center",
-                              borderWidth: 1,
-                              borderColor: "rgba(208,204,195,0.22)",
-                              backgroundColor: "rgba(0,0,0,0.10)",
-                            }}
-                          >
-                            <X size={16} color={COLORS.light} />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    }
-                  />
-                </View>
-              );
-            })}
-          </ScrollView>
-        </FormCard>
+      <View style={{ marginTop: 28 }}>
+        {isHost ? (
+          <>
+            <SoapboxButton
+              disabled={loading || !room || !hasEnoughPlayers}
+              onPress={handleStartGame}
+            >
+              {startLoading ? <ActivityIndicator color={SOAPBOX.paper} /> : "Start Game"}
+            </SoapboxButton>
+            {!hasEnoughPlayers ? (
+              <Text style={[styles.note, { marginTop: 12 }]}>
+                {rules
+                  ? `Waiting for at least ${rules.minPlayers} players to join...`
+                  : "Waiting for players to join..."}
+              </Text>
+            ) : null}
+          </>
+        ) : (
+          <Text style={styles.note}>Waiting for the host to start the game...</Text>
+        )}
       </View>
-
-      {isHost ? (
-        <ActionRow>
-          <PrimaryButton disabled={loading || !room || !hasEnoughPlayers} onPress={handleStartGame}>
-            {startLoading ? <Spinner /> : "Start Game"}
-          </PrimaryButton>
-          {!hasEnoughPlayers ? (
-            <Text style={{ color: COLORS.light, opacity: 0.6, textAlign: "center", marginTop: 10 }}>
-              {rules
-                ? `Waiting for at least ${rules.minPlayers} players to join...`
-                : "Waiting for players to join..."}
-            </Text>
-          ) : null}
-        </ActionRow>
-      ) : null}
-    </Page>
+    </SoapboxPage>
   );
 };
+
+const styles = StyleSheet.create({
+  note: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: 15,
+    lineHeight: 21,
+    textAlign: "center",
+    color: SOAPBOX.markerSoft,
+  },
+  code: { paddingVertical: 12 },
+  player: {
+    minHeight: 56,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  playerDivider: { borderBottomWidth: 1.5, borderBottomColor: "rgba(31, 26, 23, 0.16)" },
+  playerName: { flexShrink: 1, fontFamily: FONTS.bodyBold, fontSize: 17, color: SOAPBOX.marker },
+  playerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
+  hostTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: SOAPBOX.caution,
+    transform: [{ rotate: "-3deg" }],
+  },
+  hostTagText: {
+    fontFamily: FONTS.heading,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    color: SOAPBOX.marker,
+  },
+  kick: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: SOAPBOX.boo,
+    borderRadius: 4,
+    backgroundColor: SOAPBOX.paper,
+  },
+});
 
 export default LobbyScreen;

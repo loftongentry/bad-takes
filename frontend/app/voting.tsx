@@ -1,12 +1,12 @@
 // TODO: Instead of just showing a spinner after voting, show the list of players, with an indicator of who has voted and who hasn't.
 import { useState } from "react";
-import { View, Text, Spinner, XStack } from "tamagui";
-import { ThumbsUp, ThumbsDown } from "@tamagui/lucide-icons";
-import { Page } from "../src/ui/Page";
+import { StyleSheet, Text, View } from "react-native";
+import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { HostPlayersMenu } from "../src/ui/HostPlayersMenu";
-import { COLORS } from "../src/ui/theme";
-import { PromptCard, PromptText } from "../src/ui/PromptCard";
-import { VoteButton } from "../src/ui/VoteButton";
+import { TakeSign } from "../src/ui/soapbox/TakeSign";
+import { VoteStamp } from "../src/ui/soapbox/VoteStamp";
+import { WaitingNote } from "../src/ui/soapbox/WaitingNote";
+import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
@@ -14,12 +14,8 @@ import { useSecondsLeft } from "../src/hooks/useSecondsLeft";
 import type { Room } from "../src/graphql/types";
 
 // "Voting closes in 12s"; the server counts whatever votes are in when it hits zero
-const VotingClock = ({ secondsLeft }: { secondsLeft: number | null }) =>
-  secondsLeft === null ? null : (
-    <Text style={{ color: COLORS.light, opacity: 0.7, fontSize: 16, marginBottom: 10 }}>
-      Voting closes in {secondsLeft}s
-    </Text>
-  );
+const closesIn = (secondsLeft: number | null) =>
+  secondsLeft === null ? undefined : `Voting closes in ${secondsLeft}s`;
 
 // Shown to the defender while the jury votes, and to voters after they've voted
 const WaitingPage = ({
@@ -35,27 +31,9 @@ const WaitingPage = ({
   secondsLeft: number | null;
   onBack: () => void;
 }) => (
-  <Page headerRight={<HostPlayersMenu room={room} />} title={title} onBack={onBack}>
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-      }}
-    >
-      <Text
-        style={{
-          fontSize: 30,
-          marginTop: 20,
-          color: COLORS.light,
-          marginBottom: 20,
-        }}
-      >
-        {message}
-      </Text>
-      <VotingClock secondsLeft={secondsLeft} />
-      <Spinner size="large" />
-    </View>
-  </Page>
+  <SoapboxPage headerRight={<HostPlayersMenu room={room} />} title={title} onBack={onBack}>
+    <WaitingNote detail={closesIn(secondsLeft)}>{message}</WaitingNote>
+  </SoapboxPage>
 );
 
 const Voting = () => {
@@ -126,55 +104,45 @@ const Voting = () => {
   }
 
   return (
-    <Page headerRight={<HostPlayersMenu room={room} />} title="Cast Your Vote" showBack={false}>
-      <View
-        style={{
-          width: "100%",
-          alignItems: "center",
-        }}
-      >
-        <Text
-          style={{
-            marginBottom: 10,
-            fontSize: 22,
-          }}
-        >
-          Did <Text style={{ fontWeight: "bold" }}>{defenderName}</Text> defend this well?
-        </Text>
+    <SoapboxPage
+      headerRight={<HostPlayersMenu room={room} />}
+      title="Cast Your Vote"
+      showBack={false}
+    >
+      <Text style={styles.question}>
+        Did <Text style={styles.name}>{defenderName}</Text> defend this well?
+      </Text>
+      {secondsLeft !== null ? <Text style={styles.clock}>{closesIn(secondsLeft)}</Text> : null}
 
-        <VotingClock secondsLeft={secondsLeft} />
-
-        <PromptCard>
-          <PromptText>{currentTurn?.promptText}</PromptText>
-        </PromptCard>
-
-        <XStack
-          style={{
-            justifyContent: "center",
-            width: "100%",
-            gap: 20,
-            marginTop: 30,
-          }}
-        >
-          {/* BAD BUTTON (-1) */}
-          <VoteButton
-            icon={<ThumbsDown size={32} color="#fff" />}
-            color={COLORS.danger}
-            onPress={() => handleVote(-1)}
-            disabled={loading}
-          />
-
-          {/* GOOD BUTTON (+1) */}
-          <VoteButton
-            icon={<ThumbsUp size={32} color="#fff" />}
-            color={COLORS.success}
-            onPress={() => handleVote(1)}
-            disabled={loading}
-          />
-        </XStack>
+      <View style={{ marginTop: 22 }}>
+        <TakeSign text={currentTurn?.promptText ?? ""} />
       </View>
-    </Page>
+
+      <View style={styles.stamps}>
+        <VoteStamp kind="down" onPress={() => handleVote(-1)} disabled={loading} />
+        <VoteStamp kind="up" onPress={() => handleVote(1)} disabled={loading} />
+      </View>
+    </SoapboxPage>
   );
 };
+
+const styles = StyleSheet.create({
+  question: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: 20,
+    lineHeight: 27,
+    textAlign: "center",
+    color: SOAPBOX.marker,
+  },
+  name: { fontFamily: FONTS.heading },
+  clock: {
+    marginTop: 6,
+    fontFamily: FONTS.body,
+    fontSize: 15,
+    textAlign: "center",
+    color: SOAPBOX.markerSoft,
+  },
+  stamps: { flexDirection: "row", justifyContent: "center", gap: 22, marginTop: 34 },
+});
 
 export default Voting;

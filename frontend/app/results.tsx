@@ -1,13 +1,36 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Separator, Card } from "tamagui";
+import { StyleSheet, Text, View } from "react-native";
 import { Crown, RefreshCw } from "@tamagui/lucide-icons";
-import { Page } from "../src/ui/Page";
+import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { HostPlayersMenu } from "../src/ui/HostPlayersMenu";
-import { PrimaryButton } from "../src/ui/PrimaryButton";
-import { COLORS } from "../src/ui/theme";
+import { Board } from "../src/ui/soapbox/Board";
+import { Sign } from "../src/ui/soapbox/Sign";
+import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
+import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
+import type { Player } from "../src/graphql/types";
+
+const points = (score: number) => `${score} pts`;
+
+// Crate heights for 1st, 2nd and 3rd place
+const CRATE_HEIGHT = [118, 86, 62];
+
+// A player standing on a wooden crate; the crate's height shows their place
+const Podium = ({ player, place }: { player: Player; place: number }) => (
+  <View style={styles.podium}>
+    <Text style={styles.podiumName} numberOfLines={1}>
+      {player.name}
+    </Text>
+    <Text style={styles.podiumScore}>{points(player.score)}</Text>
+    <View style={[styles.crate, { height: CRATE_HEIGHT[place] }]}>
+      <View style={styles.slat} />
+      <Text style={styles.crateNumber}>{place + 1}</Text>
+      <View style={styles.slat} />
+    </View>
+  </View>
+);
 
 const Results = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null);
@@ -22,6 +45,9 @@ const Results = () => {
   const players = room?.players || [];
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
   const winner = sortedPlayers[0];
+  // On the podium, 1st stands in the middle with 2nd on the left and 3rd on the right
+  const podium = [1, 0, 2].filter((place) => sortedPlayers[place]);
+  const rest = sortedPlayers.slice(3);
 
   const handlePlayAgain = async () => {
     setLoading(true);
@@ -36,88 +62,126 @@ const Results = () => {
   };
 
   return (
-    <Page headerRight={<HostPlayersMenu room={room} />} title="Game Results" onBack={leaveGame}>
-      <ScrollView showsVerticalScrollIndicator={false} style={{ width: "100%" }}>
-        {/* WINNER CARD */}
-        {winner && (
-          <View style={{ alignItems: "center", marginBottom: 40, marginTop: 10 }}>
-            <Crown size={64} color={COLORS.gold} style={{ marginBottom: 10 }} />
-            <Text style={{ fontSize: 24, fontWeight: "800", color: COLORS.light }}>
-              {winner.name}
-            </Text>
-            <Text style={{ fontSize: 16, color: COLORS.light, opacity: 0.8 }}>Grand Champion</Text>
+    <SoapboxPage
+      headerRight={<HostPlayersMenu room={room} />}
+      title="Game Results"
+      onBack={leaveGame}
+    >
+      {winner ? (
+        <Sign tilt={-2}>
+          <Crown size={44} color={SOAPBOX.marker} fill={SOAPBOX.caution} />
+          <Text style={styles.champion}>Grand Champion</Text>
+          <Text style={styles.winnerName}>{winner.name}</Text>
+          <View style={styles.winnerPoints}>
+            <Text style={styles.winnerPointsText}>{points(winner.score)}</Text>
+          </View>
+        </Sign>
+      ) : null}
+
+      <View style={styles.stage}>
+        {podium.map((place) => (
+          <Podium key={sortedPlayers[place].id} player={sortedPlayers[place]} place={place} />
+        ))}
+      </View>
+      <View style={styles.ground} />
+
+      {rest.length > 0 ? (
+        <Board style={{ marginTop: 26 }}>
+          {rest.map((player, i) => (
             <View
-              style={{
-                marginTop: 15,
-                backgroundColor: COLORS.light,
-                paddingHorizontal: 20,
-                paddingVertical: 10,
-                borderRadius: 20,
-              }}
+              key={player.id}
+              style={[styles.row, i === rest.length - 1 ? null : styles.rowDivider]}
             >
-              <Text style={{ fontSize: 24, fontWeight: "900", color: COLORS.dark }}>
-                {winner.score} pts
+              <Text style={styles.rank}>#{i + 4}</Text>
+              <Text style={styles.rowName} numberOfLines={1}>
+                {player.name}
               </Text>
+              <Text style={styles.rowScore}>{player.score}</Text>
             </View>
-          </View>
-        )}
+          ))}
+        </Board>
+      ) : null}
 
-        {/* LEADERBOARD */}
-        <View style={{ width: "100%", gap: 12 }}>
-          {sortedPlayers.map((player, index) => {
-            const isWinner = index === 0;
-            if (isWinner) return null;
-
-            return (
-              <Card
-                key={player.id}
-                bordered
-                style={{
-                  backgroundColor: COLORS.light,
-                  padding: 16,
-                  borderRadius: 12,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                  <Text style={{ fontSize: 18, fontWeight: "700", color: COLORS.muted, width: 24 }}>
-                    #{index + 1}
-                  </Text>
-                  <Text style={{ fontSize: 18, fontWeight: "600", color: COLORS.dark }}>
-                    {player.name}
-                  </Text>
-                </View>
-                <Text style={{ fontSize: 18, fontWeight: "800", color: COLORS.dark }}>
-                  {player.score}
-                </Text>
-              </Card>
-            );
-          })}
-        </View>
-
-        <Separator style={{ margin: 20 }} />
-
-        {/* HOST ACTIONS */}
+      <View style={{ marginTop: 28 }}>
         {isHost ? (
-          <View style={{ width: "100%" }}>
-            <PrimaryButton
-              onPress={handlePlayAgain}
-              disabled={loading}
-              icon={<RefreshCw size={22} color={COLORS.light} />}
-            >
-              {loading ? "Resetting..." : "Play Again"}
-            </PrimaryButton>
-          </View>
+          <SoapboxButton
+            onPress={handlePlayAgain}
+            disabled={loading}
+            icon={<RefreshCw size={20} color={SOAPBOX.paper} />}
+          >
+            {loading ? "Resetting..." : "Play Again"}
+          </SoapboxButton>
         ) : (
-          <Text style={{ textAlign: "center", color: COLORS.light, opacity: 0.6 }}>
-            Waiting for host to restart...
-          </Text>
+          <Text style={styles.note}>Waiting for host to restart...</Text>
         )}
-      </ScrollView>
-    </Page>
+      </View>
+    </SoapboxPage>
   );
 };
+
+const styles = StyleSheet.create({
+  champion: {
+    marginTop: 8,
+    fontFamily: FONTS.heading,
+    fontSize: 13,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    color: SOAPBOX.markerSoft,
+  },
+  winnerName: {
+    marginTop: 2,
+    fontFamily: FONTS.heading,
+    fontSize: 34,
+    textAlign: "center",
+    color: SOAPBOX.marker,
+  },
+  winnerPoints: {
+    marginTop: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    backgroundColor: SOAPBOX.marker,
+    borderRadius: 3,
+  },
+  winnerPointsText: { fontFamily: FONTS.heading, fontSize: 18, color: SOAPBOX.paper },
+  stage: {
+    marginTop: 34,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "center",
+    gap: 10,
+  },
+  podium: { flex: 1, maxWidth: 104, alignItems: "center" },
+  podiumName: { fontFamily: FONTS.bodyBold, fontSize: 16, color: SOAPBOX.marker },
+  podiumScore: {
+    marginBottom: 6,
+    fontFamily: FONTS.body,
+    fontSize: 13,
+    color: SOAPBOX.markerSoft,
+  },
+  crate: {
+    width: "100%",
+    justifyContent: "space-evenly",
+    alignItems: "center",
+    backgroundColor: SOAPBOX.wood,
+    borderWidth: 2.5,
+    borderColor: SOAPBOX.woodDark,
+    borderRadius: 2,
+    boxShadow: `3px 4px 0px ${SOAPBOX.woodDark}`,
+  },
+  slat: { alignSelf: "stretch", height: 2.5, backgroundColor: SOAPBOX.woodDark, opacity: 0.6 },
+  crateNumber: { fontFamily: FONTS.heading, fontSize: 30, color: SOAPBOX.paper },
+  ground: { height: 3, marginTop: -1, backgroundColor: SOAPBOX.woodDark, borderRadius: 2 },
+  row: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 12 },
+  rowDivider: { borderBottomWidth: 1.5, borderBottomColor: "rgba(31, 26, 23, 0.16)" },
+  rank: { width: 32, fontFamily: FONTS.heading, fontSize: 15, color: SOAPBOX.markerSoft },
+  rowName: { flex: 1, fontFamily: FONTS.bodyBold, fontSize: 16, color: SOAPBOX.marker },
+  rowScore: { fontFamily: FONTS.heading, fontSize: 16, color: SOAPBOX.marker },
+  note: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: 15,
+    textAlign: "center",
+    color: SOAPBOX.markerSoft,
+  },
+});
 
 export default Results;

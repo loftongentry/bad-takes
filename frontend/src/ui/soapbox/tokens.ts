@@ -1,5 +1,5 @@
 // The Soapbox look: a street protest made of cardboard, marker, caution tape and rubber stamps.
-// Screens move onto these one at a time; the old dark theme lives in ../theme.ts until then.
+// Every screen uses these colors and fonts; the pieces built from them live alongside this file.
 
 export const SOAPBOX = {
   kraft: "#C9A47E", // background cardboard
@@ -24,3 +24,7 @@ export const FONTS = {
   bodyBold: "Archivo_700Bold",
   marker: "PermanentMarker_400Regular", // only for the takes themselves, so it stays special
 } as const;
+
+// On the web, removes the browser's focus ring from text fields that show focus another way
+// (a darker underline, or the caret on a sign). Native apps have no focus ring.
+export const NO_WEB_OUTLINE = { outlineStyle: "none" } as unknown as Record<string, never>;
