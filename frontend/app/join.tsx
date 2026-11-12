@@ -46,7 +46,6 @@ const JoinScreen = () => {
           <InlineTextInput
             value={yourName}
             onChangeText={setYourName}
-            placeholder="Enter name"
             maxLength={rules?.playerNameMaxLength}
             accessibilityLabel="Your name"
           />

@@ -19,17 +19,16 @@ export const FieldRow = ({
   </View>
 );
 
-// A text field written on a line, for the right side of a FieldRow
+// A text field written on a line, for the right side of a FieldRow. No placeholder: the row's
+// label already says what goes here.
 export const InlineTextInput = ({
   value,
   onChangeText,
-  placeholder,
   maxLength,
   accessibilityLabel,
 }: {
   value: string;
   onChangeText: (text: string) => void;
-  placeholder: string;
   maxLength?: number;
   accessibilityLabel: string;
 }) => {
@@ -38,8 +37,6 @@ export const InlineTextInput = ({
     <TextInput
       value={value}
       onChangeText={onChangeText}
-      placeholder={placeholder}
-      placeholderTextColor="rgba(74, 63, 54, 0.55)"
       maxLength={maxLength}
       autoCorrect={false}
       accessibilityLabel={accessibilityLabel}

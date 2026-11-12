@@ -92,7 +92,6 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
           <InlineTextInput
             value={lobbyName}
             onChangeText={setLobbyName}
-            placeholder="Lobby Name"
             maxLength={rules.lobbyNameMaxLength}
             accessibilityLabel="Lobby name"
           />
@@ -101,7 +100,6 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
           <InlineTextInput
             value={yourName}
             onChangeText={setYourName}
-            placeholder="Enter name"
             maxLength={rules.playerNameMaxLength}
             accessibilityLabel="Your name"
           />
