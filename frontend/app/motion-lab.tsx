@@ -30,6 +30,13 @@ const SAMPLE_PLAYERS: Player[] = [
   { id: "3", name: "Ivy", isHost: false, score: 1 },
   { id: "4", name: "Otto", isHost: false, score: 0 },
 ];
+// Hannah and Gus tie for first, so they share the top crate
+const TIED_PLAYERS: Player[] = [
+  { id: "1", name: "Hannah", isHost: true, score: 2 },
+  { id: "2", name: "Gus", isHost: false, score: 2 },
+  { id: "3", name: "Ivy", isHost: false, score: 1 },
+  { id: "4", name: "Otto", isHost: false, score: 0 },
+];
 const EXTRA_NAMES = ["Pip", "Rae", "Sol", "Tam", "Uma", "Vic"];
 
 // A small paper button for the lab's controls
@@ -117,6 +124,7 @@ const MotionLab = () => {
   const [players, setPlayers] = useState(SAMPLE_PLAYERS.slice(0, 3));
   const [stepper, setStepper] = useState(5);
   const [reveal, setReveal] = useState(0);
+  const [revealTie, setRevealTie] = useState(false);
 
   if (!__DEV__) {
     return (
@@ -318,9 +326,32 @@ const MotionLab = () => {
       <Demo
         label="Results reveal"
         where="Results. Crates rise 3rd to 1st, then the winner's sign slams down."
-        controls={<LabButton onPress={() => setReveal((n) => n + 1)}>Replay</LabButton>}
+        controls={
+          <>
+            <LabButton
+              onPress={() => {
+                setRevealTie(false);
+                setReveal((n) => n + 1);
+              }}
+            >
+              Replay
+            </LabButton>
+            <LabButton
+              onPress={() => {
+                setRevealTie(true);
+                setReveal((n) => n + 1);
+              }}
+            >
+              Replay with a tie
+            </LabButton>
+          </>
+        }
       >
-        <ResultsReveal key={reveal} players={SAMPLE_PLAYERS} silent={reveal === 0} />
+        <ResultsReveal
+          key={reveal}
+          players={revealTie ? TIED_PLAYERS : SAMPLE_PLAYERS}
+          silent={reveal === 0}
+        />
       </Demo>
     </SoapboxPage>
   );

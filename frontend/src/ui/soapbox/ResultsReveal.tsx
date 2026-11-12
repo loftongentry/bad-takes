@@ -29,14 +29,33 @@ export const REVEAL = {
   actions: 2600,
 };
 
-// A player standing on a wooden crate; the crate's height shows their place. The crate rises
-// out of the ground with a springy overshoot, then the player's name drops onto it.
-const Podium = ({ player, place, silent }: { player: Player; place: number; silent: boolean }) => {
+// "Hannah", "Hannah & Gus", "Hannah, Gus & Ivy", or "4 players" for a bigger tie
+const joinNames = (names: string[]) =>
+  names.length > 3
+    ? `${names.length} players`
+    : names.length > 1
+      ? `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`
+      : (names[0] ?? "");
+
+// A player standing on a wooden crate. `place` (0 = middle, 1 = left, 2 = right) sets where they
+// stand and when their crate rises; `rank` (1st, 2nd...; tied players share one) sets its height
+// and number. The crate rises out of the ground with a springy overshoot, then the name drops on.
+const Podium = ({
+  player,
+  place,
+  rank,
+  silent,
+}: {
+  player: Player;
+  place: number;
+  rank: number;
+  silent: boolean;
+}) => {
   const height = useSharedValue(0);
   useEffect(() => {
     height.value = withDelay(
       REVEAL.crate[place],
-      withSpring(CRATE_HEIGHT[place], { damping: 11, stiffness: 150 }),
+      withSpring(CRATE_HEIGHT[rank - 1], { damping: 11, stiffness: 150 }),
     );
     if (silent) {
       return;
@@ -44,7 +63,7 @@ const Podium = ({ player, place, silent }: { player: Player; place: number; sile
     // A wooden knock as the crate shoots up
     const knock = setTimeout(() => play("crate"), REVEAL.crate[place] + 120);
     return () => clearTimeout(knock);
-  }, [height, place, silent]);
+  }, [height, place, rank, silent]);
   const rise = useAnimatedStyle(() => ({ height: height.value }));
 
   return (
@@ -57,7 +76,7 @@ const Podium = ({ player, place, silent }: { player: Player; place: number; sile
       </Animated.View>
       <Animated.View style={[styles.crate, rise]}>
         <View style={styles.slat} />
-        <Text style={styles.crateNumber}>{place + 1}</Text>
+        <Text style={styles.crateNumber}>{rank}</Text>
         <View style={styles.slat} />
       </Animated.View>
     </View>
@@ -75,7 +94,12 @@ export const ResultsReveal = ({
   silent?: boolean;
 }) => {
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+  // Standard competition ranking: tied players share a place (1, 1, 3...)
+  const rankOf = (score: number) => 1 + sortedPlayers.filter((p) => p.score > score).length;
   const winner = sortedPlayers[0];
+  // Everyone tied for first (usually just the winner)
+  const champions = winner ? sortedPlayers.filter((p) => p.score === winner.score) : [];
+  const tie = champions.length > 1;
   // On the podium, 1st stands in the middle with 2nd on the left and 3rd on the right
   const podium = [1, 0, 2].filter((place) => sortedPlayers[place]);
   const rest = sortedPlayers.slice(3);
@@ -98,10 +122,15 @@ export const ResultsReveal = ({
             <Animated.View entering={popIn(REVEAL.crown)}>
               <Crown size={44} color={SOAPBOX.marker} fill={SOAPBOX.caution} />
             </Animated.View>
-            <Text style={styles.champion}>Grand Champion</Text>
-            <Text style={styles.winnerName}>{winner.name}</Text>
+            <Text style={styles.champion}>{tie ? "It's a tie!" : "Grand Champion"}</Text>
+            <Text style={[styles.winnerName, tie ? styles.winnerNameTie : null]}>
+              {joinNames(champions.map((p) => p.name))}
+            </Text>
             <View style={styles.winnerPoints}>
-              <Text style={styles.winnerPointsText}>{points(winner.score)}</Text>
+              <Text style={styles.winnerPointsText}>
+                {points(winner.score)}
+                {tie ? " each" : ""}
+              </Text>
             </View>
           </Sign>
         </Flourish>
@@ -113,6 +142,7 @@ export const ResultsReveal = ({
             key={sortedPlayers[place].id}
             player={sortedPlayers[place]}
             place={place}
+            rank={rankOf(sortedPlayers[place].score)}
             silent={silent}
           />
         ))}
@@ -126,7 +156,7 @@ export const ResultsReveal = ({
               key={player.id}
               style={[styles.row, i === rest.length - 1 ? null : styles.rowDivider]}
             >
-              <Text style={styles.rank}>#{i + 4}</Text>
+              <Text style={styles.rank}>#{rankOf(player.score)}</Text>
               <Text style={styles.rowName} numberOfLines={1}>
                 {player.name}
               </Text>
@@ -155,6 +185,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: SOAPBOX.marker,
   },
+  winnerNameTie: { fontSize: 28 },
   winnerPoints: {
     marginTop: 10,
     paddingHorizontal: 14,
