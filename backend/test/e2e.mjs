@@ -412,6 +412,24 @@ test('oversized WebSocket messages are refused', async () => {
   assert(closeCode === 1009, `a 200 KB message should close the connection as too big (got ${closeCode})`);
 });
 
+test('simultaneous joins never exceed the player limit', async () => {
+  const c = await gql(`mutation { createRoom(hostName:"Host", lobbyName:"Small", rounds:1, playerLimit:3, timeLimit:60, promptTimeLimit:90) { room { id joinCode } } }`);
+  const { id: roomId, joinCode } = c.createRoom.room;
+  const attempts = await Promise.all(Array.from({ length: 10 }, (_, i) =>
+    gqlRaw(`mutation($c:String!,$n:String!){ joinRoom(code:$c, playerName:$n) { playerId } }`, { c: joinCode, n: `P${i}` })
+  ));
+  const joined = attempts.filter((a) => !a.errors).length;
+  const players = (await getRoom(roomId)).players.length;
+  assert(joined === 2 && players === 3, `a 3-player room took ${joined} of 10 simultaneous joins (now has ${players} players)`);
+});
+
+test('Play Again only works once the game is over', async () => {
+  const { roomId, players } = await setupRoom(['Host', 'B']);
+  await startGame(roomId);
+  assert((await resetGameAs(roomId, players[0].id)).errors, 'resetting mid-game should be refused');
+  assert((await getRoom(roomId)).status === 'PROMPT_ENTRY', 'the game should carry on');
+});
+
 test("a player's public id can't be used to act as them", async () => {
   const { roomId, players } = await setupRoom(['Host', 'B', 'C']);
   const [host, b, c] = players;

@@ -130,9 +130,21 @@ export async function getPhaseDeadlines(): Promise<PhaseDeadline[]> {
 
 // --- Writes ---
 
+// Claims an unused join code for the room. Each attempt only succeeds if the code isn't already
+// taken (SET NX), so a new room can never take over a live room's code.
+export async function reserveJoinCode(roomId: string, generate: () => string): Promise<string> {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const code = generate();
+    if (await redis.set(joinKey(code), roomId, "EX", ROOM_TTL_SECONDS, "NX")) {
+      return code;
+    }
+  }
+  throw new Error("Couldn't find a free join code, please try again");
+}
+
+// Stores a new room. Its join code must already be reserved with reserveJoinCode.
 export async function insertRoom(
   roomId: string,
-  joinCode: string,
   roomMeta: Record<string, string | number>,
   host: Player,
   hostToken: string
@@ -144,7 +156,6 @@ export async function insertRoom(
     .expire(playersKey(roomId), ROOM_TTL_SECONDS)
     .hset(tokensKey(roomId), hostToken, host.id)
     .expire(tokensKey(roomId), ROOM_TTL_SECONDS)
-    .setex(joinKey(joinCode), ROOM_TTL_SECONDS, roomId)
     .exec();
 
   // Check transaction results
@@ -165,17 +176,35 @@ export function deleteRoom(roomId: string, joinCode: string) {
     .exec();
 }
 
-export function savePlayer(roomId: string, player: Player) {
-  return redis.hset(playersKey(roomId), player.id, JSON.stringify(player));
-}
+// Runs atomically inside Redis, so the room can't fill up, start or be deleted between the
+// checks and the write (simultaneous joins could otherwise exceed the player limit).
+const ADD_PLAYER_SCRIPT = `
+  local status = redis.call('HGET', KEYS[1], 'status')
+  if not status then return 'gone' end
+  if status ~= 'LOBBY' then return 'started' end
+  local limit = tonumber(redis.call('HGET', KEYS[1], 'playerLimit'))
+  if redis.call('HLEN', KEYS[2]) >= limit then return 'full' end
+  redis.call('HSET', KEYS[2], ARGV[1], ARGV[2])
+  redis.call('HSET', KEYS[3], ARGV[3], ARGV[1])
+  redis.call('EXPIRE', KEYS[2], ARGV[4])
+  redis.call('EXPIRE', KEYS[3], ARGV[4])
+  return 'ok'
+`;
 
-// A new player and the secret token that identifies them
-export function addPlayer(roomId: string, player: Player, token: string) {
-  return redis.multi()
-    .hset(playersKey(roomId), player.id, JSON.stringify(player))
-    .hset(tokensKey(roomId), token, player.id)
-    .expire(tokensKey(roomId), ROOM_TTL_SECONDS)
-    .exec();
+// Adds a new player and the secret token that identifies them, if the room still exists, is in
+// the lobby and has space. Returns "ok", or why not: "gone", "started" or "full".
+export async function addPlayerIfOpen(roomId: string, player: Player, token: string) {
+  return (await redis.eval(
+    ADD_PLAYER_SCRIPT,
+    3,
+    roomKey(roomId),
+    playersKey(roomId),
+    tokensKey(roomId),
+    player.id,
+    JSON.stringify(player),
+    token,
+    ROOM_TTL_SECONDS
+  )) as "ok" | "gone" | "started" | "full";
 }
 
 // The player a secret token belongs to, or null
@@ -194,10 +223,6 @@ export async function removePlayer(roomId: string, playerId: string) {
   return tx.exec();
 }
 
-export function setStatus(roomId: string, status: RoomStatus) {
-  return redis.hset(roomKey(roomId), "status", status);
-}
-
 // Stores a player's prompt (replacing any earlier one from them) and returns how many players
 // have submitted. A single HSET per player means simultaneous submissions can't overwrite each other.
 export async function savePrompt(roomId: string, prompt: Prompt): Promise<number> {
@@ -212,41 +237,63 @@ export async function savePrompt(roomId: string, prompt: Prompt): Promise<number
   return Number(count);
 }
 
-// Runs atomically inside Redis: only advances if the room is still in the expected status,
-// so when several requests race to advance the same turn, exactly one wins.
+// Runs atomically inside Redis: only advances if the room is still in the same phase AND the
+// same turn of it (identified by its deadline, which is unique to each timed phase). So when
+// several requests race to advance the same turn, exactly one wins, and a stale request can
+// never advance a later turn that happens to be in the same phase.
 const ADVANCE_ROOM_SCRIPT = `
   if redis.call('HGET', KEYS[1], 'status') ~= ARGV[1] then
     return 0
   end
+  local current = ''
+  local raw = redis.call('HGET', KEYS[1], 'gameState')
+  if raw then
+    local ok, decoded = pcall(cjson.decode, raw)
+    if ok and type(decoded.deadline) == 'string' then current = decoded.deadline end
+  end
+  if current ~= ARGV[6] then
+    return 0
+  end
   redis.call('HSET', KEYS[1], 'status', ARGV[2], 'gameState', ARGV[3])
   redis.call('DEL', KEYS[2])
-  if ARGV[4] ~= '' then
+  -- Only update a player who is still in the room (they may have just left)
+  if ARGV[4] ~= '' and redis.call('HEXISTS', KEYS[3], ARGV[4]) == 1 then
     redis.call('HSET', KEYS[3], ARGV[4], ARGV[5])
   end
   return 1
 `;
 
-// Moves the room from `fromStatus` to `toStatus` with a new game state, clears the votes, and
-// optionally saves one player (the defender's new score). Returns false, changing nothing,
-// if the room was no longer in `fromStatus` because another request already advanced it.
-export async function advanceRoom(
-  roomId: string,
-  fromStatus: RoomStatus,
-  toStatus: RoomStatus,
-  state: StoredGameState,
+// Moves the room from `from` to `to` with a new game state, clears the votes, and optionally
+// saves one player (the defender's new score). `expectedDeadline` is the deadline of the phase
+// being left (null if it has none), as read by the caller. Returns false, changing nothing, if
+// the room has moved on since then because another request already advanced it.
+export async function advanceRoom({
+  roomId,
+  from,
+  to,
+  expectedDeadline,
+  state,
+  updatedPlayer,
+}: {
+  roomId: string
+  from: RoomStatus
+  to: RoomStatus
+  expectedDeadline: string | null | undefined
+  state: StoredGameState
   updatedPlayer?: Player
-): Promise<boolean> {
+}): Promise<boolean> {
   const result = await redis.eval(
     ADVANCE_ROOM_SCRIPT,
     3,
     roomKey(roomId),
     votesKey(roomId),
     playersKey(roomId),
-    fromStatus,
-    toStatus,
+    from,
+    to,
     JSON.stringify(state),
     updatedPlayer?.id ?? "",
-    updatedPlayer ? JSON.stringify(updatedPlayer) : ""
+    updatedPlayer ? JSON.stringify(updatedPlayer) : "",
+    expectedDeadline ?? ""
   );
   return result === 1;
 }
@@ -266,16 +313,37 @@ export function recordVote(roomId: string, playerId: string, value: number) {
     .exec();
 }
 
-// Back to LOBBY with a fresh game state and no votes or prompts
-export function resetRoomState(roomId: string, state: StoredGameState) {
-  return redis.multi()
-    .hset(roomKey(roomId), {
-      "status": "LOBBY",
-      "gameState": JSON.stringify(state)
-    })
-    .del(votesKey(roomId))
-    .del(promptsKey(roomId))
-    .exec();
+// Runs atomically inside Redis: zeroes the scores of the players currently in the room (not a
+// stale list, which could re-add someone who just left) and returns to the lobby, only from
+// RESULTS so it can never cross a vote tally that's still finishing.
+const RESET_TO_LOBBY_SCRIPT = `
+  if redis.call('HGET', KEYS[1], 'status') ~= 'RESULTS' then
+    return 0
+  end
+  local players = redis.call('HGETALL', KEYS[2])
+  for i = 1, #players, 2 do
+    local player = cjson.decode(players[i + 1])
+    player.score = 0
+    redis.call('HSET', KEYS[2], players[i], cjson.encode(player))
+  end
+  redis.call('HSET', KEYS[1], 'status', 'LOBBY', 'gameState', ARGV[1])
+  redis.call('DEL', KEYS[3], KEYS[4])
+  return 1
+`;
+
+// RESULTS -> LOBBY with scores zeroed, a fresh game state and no votes or prompts.
+// Returns false, changing nothing, if the room isn't showing results.
+export async function resetToLobby(roomId: string, state: StoredGameState): Promise<boolean> {
+  const result = await redis.eval(
+    RESET_TO_LOBBY_SCRIPT,
+    4,
+    roomKey(roomId),
+    playersKey(roomId),
+    votesKey(roomId),
+    promptsKey(roomId),
+    JSON.stringify(state)
+  );
+  return result === 1;
 }
 
 // Renews the expiry on all of a room's keys, so a room only expires after ROOM_TTL_SECONDS

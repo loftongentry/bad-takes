@@ -18,7 +18,14 @@ export async function handlePlayerLeft(roomId: string, playerId: string) {
     const state = (await repo.getStoredGameState(roomId)) ?? emptyGameState();
     state.queue = [];
     state.deadline = null;
-    if (await repo.advanceRoom(roomId, room.status, "RESULTS", state)) {
+    const ended = await repo.advanceRoom({
+      roomId,
+      from: room.status,
+      to: "RESULTS",
+      expectedDeadline: room.gameState?.deadline,
+      state,
+    });
+    if (ended) {
       await repo.publishRoom(await repo.getRoom(roomId));
     }
     return;

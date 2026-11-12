@@ -43,7 +43,15 @@ export async function advanceToNextTurn(
     console.log(`[GameLogic] No more turns in room ${roomId}, transitioning to RESULTS`);
   }
 
-  const advanced = await repo.advanceRoom(roomId, fromStatus, nextTurn ? "DEFENSE" : "RESULTS", state, scoredPlayer);
+  const advanced = await repo.advanceRoom({
+    roomId,
+    from: fromStatus,
+    to: nextTurn ? "DEFENSE" : "RESULTS",
+    // The phase as the caller read it: if the room has moved on since, nothing happens
+    expectedDeadline: room.gameState?.deadline,
+    state,
+    updatedPlayer: scoredPlayer,
+  });
   if (!advanced) {
     console.log(`[GameLogic] Room ${roomId} already advanced past ${fromStatus} by another request`);
     return false;
@@ -87,28 +95,37 @@ async function endPhaseAtDeadline(roomId: string, phase: TimedPhase, deadline: s
     return;
   }
 
+  // Each passes the deadline on, so the phase only ends if it's still this exact one
   if (phase === "PROMPT_ENTRY") {
     console.log(`[GameLogic] Writing time is up in room ${roomId}`);
-    await startTurnsIfAllPromptsIn(roomId, { timeUp: true });
+    await startTurnsIfAllPromptsIn(roomId, { timeUp: true, deadline });
   } else if (phase === "DEFENSE") {
     console.log(`[GameLogic] Time's up for the defense in room ${roomId}`);
-    await moveToVoting(roomId);
+    await moveToVoting(roomId, deadline);
   } else {
     console.log(`[GameLogic] Voting closed in room ${roomId}`);
-    await tallyIfAllVotesIn(roomId, { votingClosed: true });
+    await tallyIfAllVotesIn(roomId, { votingClosed: true, deadline });
   }
 }
 
-// DEFENSE -> VOTING, starting the voting clock. Atomic, so if the defender's "End Defense"
-// and the timer race, only one moves the room on. Returns whether this call did.
-async function moveToVoting(roomId: string) {
+// DEFENSE -> VOTING, starting the voting clock. `defenseDeadline` identifies the defense being
+// ended. Atomic, so if the defender's "End Defense" and the timer race, only one moves the room
+// on, and neither can end a later defense. Returns whether this call did.
+async function moveToVoting(roomId: string, defenseDeadline: string | null | undefined) {
   const state = await repo.getStoredGameState(roomId);
   if (!state) {
     return false;
   }
   state.deadline = new Date(Date.now() + VOTE_SECONDS * 1000).toISOString();
 
-  if (!(await repo.advanceRoom(roomId, "DEFENSE", "VOTING", state))) {
+  const moved = await repo.advanceRoom({
+    roomId,
+    from: "DEFENSE",
+    to: "VOTING",
+    expectedDeadline: defenseDeadline,
+    state,
+  });
+  if (!moved) {
     return false;
   }
   schedulePhaseEnd(roomId, "VOTING", state.deadline);
@@ -137,7 +154,7 @@ export async function endTurn(roomId: string, playerToken: string) {
 
     console.log(`[GameLogic] Ending turn for room ${roomId}`);
 
-    return await moveToVoting(roomId);
+    return await moveToVoting(roomId, room.gameState?.deadline);
   } catch (error) {
     console.error(`[RoomStore.endTurn] Failed to end turn for room ${roomId}:`, error);
     throw error;
@@ -184,9 +201,16 @@ export async function submitVote(roomId: string, playerToken: string, value: num
 // and starts the next turn. Called after each vote and when a player leaves mid-vote.
 // With votingClosed (the voting timer ran out), tallies whatever votes came in; players who
 // didn't vote don't count. Returns whether it tallied.
-export async function tallyIfAllVotesIn(roomId: string, { votingClosed = false } = {}) {
+// `deadline`, when given, limits this to that exact voting round (the timer's own).
+export async function tallyIfAllVotesIn(
+  roomId: string,
+  { votingClosed = false, deadline }: { votingClosed?: boolean; deadline?: string } = {}
+) {
   const room = await repo.getRoom(roomId);
   if (!room || room.status !== "VOTING") {
+    return false;
+  }
+  if (deadline !== undefined && room.gameState?.deadline !== deadline) {
     return false;
   }
 

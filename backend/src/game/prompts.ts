@@ -30,7 +30,14 @@ export async function startGame(roomId: string, hostToken: string) {
     state.deadline = new Date(Date.now() + room.settings.promptTimeLimit * 1000).toISOString();
 
     // Atomic, so two "Start" taps can't both start the game
-    if (!(await repo.advanceRoom(roomId, "LOBBY", "PROMPT_ENTRY", state))) {
+    const started = await repo.advanceRoom({
+      roomId,
+      from: "LOBBY",
+      to: "PROMPT_ENTRY",
+      expectedDeadline: room.gameState?.deadline,
+      state,
+    });
+    if (!started) {
       throw new Error("The game has already started");
     }
     schedulePhaseEnd(roomId, "PROMPT_ENTRY", state.deadline);
@@ -88,9 +95,16 @@ export async function submitPrompt(roomId: string, playerToken: string, prompt: 
 // With timeUp (the writing time ran out), plays with the takes that came in: everyone still
 // defends, so some takes get defended more than once. If nobody wrote anything, the room goes
 // back to the lobby.
-export async function startTurnsIfAllPromptsIn(roomId: string, { timeUp = false } = {}) {
+// `deadline`, when given, limits this to that exact writing phase (the timer's own).
+export async function startTurnsIfAllPromptsIn(
+  roomId: string,
+  { timeUp = false, deadline }: { timeUp?: boolean; deadline?: string } = {}
+) {
   const room = await repo.getRoom(roomId);
   if (!room || room.status !== "PROMPT_ENTRY") {
+    return;
+  }
+  if (deadline !== undefined && room.gameState?.deadline !== deadline) {
     return;
   }
 
@@ -103,7 +117,14 @@ export async function startTurnsIfAllPromptsIn(roomId: string, { timeUp = false 
 
   if (prompts.length === 0) {
     console.log(`[GameLogic] Nobody wrote a take in room ${roomId}, back to the lobby`);
-    if (await repo.advanceRoom(roomId, "PROMPT_ENTRY", "LOBBY", emptyGameState())) {
+    const backToLobby = await repo.advanceRoom({
+      roomId,
+      from: "PROMPT_ENTRY",
+      to: "LOBBY",
+      expectedDeadline: room.gameState?.deadline,
+      state: emptyGameState(),
+    });
+    if (backToLobby) {
       await repo.publishRoom(await repo.getRoom(roomId));
     }
     return;
