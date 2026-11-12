@@ -10,12 +10,13 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
+          "imageWidth": 260,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "imageWidth": 200
+          "backgroundColor": "#C9A47E"
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      "expo-asset"
     ],
     "version": "1.0.0",
     "orientation": "portrait",
@@ -27,7 +28,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#C9A47E"
       },
       "predictiveBackGestureEnabled": false
     },

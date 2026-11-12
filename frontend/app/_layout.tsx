@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
 import { ArchivoBlack_400Regular } from "@expo-google-fonts/archivo-black";
 import { Archivo_500Medium, Archivo_700Bold } from "@expo-google-fonts/archivo";
 import { PermanentMarker_400Regular } from "@expo-google-fonts/permanent-marker";
@@ -11,6 +12,11 @@ import { ApolloProvider } from "@apollo/client/react";
 import { apolloClient } from "../src/graphql/client";
 import { SOAPBOX } from "../src/ui/soapbox/tokens";
 import { preloadSounds } from "../src/audio/sfx";
+
+// Keep the launch screen up until the fonts are in, so the first thing players see after it is
+// the finished Home screen (not a blank frame, then text changing font). Fades out on phones.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+SplashScreen.setOptions({ fade: true, duration: 300 });
 
 const Layout = () => {
   // The Soapbox fonts (see src/ui/soapbox/tokens.ts). If one fails to load, the app still
@@ -26,7 +32,14 @@ const Layout = () => {
     preloadSounds();
   }, []);
 
-  if (!fontsLoaded && !fontError) {
+  const ready = fontsLoaded || !!fontError;
+  useEffect(() => {
+    if (ready) {
+      SplashScreen.hide();
+    }
+  }, [ready]);
+
+  if (!ready) {
     return null;
   }
 
