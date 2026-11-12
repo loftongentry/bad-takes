@@ -4,6 +4,7 @@ import { getRoom } from "./db/roomRepo";
 import { createRoom, joinRoom, leaveRoom, kickPlayer, resetGame } from "./game/lobby";
 import { startGame, submitPrompt } from "./game/prompts";
 import { endTurn, submitVote } from "./game/turns";
+import { gameRules } from "./game/rules";
 import type { RoomSettings } from "./types";
 
 type CreateRoomArgs = RoomSettings & { hostName: string };
@@ -16,6 +17,7 @@ export const resolvers = {
     room: (_: unknown, { id }: { id: string }) => {
       return getRoom(id);
     },
+    rules: () => gameRules(),
   },
   Mutation: {
     createRoom: async (_: unknown, args: CreateRoomArgs) => {

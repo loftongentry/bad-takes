@@ -7,10 +7,12 @@ import { LabeledField } from "../src/ui/LabeledField";
 import { ActionRow } from "../src/ui/ActionRow";
 import { Page } from "../src/ui/Page";
 import { useRoomActions } from "../src/hooks/useRoomActions";
+import { useRules } from "../src/hooks/useRules";
 
 const JoinScreen = () => {
   const router = useRouter();
   const { joinGame } = useRoomActions();
+  const rules = useRules();
   const [roomCode, setRoomCode] = useState<string>("");
   const [yourName, setYourName] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -44,7 +46,7 @@ const JoinScreen = () => {
         value={yourName}
         onChangeText={setYourName}
         placeholder="Enter name"
-        maxLength={24}
+        maxLength={rules?.playerNameMaxLength}
       />
 
       <ActionRow>

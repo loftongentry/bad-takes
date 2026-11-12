@@ -9,32 +9,30 @@ import { ActionRow } from "../src/ui/ActionRow";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
+import { useRules } from "../src/hooks/useRules";
 import { useDefenseTimer } from "../src/hooks/useDefenseTimer";
-
-// Must match PREP_SECONDS in backend/src/game/turns.ts (the server's deadline includes it)
-const PREP_TIME = 5;
 
 const Defense = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null);
   const myPlayerId = useGameSessionStore((s) => s.session?.playerId ?? null);
   const { room } = useRoom(roomId || undefined);
   const { endTurn } = useRoomActions(roomId || undefined);
+  const rules = useRules();
 
   const currentTurn = room?.gameState?.currentTurn;
   const isMe = currentTurn?.defenderId === myPlayerId;
   const defenderName =
     room?.players.find((p) => p.id === currentTurn?.defenderId)?.name || "Unknown";
 
-  const DEFEND_TIME = room?.settings.timeLimit || 60;
-
-  // Counts down to the server's deadline; the server moves everyone to voting when it passes
+  // Counts down to the server's deadline (prep countdown + defense time); the server moves
+  // everyone to voting when it passes
   const { phase, timeLeft, maxTime } = useDefenseTimer(
     room?.gameState?.deadline,
-    PREP_TIME,
-    DEFEND_TIME,
+    rules?.prepSeconds ?? 0,
+    room?.settings.timeLimit ?? 0,
   );
 
-  if (!currentTurn) {
+  if (!currentTurn || !rules) {
     return (
       <Page headerRight={<HostPlayersMenu room={room} />} title="Loading..." showBack={false}>
         <SpinnerMessage>Preparing the next turn...</SpinnerMessage>

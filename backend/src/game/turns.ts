@@ -3,14 +3,8 @@ import * as repo from "../db/roomRepo";
 import { requirePlayer } from "./permissions";
 // prompts.ts also imports from this file; the cycle is fine because these are only called later
 import { startTurnsIfAllPromptsIn } from "./prompts";
+import { PREP_SECONDS, VOTE_SECONDS } from "./rules";
 import type { Player, Room, RoomStatus, StoredGameState } from "../types";
-
-// "Get ready" countdown before each defense. The app's defense screen uses the same value.
-export const PREP_SECONDS = 5;
-
-// How long players have to vote; when it runs out, the votes that came in are counted.
-// Overridable so tests don't have to wait.
-export const VOTE_SECONDS = Number(process.env.VOTE_SECONDS) || 30;
 
 type TimedPhase = "PROMPT_ENTRY" | "DEFENSE" | "VOTING";
 

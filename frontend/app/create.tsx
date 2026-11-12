@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "expo-router";
 import { Spinner } from "tamagui";
 import { Page } from "../src/ui/Page";
@@ -8,33 +8,55 @@ import { FormCard } from "../src/ui/FormCard";
 import { PrimaryButton } from "../src/ui/PrimaryButton";
 import { ActionRow } from "../src/ui/ActionRow";
 import { useRoomActions } from "../src/hooks/useRoomActions";
+import { useRules } from "../src/hooks/useRules";
+import type { GameRules, Range } from "../src/graphql/types";
 
-const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+const clamp = (n: number, { min, max }: Range) => Math.max(min, Math.min(max, n));
 
-// Constraints
-// TODO: Implement logic that handles multiple rounds instead of just 1
-const MIN_ROUNDS = 1;
-const MAX_ROUNDS = 1;
-
-const MIN_PLAYERS = 2;
-const MAX_PLAYERS = 20;
-
+// Starting values for a new room (each kept within the server's allowed range)
+const DEFAULTS = { rounds: 1, playerLimit: 5, timeLimit: 60, promptTimeLimit: 90 };
 const STEP_SECONDS = 15;
-// Defense time
-const MIN_SECONDS = 60;
-const MAX_SECONDS = 5 * 60; // 5 Minutes
-// Writing time (to write a take)
-const MIN_WRITING_SECONDS = 30;
-const MAX_WRITING_SECONDS = 3 * 60;
 
-const CreateScreen = () => {
+// A stepper for a number limited to `range`. Takes the state setter itself and updates from
+// the latest value, so quick repeated taps all count even before the screen re-renders.
+const RangeStepper = ({
+  label,
+  value,
+  setValue,
+  range,
+  step = 1,
+  unit = "",
+}: {
+  label: string;
+  value: number;
+  setValue: Dispatch<SetStateAction<number>>;
+  range: Range;
+  step?: number;
+  unit?: string;
+}) => (
+  <StepperRow
+    label={label}
+    valueText={`${value}${unit}`}
+    decrementDisabled={value <= range.min}
+    incrementDisabled={value >= range.max}
+    onDecrement={() => setValue((current) => clamp(current - step, range))}
+    onIncrement={() => setValue((current) => clamp(current + step, range))}
+  />
+);
+
+const CreateForm = ({ rules }: { rules: GameRules }) => {
   const router = useRouter();
   const { createGame } = useRoomActions();
   const [lobbyName, setLobbyName] = useState<string>("");
-  const [rounds, setRounds] = useState<number>(1);
-  const [playerLimit, setPlayerLimit] = useState<number>(5);
-  const [timeLimit, setTimeLimit] = useState<number>(60);
-  const [promptTimeLimit, setPromptTimeLimit] = useState<number>(90);
+  // TODO: Implement logic that handles multiple rounds instead of just 1
+  const [rounds, setRounds] = useState(() => clamp(DEFAULTS.rounds, rules.rounds));
+  const [playerLimit, setPlayerLimit] = useState(() =>
+    clamp(DEFAULTS.playerLimit, rules.playerLimit),
+  );
+  const [timeLimit, setTimeLimit] = useState(() => clamp(DEFAULTS.timeLimit, rules.timeLimit));
+  const [promptTimeLimit, setPromptTimeLimit] = useState(() =>
+    clamp(DEFAULTS.promptTimeLimit, rules.promptTimeLimit),
+  );
   const [yourName, setYourName] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -69,51 +91,34 @@ const CreateScreen = () => {
           value={lobbyName}
           onChangeText={setLobbyName}
           placeholder="Lobby Name"
-          maxLength={40}
+          maxLength={rules.lobbyNameMaxLength}
         />
 
-        <StepperRow
-          label="Rounds"
-          valueText={String(rounds)}
-          decrementDisabled={rounds <= MIN_ROUNDS}
-          incrementDisabled={rounds >= MAX_ROUNDS}
-          onDecrement={() => setRounds((r) => clamp(r - 1, MIN_ROUNDS, MAX_ROUNDS))}
-          onIncrement={() => setRounds((r) => clamp(r + 1, MIN_ROUNDS, MAX_ROUNDS))}
-        />
+        <RangeStepper label="Rounds" value={rounds} setValue={setRounds} range={rules.rounds} />
 
-        <StepperRow
+        <RangeStepper
           label="Player Limit"
-          valueText={String(playerLimit)}
-          decrementDisabled={playerLimit <= MIN_PLAYERS}
-          incrementDisabled={playerLimit >= MAX_PLAYERS}
-          onDecrement={() => setPlayerLimit((p) => clamp(p - 1, MIN_PLAYERS, MAX_PLAYERS))}
-          onIncrement={() => setPlayerLimit((p) => clamp(p + 1, MIN_PLAYERS, MAX_PLAYERS))}
+          value={playerLimit}
+          setValue={setPlayerLimit}
+          range={rules.playerLimit}
         />
 
-        <StepperRow
+        <RangeStepper
           label="Writing Time"
-          valueText={`${promptTimeLimit}s`}
-          decrementDisabled={promptTimeLimit <= MIN_WRITING_SECONDS}
-          incrementDisabled={promptTimeLimit >= MAX_WRITING_SECONDS}
-          onDecrement={() =>
-            setPromptTimeLimit((s) =>
-              clamp(s - STEP_SECONDS, MIN_WRITING_SECONDS, MAX_WRITING_SECONDS),
-            )
-          }
-          onIncrement={() =>
-            setPromptTimeLimit((s) =>
-              clamp(s + STEP_SECONDS, MIN_WRITING_SECONDS, MAX_WRITING_SECONDS),
-            )
-          }
+          value={promptTimeLimit}
+          setValue={setPromptTimeLimit}
+          range={rules.promptTimeLimit}
+          step={STEP_SECONDS}
+          unit="s"
         />
 
-        <StepperRow
+        <RangeStepper
           label="Defense Time"
-          valueText={`${timeLimit}s`}
-          decrementDisabled={timeLimit <= MIN_SECONDS}
-          incrementDisabled={timeLimit >= MAX_SECONDS}
-          onDecrement={() => setTimeLimit((s) => clamp(s - STEP_SECONDS, MIN_SECONDS, MAX_SECONDS))}
-          onIncrement={() => setTimeLimit((s) => clamp(s + STEP_SECONDS, MIN_SECONDS, MAX_SECONDS))}
+          value={timeLimit}
+          setValue={setTimeLimit}
+          range={rules.timeLimit}
+          step={STEP_SECONDS}
+          unit="s"
         />
 
         <TextFieldRow
@@ -121,7 +126,7 @@ const CreateScreen = () => {
           value={yourName}
           onChangeText={setYourName}
           placeholder="Enter name"
-          maxLength={24}
+          maxLength={rules.playerNameMaxLength}
           showDivider={false}
         />
       </FormCard>
@@ -133,6 +138,21 @@ const CreateScreen = () => {
       </ActionRow>
     </Page>
   );
+};
+
+const CreateScreen = () => {
+  const router = useRouter();
+  const rules = useRules();
+
+  // The form's limits come from the server; they're usually cached by the time you get here
+  if (!rules) {
+    return (
+      <Page title="Create Game" onBack={() => router.back()}>
+        <Spinner />
+      </Page>
+    );
+  }
+  return <CreateForm rules={rules} />;
 };
 
 export default CreateScreen;

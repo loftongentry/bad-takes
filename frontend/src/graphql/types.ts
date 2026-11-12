@@ -7,10 +7,32 @@ export type Player = {
   score: number;
 };
 
+// The phases of a game, in order (DEFENSE and VOTING repeat once per turn)
+export type RoomStatus = "LOBBY" | "PROMPT_ENTRY" | "DEFENSE" | "VOTING" | "RESULTS";
+
+export type Range = { min: number; max: number };
+
+// The game's rules and limits, served by the server so the app never keeps its own copies
+export type GameRules = {
+  minPlayers: number;
+  rounds: Range;
+  playerLimit: Range;
+  // Defense time, in seconds
+  timeLimit: Range;
+  // Writing time, in seconds
+  promptTimeLimit: Range;
+  // "Get ready" countdown before each defense; included in the defense deadline
+  prepSeconds: number;
+  voteSeconds: number;
+  playerNameMaxLength: number;
+  lobbyNameMaxLength: number;
+  promptMaxLength: number;
+};
+
 export type Room = {
   id: string;
   joinCode: string;
-  status: string;
+  status: RoomStatus;
   settings: {
     lobbyName: string;
     rounds: number;

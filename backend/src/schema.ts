@@ -4,6 +4,37 @@ import { makeExecutableSchema } from "@graphql-tools/schema";
 import { resolvers } from "./resolvers";
 
 const typeDefs = `
+  # The phases of a game, in order (DEFENSE and VOTING repeat once per turn)
+  enum RoomStatus {
+    LOBBY
+    PROMPT_ENTRY
+    DEFENSE
+    VOTING
+    RESULTS
+  }
+
+  type Range {
+    min: Int!
+    max: Int!
+  }
+
+  # The game's rules and limits, so the app doesn't keep its own copies (see game/rules.ts)
+  type GameRules {
+    minPlayers: Int!
+    rounds: Range!
+    playerLimit: Range!
+    # Defense time, in seconds
+    timeLimit: Range!
+    # Writing time, in seconds
+    promptTimeLimit: Range!
+    # "Get ready" countdown before each defense; included in the defense deadline
+    prepSeconds: Int!
+    voteSeconds: Int!
+    playerNameMaxLength: Int!
+    lobbyNameMaxLength: Int!
+    promptMaxLength: Int!
+  }
+
   type RoomSettings {
     lobbyName: String!
     rounds: Int!
@@ -36,7 +67,7 @@ const typeDefs = `
   type Room {
     id: ID!
     joinCode: String!
-    status: String!
+    status: RoomStatus!
     settings: RoomSettings!
     players: [Player!]!
     gameState: GameState
@@ -49,6 +80,7 @@ const typeDefs = `
 
   type Query {
     room(id: ID!): Room
+    rules: GameRules!
   }
 
   type Mutation {

@@ -2,6 +2,11 @@ import { Button, Dialog, ScrollView, Text, View } from "tamagui";
 import { Info } from "@tamagui/lucide-icons";
 import { PrimaryButton } from "./PrimaryButton";
 import { COLORS } from "./theme";
+import { useRules } from "../hooks/useRules";
+
+// "45 seconds", "90 seconds", "5 minutes"
+const describeSeconds = (seconds: number) =>
+  seconds >= 120 && seconds % 60 === 0 ? `${seconds / 60} minutes` : `${seconds} seconds`;
 
 const Rule = ({ title, children }: { title: string; children: React.ReactNode }) => {
   return (
@@ -15,6 +20,13 @@ const Rule = ({ title, children }: { title: string; children: React.ReactNode })
 };
 
 export const HowToPlay = () => {
+  // The numbers come from the server; until they load, the rules are described without them
+  const rules = useRules();
+  const defenseRange = rules
+    ? `the host sets it, from ${describeSeconds(rules.timeLimit.min)} to ${describeSeconds(rules.timeLimit.max)}`
+    : "the host sets how long";
+  const voteTime = rules ? `${describeSeconds(rules.voteSeconds)}` : "a short time";
+
   return (
     <Dialog modal>
       <Dialog.Trigger asChild>
@@ -61,12 +73,12 @@ export const HowToPlay = () => {
 
             <Rule key="4" title="4) Defend it against the clock">
               The defender argues in favor of the prompt, even if they disagree with it, until the
-              timer runs out (the host sets it, from 60 seconds to 5 minutes)
+              timer runs out ({defenseRange})
             </Rule>
 
             <Rule key="5" title="5) Vote">
               When time’s up, everyone else votes thumbs up or down on how well the player defended
-              the prompt, with 30 seconds to decide
+              the prompt, with {voteTime} to decide
             </Rule>
 
             <Rule key="6" title="6) No repeats in a round">

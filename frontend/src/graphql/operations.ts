@@ -34,6 +34,37 @@ const ROOM_FRAGMENT = gql`
 
 export const ROOM_OPS = {
   // --- QUERIES ---
+
+  // The game's rules and limits (the same for every room), so the app never hard-codes them
+  RULES: gql`
+    query GetRules {
+      rules {
+        minPlayers
+        rounds {
+          min
+          max
+        }
+        playerLimit {
+          min
+          max
+        }
+        timeLimit {
+          min
+          max
+        }
+        promptTimeLimit {
+          min
+          max
+        }
+        prepSeconds
+        voteSeconds
+        playerNameMaxLength
+        lobbyNameMaxLength
+        promptMaxLength
+      }
+    }
+  `,
+
   GET: gql`
     ${ROOM_FRAGMENT}
     query GetRoom($roomId: ID!) {

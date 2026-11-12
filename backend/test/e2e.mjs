@@ -588,6 +588,38 @@ test("Play Again only works once the game is over", async () => {
   assert((await getRoom(roomId)).status === "PROMPT_ENTRY", "the game should carry on");
 });
 
+test("the rules query reports the limits the server enforces", async () => {
+  const { rules } = await gql(`{ rules {
+    minPlayers prepSeconds voteSeconds playerNameMaxLength lobbyNameMaxLength promptMaxLength
+    rounds { min max } playerLimit { min max } timeLimit { min max } promptTimeLimit { min max }
+  } }`);
+  assert(rules.minPlayers === 2 && rules.playerLimit.min === 2, "minimum players should be 2");
+  assert(
+    rules.promptMaxLength === 140 && rules.playerNameMaxLength === 24,
+    "text limits should match",
+  );
+  assert(rules.prepSeconds === 5 && rules.voteSeconds === 30, "phase lengths should match");
+
+  // The server must accept the edge of each range and reject one past it
+  const room = (s) =>
+    gqlRaw(
+      `mutation($p:Int!,$w:Int!){ createRoom(hostName:"A", lobbyName:"L", rounds:1, playerLimit:$p, timeLimit:60, promptTimeLimit:$w) { room { id } } }`,
+      s,
+    );
+  assert(
+    !(await room({ p: rules.playerLimit.max, w: rules.promptTimeLimit.max })).errors,
+    "maximums should be accepted",
+  );
+  assert(
+    (await room({ p: rules.playerLimit.max + 1, w: 90 })).errors,
+    "one over the player limit should be rejected",
+  );
+  assert(
+    (await room({ p: 5, w: rules.promptTimeLimit.max + 1 })).errors,
+    "one over the writing time should be rejected",
+  );
+});
+
 test("a player's public id can't be used to act as them", async () => {
   const { roomId, players } = await setupRoom(["Host", "B", "C"]);
   const [host, b, c] = players;

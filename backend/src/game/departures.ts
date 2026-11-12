@@ -2,7 +2,8 @@
 // (When the host leaves, the whole room is closed instead.)
 import * as repo from "../db/roomRepo";
 import { emptyGameState } from "./state";
-import { MIN_PLAYERS, startTurnsIfAllPromptsIn } from "./prompts";
+import { startTurnsIfAllPromptsIn } from "./prompts";
+import { MIN_PLAYERS } from "./rules";
 import { advanceToNextTurn, tallyIfAllVotesIn } from "./turns";
 
 // Call after the player has been removed from the room

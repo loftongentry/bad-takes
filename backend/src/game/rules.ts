@@ -1,18 +1,45 @@
-// Limits on what players can send. The app enforces the same limits in its forms; the server
-// checks again because a client can send anything.
+// The game's rules and limits, defined once. The app reads them through the `rules` query
+// (see gameRules below) instead of keeping its own copies, and the server enforces them
+// because a client can send anything.
 import type { RoomSettings } from "../types";
 
 export const PLAYER_NAME_MAX = 24;
 export const LOBBY_NAME_MAX = 40;
 export const PROMPT_MAX = 140;
 
+// With one player there's nobody to vote, so a game needs at least two
+export const MIN_PLAYERS = 2;
+
 export const ROUNDS = { min: 1, max: 1 }; // multiple rounds aren't supported yet
-export const PLAYER_LIMIT = { min: 2, max: 20 };
+export const PLAYER_LIMIT = { min: MIN_PLAYERS, max: 20 };
 // Defense and writing times in seconds. The minimums are overridable so tests can use very
 // short phases.
 const TEST_MIN = Number(process.env.MIN_TIME_LIMIT_SECONDS) || 0;
 export const TIME_LIMIT = { min: TEST_MIN || 60, max: 300 };
 export const PROMPT_TIME_LIMIT = { min: TEST_MIN || 30, max: 180 };
+
+// "Get ready" countdown before each defense; the defense deadline includes it
+export const PREP_SECONDS = 5;
+
+// How long players have to vote; when it runs out, the votes that came in are counted.
+// Overridable so tests don't have to wait.
+export const VOTE_SECONDS = Number(process.env.VOTE_SECONDS) || 30;
+
+// Everything the app needs to know, served by the `rules` query
+export function gameRules() {
+  return {
+    minPlayers: MIN_PLAYERS,
+    rounds: ROUNDS,
+    playerLimit: PLAYER_LIMIT,
+    timeLimit: TIME_LIMIT,
+    promptTimeLimit: PROMPT_TIME_LIMIT,
+    prepSeconds: PREP_SECONDS,
+    voteSeconds: VOTE_SECONDS,
+    playerNameMaxLength: PLAYER_NAME_MAX,
+    lobbyNameMaxLength: LOBBY_NAME_MAX,
+    promptMaxLength: PROMPT_MAX,
+  };
+}
 
 // Trims the text and checks it isn't empty or too long. Returns the trimmed text.
 export function cleanText(value: string, label: string, max: number) {

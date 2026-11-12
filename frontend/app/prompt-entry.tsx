@@ -12,14 +12,15 @@ import { ActionRow } from "../src/ui/ActionRow";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
+import { useRules } from "../src/hooks/useRules";
 import { useSecondsLeft } from "../src/hooks/useSecondsLeft";
-
-const CHAR_LIMIT = 140;
 
 const PromptEntry = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null);
   const { room } = useRoom(roomId || undefined);
   const { leaveGame, submitPrompt } = useRoomActions(roomId || undefined);
+  // The server's limit on a take's length (undefined only until the rules load)
+  const charLimit = useRules()?.promptMaxLength;
   const [badTake, setBadTake] = useState<string>("");
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -86,7 +87,7 @@ const PromptEntry = () => {
             style={promptTextStyle}
             multiline
             autoFocus
-            maxLength={CHAR_LIMIT}
+            maxLength={charLimit}
             editable={!loading}
             submitBehavior="blurAndSubmit"
           />
@@ -96,20 +97,27 @@ const PromptEntry = () => {
               marginTop: 10,
             }}
           >
-            <Text
-              fontSize={14}
-              color={badTake.length > CHAR_LIMIT - 10 ? "red" : "rgba(0,0,0,0.4)"}
-              fontWeight="700"
-            >
-              {badTake.length}/{CHAR_LIMIT}
-            </Text>
+            {charLimit !== undefined ? (
+              <Text
+                fontSize={14}
+                color={badTake.length > charLimit - 10 ? "red" : "rgba(0,0,0,0.4)"}
+                fontWeight="700"
+              >
+                {badTake.length}/{charLimit}
+              </Text>
+            ) : null}
           </XStack>
         </PromptCard>
 
         <ActionRow>
           <PrimaryButton
             onPress={handleSubmitPrompt}
-            disabled={loading || badTake.trim().length === 0 || badTake.length > CHAR_LIMIT}
+            disabled={
+              loading ||
+              charLimit === undefined ||
+              badTake.trim().length === 0 ||
+              badTake.length > charLimit
+            }
           >
             {loading ? <Spinner /> : "Submit Bad Take"}
           </PrimaryButton>

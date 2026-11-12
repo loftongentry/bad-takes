@@ -4,9 +4,7 @@ import * as repo from "../db/roomRepo";
 import { emptyGameState, generateQueue } from "./state";
 import { advanceToNextTurn, schedulePhaseEnd } from "./turns";
 import { requireHost, requirePlayer } from "./permissions";
-import { PROMPT_MAX, cleanText } from "./rules";
-
-export const MIN_PLAYERS = 2;
+import { MIN_PLAYERS, PROMPT_MAX, cleanText } from "./rules";
 
 export async function startGame(roomId: string, hostToken: string) {
   try {

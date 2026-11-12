@@ -12,9 +12,8 @@ import { COLORS } from "../src/ui/theme";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
+import { useRules } from "../src/hooks/useRules";
 import type { Player } from "../src/graphql/types";
-
-const MIN_PLAYERS = 2;
 
 const LobbyScreen = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null);
@@ -23,6 +22,7 @@ const LobbyScreen = () => {
 
   const { room, loading, error, refetch } = useRoom(roomId || undefined);
   const { leaveGame, kickPlayer, startGame } = useRoomActions(roomId || undefined);
+  const rules = useRules();
   const [startLoading, setStartLoading] = useState<boolean>(false);
 
   // Back buttons below call leaveGame so the server drops this player too; clearing only the
@@ -82,8 +82,8 @@ const LobbyScreen = () => {
     }
   };
 
-  // Matches the server's rule: with one player there's nobody to vote
-  const hasEnoughPlayers = room.players.length >= MIN_PLAYERS;
+  // The server's minimum (with one player there's nobody to vote)
+  const hasEnoughPlayers = !!rules && room.players.length >= rules.minPlayers;
 
   const subText = `Join Code: ${room.joinCode} \n Writing: ${room.settings.promptTimeLimit}s · Defense: ${room.settings.timeLimit}s`;
 
@@ -177,7 +177,9 @@ const LobbyScreen = () => {
           </PrimaryButton>
           {!hasEnoughPlayers ? (
             <Text style={{ color: COLORS.light, opacity: 0.6, textAlign: "center", marginTop: 10 }}>
-              Waiting for at least {MIN_PLAYERS} players to join...
+              {rules
+                ? `Waiting for at least ${rules.minPlayers} players to join...`
+                : "Waiting for players to join..."}
             </Text>
           ) : null}
         </ActionRow>
