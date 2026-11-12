@@ -64,16 +64,18 @@ export const HowToPlay = () => {
             </Rule>
 
             <Rule key="3" title="3) Random assignment">
-              After all prompts are submitted, one player is picked at random to defend a randomly selected prompt
+              After all prompts are submitted, players take turns in a random order, each defending
+              a randomly selected prompt (never their own)
             </Rule>
 
-            <Rule key="4" title="4) Defend it (60 seconds)">
-              The selected player has 60 seconds to argue in favor of the prompt, even if
-              they disagree with it
+            <Rule key="4" title="4) Defend it against the clock">
+              The defender argues in favor of the prompt, even if they disagree with it, until the
+              timer runs out (the host sets it, from 60 seconds to 5 minutes)
             </Rule>
 
             <Rule key="5" title="5) Vote">
-              After the 60 seconds, all players vote on how well the player defended the prompt
+              When time's up, everyone else votes thumbs up or down on how well the player defended
+              the prompt, with 30 seconds to decide
             </Rule>
 
             <Rule key="6" title="6) No repeats in a round">
