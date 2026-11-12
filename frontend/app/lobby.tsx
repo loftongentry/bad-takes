@@ -1,6 +1,5 @@
 // TODO: Add in (potentially) more settings
-import { useEffect, useState } from 'react'
-import { useRouter } from 'expo-router'
+import { useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 import { Spinner, Text, View } from 'tamagui'
 import { X } from '@tamagui/lucide-icons'
@@ -8,31 +7,24 @@ import { Page } from '../src/ui/Page'
 import { FormCard } from '../src/ui/FormCard'
 import { FormRow } from '../src/ui/FormRow'
 import { PrimaryButton } from '../src/ui/PrimaryButton'
+import { ActionRow } from '../src/ui/ActionRow'
 import { COLORS } from '../src/ui/theme'
 import { useGameSessionStore } from '../src/state/gameSessionStore'
-import { useLobby } from '../src/hooks/useLobby'
-
-type Player = {
-  id: string
-  name: string
-  isHost: boolean
-}
+import { useRoom } from '../src/hooks/useRoom'
+import { useRoomActions } from '../src/hooks/useRoomActions'
+import { useStatusRedirect } from '../src/hooks/useStatusRedirect'
+import type { Player } from '../src/graphql/types'
 
 const LobbyScreen = () => {
-  const router = useRouter()
-
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const playerId = useGameSessionStore((s) => s.session?.playerId ?? null)
   const isHost = useGameSessionStore((s) => s.session?.isHost ?? false)
 
-  const { room, leaveGame, kickPlayer, startGame, loading } = useLobby(roomId || undefined)
+  const { room, loading } = useRoom(roomId || undefined)
+  const { kickPlayer, startGame } = useRoomActions(roomId || undefined)
   const [startLoading, setStartLoading] = useState<boolean>(false)
 
-  useEffect(() => {
-    if (room?.status === 'PROMPT_ENTRY') {
-      router.replace('/prompt-entry')
-    }
-  }, [room?.status])
+  useStatusRedirect(room?.status, { PROMPT_ENTRY: '/prompt-entry' })
 
   if (!roomId || !playerId || (!room && loading)) {
     return (
@@ -149,7 +141,7 @@ const LobbyScreen = () => {
                               backgroundColor: 'rgba(0,0,0,0.10)',
                             }}
                           >
-                            <X size={16} color={'#D0CCC3'} />
+                            <X size={16} color={COLORS.light} />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -163,11 +155,11 @@ const LobbyScreen = () => {
       </View>
 
       {isHost ? (
-        <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
+        <ActionRow>
           <PrimaryButton disabled={loading || !room} onPress={handleStartGame}>
             {startLoading ? <Spinner /> : 'Start Game'}
           </PrimaryButton>
-        </View>
+        </ActionRow>
       ) : null}
     </Page>
   )

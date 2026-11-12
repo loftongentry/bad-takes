@@ -23,7 +23,7 @@ export const HowToPlay = () => {
         <PrimaryButton
           onPress={() => { }}
           invert
-          icon={<Info color={'#1B1D1B'} size={24} />}
+          icon={<Info color={COLORS.dark} size={24} />}
         >
           How to Play
         </PrimaryButton>

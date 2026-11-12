@@ -1,61 +1,16 @@
 import { useState } from 'react'
 import { useRouter } from 'expo-router'
-import { Text, Input, View, Spinner } from 'tamagui'
+import { View, Spinner } from 'tamagui'
 import { PrimaryButton } from '../src/ui/PrimaryButton'
 import { RoomCodeInput } from '../src/ui/RoomCodeInput'
+import { LabeledField } from '../src/ui/LabeledField'
+import { ActionRow } from '../src/ui/ActionRow'
 import { Page } from '../src/ui/Page'
-import { COLORS } from '../src/ui/theme'
-import { useLobby } from '../src/hooks/useLobby'
-
-const LabeledField = ({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-}: {
-  label: string
-  value: string
-  onChangeText: (t: string) => void
-  placeholder: string
-}) => {
-  return (
-    <View style={{ width: '100%', maxWidth: 340 }}>
-      <Text
-        style={{
-          color: COLORS.light,
-          fontSize: 18,
-          fontWeight: '800',
-          textAlign: 'center',
-          marginBottom: 10,
-        }}
-      >
-        {label}
-      </Text>
-
-      <Input
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={COLORS.lightSecondary}
-        autoCorrect={false}
-        style={{
-          width: '100%',
-          backgroundColor: 'transparent',
-          borderWidth: 0,
-          paddingHorizontal: 0,
-          paddingVertical: 0,
-          color: COLORS.light,
-          fontSize: 18,
-          fontWeight: '800',
-        }}
-      />
-    </View>
-  )
-}
+import { useRoomActions } from '../src/hooks/useRoomActions'
 
 const JoinScreen = () => {
   const router = useRouter()
-  const { joinGame } = useLobby()
+  const { joinGame } = useRoomActions()
   const [roomCode, setRoomCode] = useState<string>('')
   const [yourName, setYourName] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
@@ -97,7 +52,7 @@ const JoinScreen = () => {
         placeholder="Enter name"
       />
 
-      <View style={{ width: '100%', maxWidth: 340, marginTop: 22 }}>
+      <ActionRow>
         <PrimaryButton
           onPress={handleJoinLobby}
           disabled={!canJoin || loading}
@@ -105,7 +60,7 @@ const JoinScreen = () => {
         >
           {loading ? <Spinner /> : 'Join Lobby'}
         </PrimaryButton>
-      </View>
+      </ActionRow>
     </Page>
   )
 }

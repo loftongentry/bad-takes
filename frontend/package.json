@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "update-ip": "node ./scripts/update-ip.js",
     "predev": "npm run update-ip",
-    "dev": "expo start -c"
+    "dev": "expo start -c",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@apollo/client": "^4.0.11",

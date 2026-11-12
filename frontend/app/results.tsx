@@ -1,20 +1,20 @@
-import { useEffect, useState } from "react"
-import { View, Text, ScrollView, Separator } from "tamagui"
-import { useRouter } from "expo-router"
+import { useState } from "react"
+import { View, Text, ScrollView, Separator, Card } from "tamagui"
 import { Crown, RefreshCw } from '@tamagui/lucide-icons'
 import { Page } from "../src/ui/Page"
 import { PrimaryButton } from "../src/ui/PrimaryButton"
-import { Card } from "tamagui"
 import { COLORS } from "../src/ui/theme"
 import { useGameSessionStore } from "../src/state/gameSessionStore"
-import { useLobby } from "../src/hooks/useLobby"
+import { useRoom } from "../src/hooks/useRoom"
+import { useRoomActions } from "../src/hooks/useRoomActions"
+import { useStatusRedirect } from "../src/hooks/useStatusRedirect"
 
 const Results = () => {
-  const router = useRouter()
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const myPlayerId = useGameSessionStore((s) => s.session?.playerId ?? null)
 
-  const { room, resetGame } = useLobby(roomId || undefined)
+  const { room } = useRoom(roomId || undefined)
+  const { resetGame } = useRoomActions(roomId || undefined)
   const [loading, setLoading] = useState(false)
 
   const isHost = room?.players.find(p => p.id === myPlayerId)?.isHost
@@ -23,11 +23,7 @@ const Results = () => {
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
   const winner = sortedPlayers[0]
 
-  useEffect(() => {
-    if (room?.status === 'LOBBY') {
-      router.replace('/lobby')
-    }
-  }, [room?.status])
+  useStatusRedirect(room?.status, { LOBBY: '/lobby' })
 
   const handlePlayAgain = async () => {
     setLoading(true)
@@ -53,7 +49,7 @@ const Results = () => {
         {/* WINNER CARD */}
         {winner && (
           <View style={{ alignItems: 'center', marginBottom: 40, marginTop: 10 }}>
-            <Crown size={64} color="#FFD700" style={{ marginBottom: 10 }} />
+            <Crown size={64} color={COLORS.gold} style={{ marginBottom: 10 }} />
             <Text style={{ fontSize: 24, fontWeight: '800', color: COLORS.light }}>
               {winner.name}
             </Text>
@@ -96,7 +92,7 @@ const Results = () => {
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#888', width: 24 }}>
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.muted, width: 24 }}>
                     #{index + 1}
                   </Text>
                   <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.dark }}>
@@ -116,7 +112,7 @@ const Results = () => {
         {/* HOST ACTIONS */}
         {isHost ? (
           <View style={{ width: '100%' }}>
-            <PrimaryButton onPress={handlePlayAgain} disabled={loading} icon={<RefreshCw size={22} color={'#D0CCC3'} />}>
+            <PrimaryButton onPress={handlePlayAgain} disabled={loading} icon={<RefreshCw size={22} color={COLORS.light} />}>
               {loading ? "Resetting..." : "Play Again"}
             </PrimaryButton>
           </View>

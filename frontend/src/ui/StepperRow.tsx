@@ -38,7 +38,7 @@ export const StepperRow = ({
               alignItems: 'center',
               opacity: decrementDisabled ? 0.35 : 1,
             }}
-            icon={<Minus color={'#D0CCC3'} />}
+            icon={<Minus color={COLORS.light} />}
           />
           <Text
             style={{
@@ -63,7 +63,7 @@ export const StepperRow = ({
               alignItems: 'center',
               opacity: incrementDisabled ? 0.35 : 1,
             }}
-            icon={<Plus color={'#D0CCC3'} />}
+            icon={<Plus color={COLORS.light} />}
           />
         </View>
       }

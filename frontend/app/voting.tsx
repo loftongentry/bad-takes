@@ -1,46 +1,48 @@
 // TODO: Instead of just showing a spinner after voting, show the list of players, with an indicator of who has voted and who hasn't.
-import { useRouter } from "expo-router"
-import { useGameSessionStore } from "../src/state/gameSessionStore"
-import { useLobby } from "../src/hooks/useLobby"
-import { useEffect, useState } from "react"
-import { Page } from "../src/ui/Page"
-import { View, Text, Spinner, Card, XStack } from "tamagui"
-import { COLORS } from "../src/ui/theme"
-import { TouchableOpacity } from "react-native"
+import { useState } from "react"
+import { View, Text, Spinner, XStack } from "tamagui"
 import { ThumbsUp, ThumbsDown } from '@tamagui/lucide-icons'
+import { Page } from "../src/ui/Page"
+import { COLORS } from "../src/ui/theme"
+import { PromptCard, PromptText } from "../src/ui/PromptCard"
+import { VoteButton } from "../src/ui/VoteButton"
+import { useGameSessionStore } from "../src/state/gameSessionStore"
+import { useRoom } from "../src/hooks/useRoom"
+import { useRoomActions } from "../src/hooks/useRoomActions"
+import { useStatusRedirect } from "../src/hooks/useStatusRedirect"
 
-const VoteButton = ({ icon, color, onPress, disabled }: any) => (
-  <TouchableOpacity
-    activeOpacity={0.8}
-    onPress={onPress}
-    disabled={disabled}
+// Shown to the defender while the jury votes, and to voters after they've voted
+const WaitingPage = ({ title, message }: { title: string; message: string }) => (
+  <Page
+    title={title}
   >
     <View
       style={{
-        backgroundColor: color,
-        width: 140,
-        height: 140,
-        borderRadius: 24,
-        justifyContent: 'center',
+        flex: 1,
         alignItems: 'center',
-        shadowColor: color,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 5
       }}
     >
-      {icon}
+      <Text
+        style={{
+          fontSize: 30,
+          marginTop: 20,
+          color: COLORS.light,
+          marginBottom: 20,
+        }}
+      >
+        {message}
+      </Text>
+      <Spinner size="large" />
     </View>
-  </TouchableOpacity>
+  </Page>
 )
 
 const Voting = () => {
-  const router = useRouter()
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null)
   const myPlayerId = useGameSessionStore((s) => s.session?.playerId ?? null)
 
-  const { room, submitVote } = useLobby(roomId || undefined)
+  const { room } = useRoom(roomId || undefined)
+  const { submitVote } = useRoomActions(roomId || undefined)
 
   const [hasVoted, setHasVoted] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
@@ -49,13 +51,7 @@ const Voting = () => {
   const isDefender = currentTurn?.defenderId === myPlayerId
   const defenderName = room?.players.find(p => p.id === currentTurn?.defenderId)?.name || 'Defendant'
 
-  useEffect(() => {
-    if (room?.status === 'DEFENSE') {
-      router.replace('/defense')
-    } else if (room?.status === 'RESULTS') {
-      router.replace('/results')
-    }
-  }, [room?.status])
+  useStatusRedirect(room?.status, { DEFENSE: '/defense', RESULTS: '/results' })
 
   const handleVote = async (value: number) => {
     setLoading(true)
@@ -71,56 +67,11 @@ const Voting = () => {
   }
 
   if (isDefender) {
-    return (
-      <Page
-        title="Judgement Time"
-      >
-        <View
-          style={{
-            flex: 1,
-            alignItems: 'center',
-          }}>
-          <Text
-            style={{
-              fontSize: 30,
-              marginTop: 20,
-              color: COLORS.light,
-              marginBottom: 20,
-            }}
-          >
-            The jury is deciding...
-          </Text>
-          <Spinner size="large" />
-        </View>
-      </Page>
-    )
+    return <WaitingPage title="Judgement Time" message="The jury is deciding..." />
   }
 
   if (hasVoted) {
-    return (
-      <Page
-        title="Vote Locked In"
-      >
-        <View
-          style={{
-            flex: 1,
-            alignItems: 'center',
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 30,
-              marginTop: 20,
-              color: COLORS.light,
-              marginBottom: 20,
-            }}
-          >
-            Waiting for others to vote...
-          </Text>
-          <Spinner size="large" />
-        </View>
-      </Page>
-    )
+    return <WaitingPage title="Vote Locked In" message="Waiting for others to vote..." />
   }
 
   return (
@@ -143,34 +94,9 @@ const Voting = () => {
           Did <Text style={{ fontWeight: 'bold' }}>{defenderName}</Text> defend this well?
         </Text>
 
-        <Card
-          style={{
-            width: '100%',
-            maxWidth: 320,
-            minHeight: 340,
-            paddingVertical: 20,
-            paddingHorizontal: 20,
-            borderRadius: 18,
-            backgroundColor: COLORS.light,
-          }}
-          bordered
-        >
-          <Text
-            unstyled
-            style={{
-              flex: 1,
-              color: COLORS.dark,
-              fontSize: 18,
-              fontWeight: '600',
-              minHeight: 200,
-              textAlignVertical: 'top',
-              height: '100%',
-              width: '100%',
-            }}
-          >
-            {currentTurn?.promptText}
-          </Text>
-        </Card>
+        <PromptCard>
+          <PromptText>{currentTurn?.promptText}</PromptText>
+        </PromptCard>
 
         <XStack
           style={{
@@ -183,7 +109,7 @@ const Voting = () => {
           {/* BAD BUTTON (-1) */}
           <VoteButton
             icon={<ThumbsDown size={32} color="#fff" />}
-            color="#FF4500"
+            color={COLORS.danger}
             onPress={() => handleVote(-1)}
             disabled={loading}
           />
@@ -191,7 +117,7 @@ const Voting = () => {
           {/* GOOD BUTTON (+1) */}
           <VoteButton
             icon={<ThumbsUp size={32} color="#fff" />}
-            color="#4CAF50"
+            color={COLORS.success}
             onPress={() => handleVote(1)}
             disabled={loading}
           />
