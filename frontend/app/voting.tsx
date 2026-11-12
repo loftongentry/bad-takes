@@ -12,9 +12,10 @@ import { useRoomActions } from "../src/hooks/useRoomActions"
 import { useStatusRedirect } from "../src/hooks/useStatusRedirect"
 
 // Shown to the defender while the jury votes, and to voters after they've voted
-const WaitingPage = ({ title, message }: { title: string; message: string }) => (
+const WaitingPage = ({ title, message, onBack }: { title: string; message: string; onBack: () => void }) => (
   <Page
     title={title}
+    onBack={onBack}
   >
     <View
       style={{
@@ -42,7 +43,7 @@ const Voting = () => {
   const myPlayerId = useGameSessionStore((s) => s.session?.playerId ?? null)
 
   const { room } = useRoom(roomId || undefined)
-  const { submitVote } = useRoomActions(roomId || undefined)
+  const { leaveGame, submitVote } = useRoomActions(roomId || undefined)
 
   const [hasVoted, setHasVoted] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
@@ -67,11 +68,11 @@ const Voting = () => {
   }
 
   if (isDefender) {
-    return <WaitingPage title="Judgement Time" message="The jury is deciding..." />
+    return <WaitingPage title="Judgement Time" message="The jury is deciding..." onBack={leaveGame} />
   }
 
   if (hasVoted) {
-    return <WaitingPage title="Vote Locked In" message="Waiting for others to vote..." />
+    return <WaitingPage title="Vote Locked In" message="Waiting for others to vote..." onBack={leaveGame} />
   }
 
   return (

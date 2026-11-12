@@ -21,7 +21,7 @@ const LobbyScreen = () => {
   const isHost = useGameSessionStore((s) => s.session?.isHost ?? false)
 
   const { room, loading } = useRoom(roomId || undefined)
-  const { kickPlayer, startGame } = useRoomActions(roomId || undefined)
+  const { leaveGame, kickPlayer, startGame } = useRoomActions(roomId || undefined)
   const [startLoading, setStartLoading] = useState<boolean>(false)
 
   useStatusRedirect(room?.status, { PROMPT_ENTRY: '/prompt-entry' })
@@ -70,6 +70,7 @@ const LobbyScreen = () => {
     <Page
       title={room.settings.lobbyName || 'Game Lobby'}
       subtitle={subText}
+      onBack={leaveGame}
     >
       <View style={{ width: '100%', maxWidth: 340 }}>
         <FormCard>

@@ -14,7 +14,7 @@ const Results = () => {
   const myPlayerId = useGameSessionStore((s) => s.session?.playerId ?? null)
 
   const { room } = useRoom(roomId || undefined)
-  const { resetGame } = useRoomActions(roomId || undefined)
+  const { leaveGame, resetGame } = useRoomActions(roomId || undefined)
   const [loading, setLoading] = useState(false)
 
   const isHost = room?.players.find(p => p.id === myPlayerId)?.isHost
@@ -40,6 +40,7 @@ const Results = () => {
   return (
     <Page
       title="Game Results"
+      onBack={leaveGame}
     >
       <ScrollView
         showsVerticalScrollIndicator={false}

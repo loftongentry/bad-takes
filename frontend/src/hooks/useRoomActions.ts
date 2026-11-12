@@ -95,7 +95,10 @@ export function useRoomActions(roomId?: string) {
         console.warn("Network failed while leaving room (User forced exit):", error);
       } finally {
         clearSession();
-        router.dismissAll();
+        // The room-closed handler in useRoom may have already navigated home
+        if (router.canGoBack()) {
+          router.dismissAll();
+        }
       }
     },
 

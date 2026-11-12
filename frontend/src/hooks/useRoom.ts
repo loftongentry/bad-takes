@@ -25,12 +25,14 @@ export function useRoom(roomId?: string) {
   );
 
   // 2. THE LISTENER
-  // This opens the WebSocket. When a message arrives, it silently updates the Apollo Cache.
-  // It doesn't return data itself; it just feeds the 'Watcher' above.
-  useSubscription(ROOM_OPS.SUB, {
+  // This opens the WebSocket. When a message arrives, it updates the Apollo Cache, which feeds the
+  // 'Watcher' above. The one exception is the server's "room closed" message (room: null): Apollo
+  // stores that separately from the query's data, so the Watcher never sees it and we check it here.
+  const { data: subData } = useSubscription<{ room: Room | null }>(ROOM_OPS.SUB, {
     variables: { roomId },
     skip: !roomId,
   });
+  const roomClosed = subData?.room === null;
 
   const room = data?.room || null;
 
@@ -41,16 +43,17 @@ export function useRoom(roomId?: string) {
     // 2. Define the navigation logic
     const handleExit = () => {
       clearSession();
-      if (router.canGoBack()) {
-        // Small timeout ensures we aren't mid-render when we navigate
-        setTimeout(() => {
+      // Small timeout ensures we aren't mid-render when we navigate. Checked inside the timeout
+      // because leaveGame may have already navigated home by the time it runs.
+      setTimeout(() => {
+        if (router.canGoBack()) {
           router.dismissAll();
-        }, 0);
-      }
+        }
+      }, 0);
     };
 
-    // Room was closed (data became null after loading finished)
-    if (room === null) {
+    // Room was closed: the server said so, or the room no longer exists
+    if (roomClosed || room === null) {
       handleExit();
       return;
     }
@@ -62,7 +65,7 @@ export function useRoom(roomId?: string) {
         handleExit();
       }
     }
-  }, [room, loading, myPlayerId, roomId]);
+  }, [room, roomClosed, loading, myPlayerId, roomId]);
 
   return { room, loading, error };
 }
