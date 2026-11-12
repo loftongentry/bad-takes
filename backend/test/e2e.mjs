@@ -266,6 +266,31 @@ test('invalid votes are rejected', async () => {
   assert((await getRoom(roomId)).gameState.votesCast === 0, 'no invalid vote should have been recorded');
 });
 
+test('turns go in random order and nobody defends their own take (30 games x 3 players)', async () => {
+  const games = await Promise.all(Array.from({ length: 30 }, (_, i) => setupRoom([`Host${i}`, `B${i}`, `C${i}`])));
+  const firstDefenders = new Set();
+  let selfDefenses = 0;
+
+  await Promise.all(games.map(async ({ roomId, players }) => {
+    await startGame(roomId);
+    // Each prompt's text names its author, so we can tell whose take is being defended
+    for (const p of players) await submitPrompt(roomId, p.id, `take by ${p.id}`);
+
+    let room = await getRoom(roomId);
+    firstDefenders.add(players.findIndex((p) => p.id === room.gameState.currentTurn.defenderId));
+    while (room.status === 'DEFENSE') {
+      const { defenderId, promptText } = room.gameState.currentTurn;
+      if (promptText === `take by ${defenderId}`) selfDefenses++;
+      await endTurn(roomId);
+      for (const v of players.filter((p) => p.id !== defenderId)) await submitVote(roomId, v.id, 1);
+      room = await getRoom(roomId);
+    }
+  }));
+
+  assert(selfDefenses === 0, `${selfDefenses} turns had a player defending their own take`);
+  assert(firstDefenders.size > 1, 'the same seat (the host) went first in all 30 games');
+});
+
 test('a game needs at least 2 players and can only be started once', async () => {
   const solo = await setupRoom(['Solo']);
   const res = await gqlRaw(`mutation($r:ID!){ startGame(roomId:$r){ status } }`, { r: solo.roomId });
