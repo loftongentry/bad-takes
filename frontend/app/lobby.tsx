@@ -1,9 +1,10 @@
 // TODO: Add in (potentially) more settings
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { X } from "@tamagui/lucide-icons";
 import Animated from "react-native-reanimated";
 import { listEnter, listExit, listReflow } from "../src/ui/soapbox/motion";
+import { play } from "../src/audio/sfx";
 import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { Board } from "../src/ui/soapbox/Board";
 import { CodeTiles } from "../src/ui/soapbox/CodeTiles";
@@ -24,6 +25,16 @@ const LobbyScreen = () => {
   const { leaveGame, kickPlayer, startGame } = useRoomActions(roomId || undefined);
   const rules = useRules();
   const [startLoading, setStartLoading] = useState<boolean>(false);
+
+  // A pop when someone joins (not for the players already here when the lobby opens)
+  const playerCount = room?.players.length ?? 0;
+  const lastPlayerCount = useRef(playerCount);
+  useEffect(() => {
+    if (playerCount > lastPlayerCount.current && lastPlayerCount.current > 0) {
+      play("pop");
+    }
+    lastPlayerCount.current = playerCount;
+  }, [playerCount]);
 
   // Back buttons below call leaveGame so the server drops this player too; clearing only the
   // local session would leave a ghost player behind that holds up everyone else.

@@ -1,9 +1,11 @@
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated from "react-native-reanimated";
 import { HowToPlay } from "../src/ui/HowToPlay";
 import { useTrackHomeScreen } from "../src/navigation/home";
 import { CautionTape } from "../src/ui/soapbox/CautionTape";
+import { SoundToggle } from "../src/ui/soapbox/SoundToggle";
 import { KraftBackground } from "../src/ui/soapbox/KraftBackground";
 import { Sign } from "../src/ui/soapbox/Sign";
 import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
@@ -15,6 +17,7 @@ const WelcomeScreen = () => {
   useTrackHomeScreen();
   // Short phones (an iPhone SE is 667 points tall) get a smaller sign and tape closer to the edges
   const compact = useWindowDimensions().height < 740;
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.screen}>
@@ -29,6 +32,11 @@ const WelcomeScreen = () => {
         direction="left"
         style={[styles.tapeBottom, compact ? styles.tapeBottomCompact : null]}
       />
+
+      {/* Pinned over the tape in the top corner */}
+      <View style={[styles.soundToggle, { top: insets.top + 10 }]}>
+        <SoundToggle />
+      </View>
 
       <View style={styles.content}>
         <Animated.View entering={settleIn(60)}>
@@ -73,6 +81,7 @@ const styles = StyleSheet.create({
   tapeTop: { top: 54, transform: [{ rotate: "-5deg" }] },
   tapeBottom: { bottom: 40, transform: [{ rotate: "3deg" }] },
   tapeTopCompact: { top: 14 },
+  soundToggle: { position: "absolute", right: 16, zIndex: 2 },
   tapeBottomCompact: { bottom: 2 },
   content: {
     flex: 1,

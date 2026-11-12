@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { Platform, type StyleProp, type ViewStyle } from "react-native";
 import * as Haptics from "expo-haptics";
+import { play, type SoundName } from "../../audio/sfx";
 import Animated, {
   Easing,
   FadeInDown,
@@ -58,7 +59,13 @@ type Frame = {
   scaleX: number;
   scaleY: number;
 };
-type FlourishSpec = { frames: Frame[]; duration: number };
+// `hit`: the moment it lands (0 to 1 through the animation), the sound it makes, and whether
+// phones thud
+type FlourishSpec = {
+  frames: Frame[];
+  duration: number;
+  hit: { at: number; sound: SoundName; haptic: boolean };
+};
 
 type FrameValues = {
   opacity?: number;
@@ -78,6 +85,7 @@ export const FLOURISHES = {
   // A title punches in, overshoots, and snaps back
   punch: {
     duration: 520,
+    hit: { at: 0.45, sound: "punch", haptic: false },
     frames: [
       frame(0, { opacity: 0, scale: 2.2, rotate: -6 }),
       frame(0.1, { scale: 1.9, rotate: -4 }),
@@ -89,6 +97,7 @@ export const FLOURISHES = {
   // A sign falls onto the board (speeding up), squashes on impact, and bounces back into shape
   slam: {
     duration: 700,
+    hit: { at: 0.55, sound: "slam", haptic: true },
     frames: [
       frame(0, { opacity: 0, translateY: -420, rotate: -9, scale: 1.08 }),
       frame(0.05, { translateY: -418, rotate: -9, scale: 1.08 }),
@@ -102,6 +111,7 @@ export const FLOURISHES = {
   // A rubber stamp hits the sign, from big and faint to small and inked, ending crooked
   stamp: {
     duration: 620,
+    hit: { at: 0.6, sound: "stamp", haptic: true },
     frames: [
       frame(0, { opacity: 0, scale: 2.6, rotate: -22 }),
       frame(0.15, { opacity: 0.6, scale: 2.2, rotate: -19 }),
@@ -111,20 +121,25 @@ export const FLOURISHES = {
   },
 } satisfies Record<string, FlourishSpec>;
 
-// Plays one of the FLOURISHES once, when it first appears (give it a new `key` to replay it).
-// Until its delay is up it's invisible but already takes its place in the layout.
+// Plays one of the FLOURISHES once, when it first appears (give it a new `key` to replay it),
+// with its sound (and haptic thud) as it lands. Until its delay is up it's invisible but
+// already takes its place in the layout. With reduced motion it's shown in place at once, but
+// the sound still plays.
 export const Flourish = ({
   kind,
   delay = 0,
+  silent = false,
   style,
   children,
 }: {
   kind: keyof typeof FLOURISHES;
   delay?: number;
+  // No sound or thud (the Motion lab's first, automatic play)
+  silent?: boolean;
   style?: StyleProp<ViewStyle>;
   children: ReactNode;
 }) => {
-  const { frames, duration } = FLOURISHES[kind];
+  const { frames, duration, hit } = FLOURISHES[kind];
   const reduceMotion = useReducedMotion();
   const progress = useSharedValue(reduceMotion ? 1 : 0);
 
@@ -135,6 +150,23 @@ export const Flourish = ({
     }
     progress.value = withDelay(delay, withTiming(1, { duration, easing: Easing.linear }));
   }, [reduceMotion, delay, duration, progress]);
+
+  // The sound (and thud) when it lands
+  useEffect(() => {
+    if (silent) {
+      return;
+    }
+    const landing = setTimeout(
+      () => {
+        play(hit.sound);
+        if (hit.haptic) {
+          thud();
+        }
+      },
+      delay + duration * hit.at,
+    );
+    return () => clearTimeout(landing);
+  }, [delay, duration, hit, silent]);
 
   const at = frames.map((f) => f.at);
   const track = (key: Exclude<keyof Frame, "at">) => frames.map((f) => f[key]);
@@ -156,10 +188,6 @@ export const Flourish = ({
 
   return <Animated.View style={[style, animated]}>{children}</Animated.View>;
 };
-
-// When a flourish's big hit lands (ms after it starts), for timing a haptic thud to it
-export const SLAM_IMPACT_MS = FLOURISHES.slam.duration * 0.55;
-export const STAMP_IMPACT_MS = FLOURISHES.stamp.duration * 0.6;
 
 // A firm haptic tap on phones; nothing on the web or where haptics aren't available
 export const thud = () => {

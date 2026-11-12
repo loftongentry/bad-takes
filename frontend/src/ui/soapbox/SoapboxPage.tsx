@@ -6,6 +6,7 @@ import { useGameSessionStore } from "../../state/gameSessionStore";
 import { goHome } from "../../navigation/home";
 import Animated from "react-native-reanimated";
 import { KraftBackground } from "./KraftBackground";
+import { SoundToggle } from "./SoundToggle";
 import { Flourish, settleIn } from "./motion";
 import { FONTS, SOAPBOX } from "./tokens";
 
@@ -68,7 +69,10 @@ export const SoapboxPage = ({
         <View style={styles.column}>
           <View style={styles.topBar}>
             {showBack ? <BackButton onPress={onBack ?? leave} /> : <View />}
-            {headerRight}
+            <View style={styles.topRight}>
+              <SoundToggle />
+              {headerRight}
+            </View>
           </View>
 
           {titleEntrance === "punch" ? (
@@ -112,6 +116,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 18,
   },
+  topRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   back: {
     width: 44,
     height: 44,

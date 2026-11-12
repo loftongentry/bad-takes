@@ -1,6 +1,7 @@
 import type { ReactNode, Ref } from "react";
 import { Pressable, StyleSheet, Text, type PressableInstance } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { play } from "../../audio/sfx";
 import { FONTS, SOAPBOX } from "./tokens";
 
 type Variant = "primary" | "caution" | "outline";
@@ -49,6 +50,7 @@ export const SoapboxButton = ({
         ref={ref}
         onPress={onPress}
         onPressIn={() => {
+          play("tap");
           press.value = withSpring(1, { damping: 30, stiffness: 900 });
         }}
         onPressOut={() => {

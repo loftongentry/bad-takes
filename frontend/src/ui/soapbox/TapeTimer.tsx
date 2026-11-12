@@ -9,6 +9,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { play } from "../../audio/sfx";
 import { FONTS, SOAPBOX } from "./tokens";
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
@@ -36,10 +37,14 @@ export const TapeTimer = ({
   }, [fraction, progress]);
   const fill = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` }));
 
-  // In the last seconds, a short jolt each time the label changes
+  // In the last seconds, a tick and a short jolt each time the label changes
   const jolt = useSharedValue(0);
   useEffect(() => {
-    if (!urgent || reduceMotion) {
+    if (!urgent) {
+      return;
+    }
+    play("tick");
+    if (reduceMotion) {
       return;
     }
     jolt.value = withSequence(

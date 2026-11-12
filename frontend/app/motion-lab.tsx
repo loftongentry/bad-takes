@@ -1,5 +1,5 @@
-// Motion lab (development builds only): every animation in the app on one screen, each with a
-// button to play it again, so motion can be tuned without playing a whole game. Open it from the
+// Motion lab (development builds only): every animation and sound in the app on one screen, each
+// with a button to play it again (demos are silent until replayed, so opening the lab is quiet), so motion can be tuned without playing a whole game. Open it from the
 // link at the bottom of the Home screen. It uses the same components and presets as the game.
 import { useEffect, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -18,18 +18,11 @@ import { TakeSign, takeTextStyle, type StampKind } from "../src/ui/soapbox/TakeS
 import { TapeTimer } from "../src/ui/soapbox/TapeTimer";
 import { VoteStamp } from "../src/ui/soapbox/VoteStamp";
 import { WaitingNote } from "../src/ui/soapbox/WaitingNote";
-import {
-  Flourish,
-  listEnter,
-  listExit,
-  listReflow,
-  SLAM_IMPACT_MS,
-  STAMP_IMPACT_MS,
-  thud,
-  throwOut,
-} from "../src/ui/soapbox/motion";
+import { Flourish, listEnter, listExit, listReflow, throwOut } from "../src/ui/soapbox/motion";
 import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 import type { Player } from "../src/graphql/types";
+import { play, SOUND_NAMES } from "../src/audio/sfx";
+import { SoundToggle } from "../src/ui/soapbox/SoundToggle";
 
 const SAMPLE_PLAYERS: Player[] = [
   { id: "1", name: "Hannah", isHost: true, score: 3 },
@@ -135,11 +128,9 @@ const MotionLab = () => {
 
   const replaySlam = () => {
     setSlam((n) => n + 1);
-    setTimeout(thud, SLAM_IMPACT_MS);
   };
   const stampIt = (kind: StampKind) => {
     setStamp((s) => ({ kind, run: (s?.run ?? 0) + 1 }));
-    setTimeout(thud, STAMP_IMPACT_MS);
   };
   const addPlayer = () =>
     setPlayers((list) => {
@@ -151,9 +142,23 @@ const MotionLab = () => {
   return (
     <SoapboxPage
       title="Motion Lab"
-      subtitle="Every animation in the game. Follows your phone's Reduce Motion setting."
+      subtitle="Every animation and sound in the game. Motion follows your phone's Reduce Motion setting."
       onBack={() => router.back()}
     >
+      <Demo
+        label="Sounds"
+        where="Each sound on its own. The speaker button mutes them everywhere."
+        controls={<SoundToggle />}
+      >
+        <View style={styles.soundGrid}>
+          {SOUND_NAMES.map((name) => (
+            <LabButton key={name} onPress={() => play(name)} icon={false}>
+              {name}
+            </LabButton>
+          ))}
+        </View>
+      </Demo>
+
       <Demo label="Caution tape" where="Home screen. Scrolls on its own.">
         <View style={styles.tapeStage}>
           <CautionTape
@@ -174,7 +179,7 @@ const MotionLab = () => {
         where="Defense and Cast Your Vote titles."
         controls={<LabButton onPress={() => setPunch((n) => n + 1)}>Replay</LabButton>}
       >
-        <Flourish key={punch} kind="punch">
+        <Flourish key={punch} kind="punch" silent={punch === 0}>
           <Text style={styles.title}>Defend this!</Text>
         </Flourish>
       </Demo>
@@ -184,7 +189,7 @@ const MotionLab = () => {
         where="Each defense turn, and the winner on Results. Phones thud on impact."
         controls={<LabButton onPress={replaySlam}>Replay</LabButton>}
       >
-        <Flourish key={slam} kind="slam">
+        <Flourish key={slam} kind="slam" silent={slam === 0}>
           <TakeSign text="Pineapple belongs on pizza" />
         </Flourish>
       </Demo>
@@ -315,7 +320,7 @@ const MotionLab = () => {
         where="Results. Crates rise 3rd to 1st, then the winner's sign slams down."
         controls={<LabButton onPress={() => setReveal((n) => n + 1)}>Replay</LabButton>}
       >
-        <ResultsReveal key={reveal} players={SAMPLE_PLAYERS} />
+        <ResultsReveal key={reveal} players={SAMPLE_PLAYERS} silent={reveal === 0} />
       </Demo>
     </SoapboxPage>
   );
@@ -323,6 +328,7 @@ const MotionLab = () => {
 
 const styles = StyleSheet.create({
   demo: { marginBottom: 34 },
+  soundGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   where: {
     fontFamily: FONTS.body,
     fontSize: 14,

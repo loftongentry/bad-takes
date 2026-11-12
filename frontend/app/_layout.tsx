@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
 import { ArchivoBlack_400Regular } from "@expo-google-fonts/archivo-black";
@@ -9,6 +10,7 @@ import config from "../tamagui.config";
 import { ApolloProvider } from "@apollo/client/react";
 import { apolloClient } from "../src/graphql/client";
 import { SOAPBOX } from "../src/ui/soapbox/tokens";
+import { preloadSounds } from "../src/audio/sfx";
 
 const Layout = () => {
   // The Soapbox fonts (see src/ui/soapbox/tokens.ts). If one fails to load, the app still
@@ -19,6 +21,11 @@ const Layout = () => {
     Archivo_700Bold,
     PermanentMarker_400Regular,
   });
+  // Load the sound effects up front so the first one plays on time
+  useEffect(() => {
+    preloadSounds();
+  }, []);
+
   if (!fontsLoaded && !fontError) {
     return null;
   }

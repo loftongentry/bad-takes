@@ -10,7 +10,8 @@ import { Crown } from "@tamagui/lucide-icons";
 import type { Player } from "../../graphql/types";
 import { Board } from "./Board";
 import { Sign } from "./Sign";
-import { Flourish, popIn, settleIn, SLAM_IMPACT_MS, thud } from "./motion";
+import { play } from "../../audio/sfx";
+import { Flourish, popIn, settleIn } from "./motion";
 import { FONTS, SOAPBOX } from "./tokens";
 
 const points = (score: number) => (score === 1 ? "1 pt" : `${score} pts`);
@@ -23,20 +24,27 @@ const CRATE_HEIGHT = [118, 86, 62];
 export const REVEAL = {
   crate: [1200, 750, 300], // by place: 1st, 2nd, 3rd
   sign: 1900,
+  crown: 2420,
   rest: 2300,
   actions: 2600,
 };
 
 // A player standing on a wooden crate; the crate's height shows their place. The crate rises
 // out of the ground with a springy overshoot, then the player's name drops onto it.
-const Podium = ({ player, place }: { player: Player; place: number }) => {
+const Podium = ({ player, place, silent }: { player: Player; place: number; silent: boolean }) => {
   const height = useSharedValue(0);
   useEffect(() => {
     height.value = withDelay(
       REVEAL.crate[place],
       withSpring(CRATE_HEIGHT[place], { damping: 11, stiffness: 150 }),
     );
-  }, [height, place]);
+    if (silent) {
+      return;
+    }
+    // A wooden knock as the crate shoots up
+    const knock = setTimeout(() => play("crate"), REVEAL.crate[place] + 120);
+    return () => clearTimeout(knock);
+  }, [height, place, silent]);
   const rise = useAnimatedStyle(() => ({ height: height.value }));
 
   return (
@@ -58,29 +66,36 @@ const Podium = ({ player, place }: { player: Player; place: number }) => {
 
 // The end-of-game reveal: crates rise from 3rd place to 1st, the winner's sign slams down with
 // a crown, then anyone below 3rd is listed. Used by the Results screen (and the Motion lab).
-export const ResultsReveal = ({ players }: { players: Player[] }) => {
+// `silent` skips the sounds (the Motion lab's first, automatic play).
+export const ResultsReveal = ({
+  players,
+  silent = false,
+}: {
+  players: Player[];
+  silent?: boolean;
+}) => {
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
   const winner = sortedPlayers[0];
   // On the podium, 1st stands in the middle with 2nd on the left and 3rd on the right
   const podium = [1, 0, 2].filter((place) => sortedPlayers[place]);
   const rest = sortedPlayers.slice(3);
 
-  // Phones thud as the winner's sign lands
+  // A fanfare as the crown lands on the winner's sign (the sign's slam makes its own sound)
   const hasWinner = !!winner;
   useEffect(() => {
-    if (!hasWinner) {
+    if (!hasWinner || silent) {
       return;
     }
-    const impact = setTimeout(thud, REVEAL.sign + SLAM_IMPACT_MS);
-    return () => clearTimeout(impact);
-  }, [hasWinner]);
+    const crowned = setTimeout(() => play("fanfare"), REVEAL.crown);
+    return () => clearTimeout(crowned);
+  }, [hasWinner, silent]);
 
   return (
     <>
       {winner ? (
-        <Flourish kind="slam" delay={REVEAL.sign}>
+        <Flourish kind="slam" delay={REVEAL.sign} silent={silent}>
           <Sign tilt={-2}>
-            <Animated.View entering={popIn(REVEAL.sign + 520)}>
+            <Animated.View entering={popIn(REVEAL.crown)}>
               <Crown size={44} color={SOAPBOX.marker} fill={SOAPBOX.caution} />
             </Animated.View>
             <Text style={styles.champion}>Grand Champion</Text>
@@ -94,7 +109,12 @@ export const ResultsReveal = ({ players }: { players: Player[] }) => {
 
       <View style={styles.stage}>
         {podium.map((place) => (
-          <Podium key={sortedPlayers[place].id} player={sortedPlayers[place]} place={place} />
+          <Podium
+            key={sortedPlayers[place].id}
+            player={sortedPlayers[place]}
+            place={place}
+            silent={silent}
+          />
         ))}
       </View>
       <View style={styles.ground} />

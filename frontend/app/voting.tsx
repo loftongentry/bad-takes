@@ -8,7 +8,7 @@ import { TakeSign } from "../src/ui/soapbox/TakeSign";
 import { VoteStamp } from "../src/ui/soapbox/VoteStamp";
 import { WaitingNote } from "../src/ui/soapbox/WaitingNote";
 import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
-import { settleIn, STAMP_IMPACT_MS, thud } from "../src/ui/soapbox/motion";
+import { settleIn } from "../src/ui/soapbox/motion";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
@@ -81,7 +81,6 @@ const Voting = () => {
     const round = votingRound;
     setStamp({ round, kind: value > 0 ? "up" : "down" });
     setStampLanding(true);
-    setTimeout(thud, STAMP_IMPACT_MS);
     setLoading(true);
     const pressedAt = Date.now();
     try {

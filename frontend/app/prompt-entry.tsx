@@ -11,6 +11,7 @@ import { takeFontSize, takeTextStyle } from "../src/ui/soapbox/TakeSign";
 import { WaitingNote } from "../src/ui/soapbox/WaitingNote";
 import { FONTS, NO_WEB_OUTLINE, SOAPBOX } from "../src/ui/soapbox/tokens";
 import { throwOut } from "../src/ui/soapbox/motion";
+import { play } from "../src/audio/sfx";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
@@ -55,6 +56,7 @@ const PromptEntry = () => {
     try {
       const success = await submitPrompt(badTake);
       if (success) {
+        play("whoosh"); // the sign gets tossed
         setJustSubmitted(true);
       }
     } catch (error) {

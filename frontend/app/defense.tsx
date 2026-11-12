@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { StyleSheet, Text } from "react-native";
 import Animated from "react-native-reanimated";
 import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
@@ -8,7 +7,7 @@ import { TakeSign } from "../src/ui/soapbox/TakeSign";
 import { TapeTimer } from "../src/ui/soapbox/TapeTimer";
 import { WaitingNote } from "../src/ui/soapbox/WaitingNote";
 import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
-import { Flourish, settleIn, SLAM_IMPACT_MS, thud } from "../src/ui/soapbox/motion";
+import { Flourish, settleIn } from "../src/ui/soapbox/motion";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
@@ -42,15 +41,8 @@ const Defense = () => {
     room?.settings.timeLimit ?? 0,
   );
 
-  // A new turn: the sign slams down, and phones thud as it hits
+  // A new turn replays the slam (and its thud)
   const turnKey = currentTurn ? `${currentTurn.defenderId}:${currentTurn.promptText}` : null;
-  useEffect(() => {
-    if (!turnKey) {
-      return;
-    }
-    const impact = setTimeout(thud, SLAM_DELAY_MS + SLAM_IMPACT_MS);
-    return () => clearTimeout(impact);
-  }, [turnKey]);
 
   if (!currentTurn || !rules) {
     return (

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Minus, Plus } from "@tamagui/lucide-icons";
 import Animated from "react-native-reanimated";
 import { popIn } from "./motion";
+import { play } from "../../audio/sfx";
 import { FONTS, NO_WEB_OUTLINE, SOAPBOX } from "./tokens";
 
 // One labelled line inside a Board: the label on the left, a control on the right
@@ -61,7 +62,10 @@ const StepButton = ({
   children: ReactNode;
 }) => (
   <Pressable
-    onPress={onPress}
+    onPress={() => {
+      play("tap");
+      onPress();
+    }}
     disabled={disabled}
     accessibilityRole="button"
     accessibilityLabel={label}

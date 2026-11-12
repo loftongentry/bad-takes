@@ -97,8 +97,14 @@ npm run typecheck       # TypeScript, both packages
 npm --prefix backend run test:e2e    # plays real games against the backend (needs Redis running)
 ```
 
-To tune animations without playing a game, open **Motion lab (dev)** at the bottom of the Home
-screen (development builds only): it shows every animation with a button to replay it.
+To tune animations and sounds without playing a game, open **Motion lab (dev)** at the bottom of
+the Home screen (development builds only): it shows every animation and sound with a button to
+replay it.
+
+The sound effects in `frontend/assets/sounds/` are synthesized by
+[`frontend/scripts/make-sounds.js`](frontend/scripts/make-sounds.js) (`npm --prefix frontend run
+make-sounds`), so there's nothing to license. To use a recorded sound instead, replace a file with
+one of the same name.
 
 The end-to-end tests start their own backend on port 3599, so they can run alongside `npm run dev`.
 

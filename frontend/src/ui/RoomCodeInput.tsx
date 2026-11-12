@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Pressable, StyleSheet, TextInput, type TextInputInstance } from "react-native";
 import { CodeTiles } from "./soapbox/CodeTiles";
+import { play } from "../audio/sfx";
 
 const CODE_LENGTH = 5;
 
@@ -36,7 +37,14 @@ export const RoomCodeInput = ({
       <TextInput
         ref={inputRef}
         value={sanitized}
-        onChangeText={(text) => onChange(sanitize(text))}
+        onChangeText={(text) => {
+          const next = sanitize(text);
+          // A pop for each letter that lands on a tile
+          if (next.length > sanitized.length) {
+            play("pop");
+          }
+          onChange(next);
+        }}
         autoCapitalize="characters"
         autoCorrect={false}
         keyboardType="default"
