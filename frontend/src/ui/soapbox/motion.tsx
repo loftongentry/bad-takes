@@ -4,8 +4,11 @@ import * as Haptics from "expo-haptics";
 import Animated, {
   Easing,
   FadeInDown,
+  FadeInRight,
+  FadeOutLeft,
   interpolate,
   Keyframe,
+  LinearTransition,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -25,6 +28,11 @@ export const settleIn = (delay = 0) =>
 
 // A quick overshooting pop, for letters landing on tiles and numbers changing
 export const popIn = (delay = 0) => ZoomIn.springify().damping(9).stiffness(260).delay(delay);
+
+// Lists of players: newcomers slide in, leavers slide out, and the rest close the gap
+export const listEnter = FadeInRight.springify().damping(15);
+export const listExit = FadeOutLeft.duration(200);
+export const listReflow = LinearTransition.springify().damping(18);
 
 // A finished sign gets tossed off the top of the screen (used as an `exiting` animation)
 export const throwOut = new Keyframe({
@@ -93,7 +101,7 @@ export const FLOURISHES = {
   },
   // A rubber stamp hits the sign, from big and faint to small and inked, ending crooked
   stamp: {
-    duration: 380,
+    duration: 620,
     frames: [
       frame(0, { opacity: 0, scale: 2.6, rotate: -22 }),
       frame(0.15, { opacity: 0.6, scale: 2.2, rotate: -19 }),
@@ -151,6 +159,7 @@ export const Flourish = ({
 
 // When a flourish's big hit lands (ms after it starts), for timing a haptic thud to it
 export const SLAM_IMPACT_MS = FLOURISHES.slam.duration * 0.55;
+export const STAMP_IMPACT_MS = FLOURISHES.stamp.duration * 0.6;
 
 // A firm haptic tap on phones; nothing on the web or where haptics aren't available
 export const thud = () => {

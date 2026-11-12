@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { X } from "@tamagui/lucide-icons";
-import Animated, { FadeInRight, FadeOutLeft, LinearTransition } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
+import { listEnter, listExit, listReflow } from "../src/ui/soapbox/motion";
 import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { Board } from "../src/ui/soapbox/Board";
 import { CodeTiles } from "../src/ui/soapbox/CodeTiles";
@@ -102,9 +103,9 @@ const LobbyScreen = () => {
             // New players slide in, leavers slide out, and the rest close the gap
             <Animated.View
               key={p.id}
-              entering={FadeInRight.springify().damping(15)}
-              exiting={FadeOutLeft.duration(200)}
-              layout={LinearTransition.springify().damping(18)}
+              entering={listEnter}
+              exiting={listExit}
+              layout={listReflow}
               style={[styles.player, last ? null : styles.playerDivider]}
             >
               <Text style={styles.playerName} numberOfLines={1}>

@@ -1,6 +1,6 @@
 // TODO: Instead of just showing a spinner after voting, show the list of players, with an indicator of who has voted and who hasn't.
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import Animated from "react-native-reanimated";
 import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { HostPlayersMenu } from "../src/ui/HostPlayersMenu";
@@ -8,7 +8,7 @@ import { TakeSign } from "../src/ui/soapbox/TakeSign";
 import { VoteStamp } from "../src/ui/soapbox/VoteStamp";
 import { WaitingNote } from "../src/ui/soapbox/WaitingNote";
 import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
-import { Flourish, settleIn, thud } from "../src/ui/soapbox/motion";
+import { settleIn, STAMP_IMPACT_MS, thud } from "../src/ui/soapbox/motion";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
@@ -21,23 +21,7 @@ const closesIn = (secondsLeft: number | null) =>
 
 // How long the vote stamp stays on screen before "Vote Locked In" replaces it, so the stamp is
 // seen landing. Local to this player's screen: the vote itself is sent straight away.
-const STAMP_HOLD_MS = 700;
-
-const STAMP = {
-  down: { word: "BOO", color: SOAPBOX.boo },
-  up: { word: "CHEER", color: SOAPBOX.cheer },
-} as const;
-
-// The inked mark a vote stamp leaves on the sign
-const StampMark = ({ kind }: { kind: keyof typeof STAMP }) => (
-  <View style={styles.markLayer} pointerEvents="none">
-    <Flourish kind="stamp" style={[styles.mark, { borderColor: STAMP[kind].color }]}>
-      <View style={[styles.markInner, { borderColor: STAMP[kind].color }]}>
-        <Text style={[styles.markWord, { color: STAMP[kind].color }]}>{STAMP[kind].word}</Text>
-      </View>
-    </Flourish>
-  </View>
-);
+const STAMP_HOLD_MS = 1000;
 
 // Shown to the defender while the jury votes, and to voters after they've voted
 const WaitingPage = ({
@@ -97,7 +81,7 @@ const Voting = () => {
     const round = votingRound;
     setStamp({ round, kind: value > 0 ? "up" : "down" });
     setStampLanding(true);
-    thud();
+    setTimeout(thud, STAMP_IMPACT_MS);
     setLoading(true);
     const pressedAt = Date.now();
     try {
@@ -155,8 +139,7 @@ const Voting = () => {
       {secondsLeft !== null ? <Text style={styles.clock}>{closesIn(secondsLeft)}</Text> : null}
 
       <Animated.View entering={settleIn(80)} style={{ marginTop: 22 }}>
-        <TakeSign text={currentTurn?.promptText ?? ""} />
-        {shownStamp ? <StampMark kind={shownStamp} /> : null}
+        <TakeSign text={currentTurn?.promptText ?? ""} stamp={shownStamp} />
       </Animated.View>
 
       <Animated.View entering={settleIn(180)} style={styles.stamps}>
@@ -183,25 +166,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: SOAPBOX.markerSoft,
   },
-  // Drawn over the sign (the sign's cardboard must not be stacked above it)
-  markLayer: {
-    zIndex: 2,
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  mark: {
-    padding: 4,
-    borderWidth: 5,
-    borderRadius: 6,
-    backgroundColor: "rgba(243, 231, 214, 0.35)",
-  },
-  markInner: { paddingHorizontal: 18, paddingVertical: 6, borderWidth: 2, borderRadius: 3 },
-  markWord: { fontFamily: FONTS.heading, fontSize: 44, letterSpacing: 2 },
   stamps: { flexDirection: "row", justifyContent: "center", gap: 22, marginTop: 34 },
 });
 
