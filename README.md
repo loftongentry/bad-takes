@@ -97,6 +97,9 @@ npm run typecheck       # TypeScript, both packages
 npm --prefix backend run test:e2e    # plays real games against the backend (needs Redis running)
 ```
 
+To tune animations without playing a game, open **Motion lab (dev)** at the bottom of the Home
+screen (development builds only): it shows every animation with a button to replay it.
+
 The end-to-end tests start their own backend on port 3599, so they can run alongside `npm run dev`.
 
 GitHub Actions runs all four on every push to `main` and every pull request

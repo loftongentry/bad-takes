@@ -56,6 +56,12 @@ const WelcomeScreen = () => {
           <Animated.View entering={settleIn(380)}>
             <HowToPlay />
           </Animated.View>
+          {/* Development builds only: a screen for replaying every animation */}
+          {__DEV__ ? (
+            <Text style={styles.devLink} onPress={() => router.push("/motion-lab")}>
+              Motion lab (dev)
+            </Text>
+          ) : null}
         </View>
       </View>
     </View>
@@ -101,6 +107,14 @@ const styles = StyleSheet.create({
     color: SOAPBOX.markerSoft,
   },
   actions: { marginTop: 36, gap: 14 },
+  devLink: {
+    alignSelf: "center",
+    padding: 6,
+    fontFamily: FONTS.bodyBold,
+    fontSize: 14,
+    textDecorationLine: "underline",
+    color: SOAPBOX.markerSoft,
+  },
 });
 
 export default WelcomeScreen;
