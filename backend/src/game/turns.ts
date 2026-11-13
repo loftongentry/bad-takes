@@ -6,6 +6,7 @@ import { startTurnsIfAllPromptsIn } from "./prompts";
 import { PREP_SECONDS, VOTE_SECONDS } from "./rules";
 import type { Player, Room, RoomStatus, StoredGameState } from "../types";
 import { GameError, roomClosedError } from "./errors";
+import { logFailure, logger } from "../logger";
 
 type TimedPhase = "PROMPT_ENTRY" | "DEFENSE" | "VOTING";
 
@@ -37,7 +38,7 @@ export async function advanceToNextTurn(
     ).toISOString();
   } else {
     state.deadline = null;
-    console.log(`[GameLogic] No more turns in room ${roomId}, transitioning to RESULTS`);
+    logger.info({ roomId }, "no turns left, showing results");
   }
 
   const advanced = await repo.advanceRoom({
@@ -50,9 +51,7 @@ export async function advanceToNextTurn(
     updatedPlayer: scoredPlayer,
   });
   if (!advanced) {
-    console.log(
-      `[GameLogic] Room ${roomId} already advanced past ${fromStatus} by another request`,
-    );
+    logger.debug({ roomId, from: fromStatus }, "already advanced by another request");
     return false;
   }
 
@@ -73,7 +72,7 @@ export function schedulePhaseEnd(roomId: string, phase: TimedPhase, deadline: st
   const delay = Math.max(0, Date.parse(deadline) - Date.now());
   setTimeout(() => {
     endPhaseAtDeadline(roomId, phase, deadline).catch((error) => {
-      console.error(`[GameLogic] Failed to end ${phase} on time for room ${roomId}:`, error);
+      logger.error({ roomId, phase, err: error }, "couldn't end the phase on time");
     });
   }, delay);
 }
@@ -83,7 +82,7 @@ export async function restorePhaseTimers() {
   for (const { roomId, status, deadline } of timed) {
     schedulePhaseEnd(roomId, status, deadline);
   }
-  console.log(`[GameLogic] Restored ${timed.length} phase timer(s)`);
+  logger.info({ count: timed.length }, "restored phase timers");
 }
 
 // Ends the phase whose deadline this is. Does nothing if that phase already ended early
@@ -96,13 +95,13 @@ async function endPhaseAtDeadline(roomId: string, phase: TimedPhase, deadline: s
 
   // Each passes the deadline on, so the phase only ends if it's still this exact one
   if (phase === "PROMPT_ENTRY") {
-    console.log(`[GameLogic] Writing time is up in room ${roomId}`);
+    logger.info({ roomId }, "writing time is up");
     await startTurnsIfAllPromptsIn(roomId, { timeUp: true, deadline });
   } else if (phase === "DEFENSE") {
-    console.log(`[GameLogic] Time's up for the defense in room ${roomId}`);
+    logger.info({ roomId }, "defense time is up");
     await moveToVoting(roomId, deadline);
   } else {
-    console.log(`[GameLogic] Voting closed in room ${roomId}`);
+    logger.info({ roomId }, "voting time is up");
     await tallyIfAllVotesIn(roomId, { votingClosed: true, deadline });
   }
 }
@@ -151,11 +150,11 @@ export async function endTurn(roomId: string, playerToken: string) {
       throw new GameError("Only the defender can end their defense early");
     }
 
-    console.log(`[GameLogic] Ending turn for room ${roomId}`);
+    logger.info({ roomId }, "defender ended their defense");
 
     return await moveToVoting(roomId, room.gameState?.deadline);
   } catch (error) {
-    console.error(`[RoomStore.endTurn] Failed to end turn for room ${roomId}:`, error);
+    logFailure("endTurn", error, { roomId });
     throw error;
   }
 }
@@ -181,7 +180,7 @@ export async function submitVote(roomId: string, playerToken: string, value: num
     }
 
     await repo.recordVote(roomId, playerId, value);
-    console.log(`[GameLogic] Player ${playerId} voted in room ${roomId}`);
+    logger.debug({ roomId, playerId }, "vote recorded");
 
     const tallied = await tallyIfAllVotesIn(roomId);
     if (!tallied) {
@@ -191,7 +190,7 @@ export async function submitVote(roomId: string, playerToken: string, value: num
 
     return true;
   } catch (error) {
-    console.error(`[RoomStore.submitVote] Failed to submit vote for room ${roomId}:`, error);
+    logFailure("submitVote", error, { roomId });
     throw error;
   }
 }
@@ -221,12 +220,11 @@ export async function tallyIfAllVotesIn(
     voterIds.has(voterId),
   );
 
-  console.log(`[GameLogic] Room ${roomId} has ${votes.length}/${voterIds.size} votes`);
   if (votes.length < voterIds.size && !votingClosed) {
     return false;
   }
 
-  console.log(`[GameLogic] Tallying ${votes.length} vote(s) for room ${roomId}`);
+  logger.info({ roomId, votes: votes.length, voters: voterIds.size }, "votes counted");
   const roundScore = votes.reduce((sum, [, vote]) => sum + Number(vote), 0);
 
   // Defender's new score is saved in the same atomic step that advances the turn,

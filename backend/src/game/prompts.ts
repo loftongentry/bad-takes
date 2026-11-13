@@ -6,6 +6,7 @@ import { advanceToNextTurn, schedulePhaseEnd } from "./turns";
 import { requireHost, requirePlayer } from "./permissions";
 import { MIN_PLAYERS, PROMPT_MAX, cleanText } from "./rules";
 import { GameError, roomClosedError } from "./errors";
+import { logFailure, logger } from "../logger";
 
 export async function startGame(roomId: string, hostToken: string) {
   try {
@@ -22,7 +23,7 @@ export async function startGame(roomId: string, hostToken: string) {
       throw new GameError(`Need at least ${MIN_PLAYERS} players to start`);
     }
 
-    console.log(`[RoomStore.startGame] Starting game for room ${roomId}`);
+    logger.info({ roomId, players: room.players.length }, "game started");
 
     // Players have until this deadline to write their take
     const state = emptyGameState();
@@ -49,7 +50,7 @@ export async function startGame(roomId: string, hostToken: string) {
     await repo.publishRoom(updatedRoom);
     return updatedRoom;
   } catch (error) {
-    console.error(`[RoomStore.startGame] Failed to start game ${roomId}:`, error);
+    logFailure("startGame", error, { roomId });
     throw error;
   }
 }
@@ -83,7 +84,7 @@ export async function submitPrompt(roomId: string, playerToken: string, prompt: 
     await repo.publishRoom(updatedRoom);
     return true;
   } catch (error) {
-    console.error(`[RoomStore.submitPrompt] Failed to submit prompt for room ${roomId}:`, error);
+    logFailure("submitPrompt", error, { roomId });
     throw error;
   }
 }
@@ -114,7 +115,7 @@ export async function startTurnsIfAllPromptsIn(
   }
 
   if (prompts.length === 0) {
-    console.log(`[GameLogic] Nobody wrote a take in room ${roomId}, back to the lobby`);
+    logger.info({ roomId }, "nobody wrote a take, back to the lobby");
     const backToLobby = await repo.advanceRoom({
       roomId,
       from: "PROMPT_ENTRY",

@@ -5,6 +5,7 @@ import { emptyGameState } from "./state";
 import { startTurnsIfAllPromptsIn } from "./prompts";
 import { MIN_PLAYERS } from "./rules";
 import { advanceToNextTurn, tallyIfAllVotesIn } from "./turns";
+import { logger } from "../logger";
 
 // Call after the player has been removed from the room
 export async function handlePlayerLeft(roomId: string, playerId: string) {
@@ -15,7 +16,7 @@ export async function handlePlayerLeft(roomId: string, playerId: string) {
 
   // Nobody left to vote, so the game can't continue: end it
   if (room.players.length < MIN_PLAYERS) {
-    console.log(`[GameLogic] Room ${roomId} dropped below ${MIN_PLAYERS} players, ending the game`);
+    logger.info({ roomId }, `fewer than ${MIN_PLAYERS} players left, game over`);
     const state = (await repo.getStoredGameState(roomId)) ?? emptyGameState();
     state.queue = [];
     state.deadline = null;

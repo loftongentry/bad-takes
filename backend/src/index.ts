@@ -14,12 +14,17 @@ import { restorePhaseTimers } from "./game/turns";
 import { GameError } from "./game/errors";
 import { ALLOWED_ORIGINS, PRODUCTION, TRUST_PROXY, isAllowedWebSocketOrigin } from "./security";
 import type { Context } from "./resolvers";
+import { alreadyLogged, logger } from "./logger";
+import { redis } from "./db/redis";
 
 const GRAPH_QL = "/graphql";
 const PORT = process.env.PORT || 3500;
 // Largest request accepted, over HTTP or WebSocket. Real requests are a few KB at most; without
 // a cap, WebSocket messages could be up to 100 MB and stall the server.
 const MAX_REQUEST_BYTES = 64 * 1024;
+
+// How long /health waits for Redis to answer before calling it down
+const HEALTH_TIMEOUT_MS = 1000;
 
 // Errors about the request itself (malformed query, wrong argument types): sent back as they are
 const REQUEST_ERROR_CODES = new Set<unknown>([
@@ -42,7 +47,10 @@ function formatError(formatted: GraphQLFormattedError, error: unknown): GraphQLF
   if (REQUEST_ERROR_CODES.has(formatted.extensions?.code)) {
     return formatted;
   }
-  console.error("Unexpected error", formatted.path ?? "", unwrapResolverError(error));
+  const original = unwrapResolverError(error);
+  if (!alreadyLogged(original)) {
+    logger.error({ path: formatted.path, err: original }, "request failed");
+  }
   return {
     message: "Something went wrong on our end. Please try again.",
     extensions: { code: ApolloServerErrorCode.INTERNAL_SERVER_ERROR },
@@ -91,7 +99,7 @@ async function main() {
   await server.start();
 
   if (PRODUCTION && ALLOWED_ORIGINS.length === 0) {
-    console.warn("ALLOWED_ORIGINS is not set: any web page can use this API from a browser");
+    logger.warn("ALLOWED_ORIGINS is not set: any web page can use this API from a browser");
   }
   app.use(
     GRAPH_QL,
@@ -104,20 +112,30 @@ async function main() {
     }),
   );
 
-  app.get("/health", (_req, res) => {
-    res.send("OK");
+  // For the host's uptime checks: healthy only if Redis answers too, since no game works without
+  // it. 503 otherwise, so a load balancer stops sending players here.
+  app.get("/health", async (_req, res) => {
+    const redisUp = await Promise.race([
+      redis.ping().then(
+        () => true,
+        () => false,
+      ),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), HEALTH_TIMEOUT_MS)),
+    ]);
+    res
+      .status(redisUp ? 200 : 503)
+      .json({ status: redisUp ? "ok" : "unavailable", redis: redisUp });
   });
 
   httpServer.listen(PORT, () => {
-    console.log(`HTTP: http://localhost:${PORT}${GRAPH_QL}`);
-    console.log(`WS:   ws://localhost:${PORT}${GRAPH_QL}`);
+    logger.info(`Listening on http://localhost:${PORT}${GRAPH_QL} (WebSocket on ws://)`);
   });
 
   // Phase timers are in memory, so pick up any defenses/votes that were running before a restart
-  restorePhaseTimers().catch((err) => console.error("Failed to restore phase timers", err));
+  restorePhaseTimers().catch((err) => logger.error({ err }, "couldn't restore phase timers"));
 }
 
 main().catch((err) => {
-  console.error("Server failed to start", err);
+  logger.fatal({ err }, "server failed to start");
   process.exit(1);
 });

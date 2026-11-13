@@ -13,6 +13,7 @@ import {
 } from "./keys";
 import type { GameState, Player, Prompt, Room, RoomStatus, StoredGameState } from "../types";
 import { GameError } from "../game/errors";
+import { logger } from "../logger";
 
 // Each command in a Redis pipeline yields [error, result]
 type PipelineResult<T> = [Error | null, T];
@@ -63,7 +64,7 @@ export async function getRoom(roomId: string): Promise<Room | null> {
     try {
       players = Object.values(playersData).map((p) => JSON.parse(p));
     } catch (parseErr) {
-      console.error(`[RoomStore.get] Failed to parse players for room ${roomId}:`, parseErr);
+      logger.error({ roomId, err: parseErr }, "unreadable player list");
       players = [];
     }
 
@@ -71,7 +72,7 @@ export async function getRoom(roomId: string): Promise<Room | null> {
     try {
       gameState = roomData.gameState ? JSON.parse(roomData.gameState) : null;
     } catch (parseErr) {
-      console.error(`[RoomStore.get] Failed to parse gameState for room ${roomId}:`, parseErr);
+      logger.error({ roomId, err: parseErr }, "unreadable game state");
     }
 
     // Who has voted and who has written a take live in their own hashes (keyed by player)
@@ -100,7 +101,7 @@ export async function getRoom(roomId: string): Promise<Room | null> {
       gameState,
     };
   } catch (error) {
-    console.error(`[RoomStore.get] Critical failure fetching room ${roomId}:`, error);
+    logger.error({ roomId, err: error }, "couldn't read room");
     throw new Error("Internal database error");
   }
 }
@@ -398,12 +399,12 @@ export async function publishRoom(room: Room | null) {
     try {
       await touchRoom(room);
     } catch (e) {
-      console.error(`[RoomStore.touch] Failed to renew expiry for ${room.id}:`, e);
+      logger.error({ roomId: room.id, err: e }, "couldn't renew room expiry");
     }
     try {
       await pubsub.publish(roomChannel(room.id), { room });
     } catch (e) {
-      console.error(`[RoomStore.publish] PubSub failure for ${room.id}:`, e);
+      logger.error({ roomId: room.id, err: e }, "couldn't publish room update");
     }
   }
 }

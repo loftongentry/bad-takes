@@ -8,6 +8,7 @@ import { handlePlayerLeft } from "./departures";
 import { GameError, roomClosedError } from "./errors";
 import { PLAYER_NAME_MAX, checkSettings, cleanText } from "./rules";
 import type { Player, RoomSettings } from "../types";
+import { logFailure, logger } from "../logger";
 
 // Returns the room plus the host's secret player token (only ever sent to the host)
 export async function createRoom(rawHostName: string, rawSettings: RoomSettings) {
@@ -15,8 +16,6 @@ export async function createRoom(rawHostName: string, rawSettings: RoomSettings)
   const settings = checkSettings(rawSettings);
   const roomId = uuid();
   const joinCode = await repo.reserveJoinCode(roomId, makeJoinCode);
-
-  console.log(`[RoomStore.create] Starting creation for host "${hostName}" (Room: ${roomId})`);
 
   const host: Player = { id: uuid(), name: hostName, isHost: true, score: 0 };
   const hostToken = newPlayerToken();
@@ -36,13 +35,13 @@ export async function createRoom(rawHostName: string, rawSettings: RoomSettings)
   try {
     await repo.insertRoom(roomId, roomMeta, host, hostToken);
 
-    console.log(`[RoomStore.create] Success. Room ID: ${roomId}, Join Code: ${joinCode}`);
+    logger.info({ roomId, joinCode }, "room created");
 
     const room = await repo.getRoom(roomId);
     await repo.publishRoom(room);
     return { room, hostId: host.id, hostToken };
   } catch (error) {
-    console.error(`[RoomStore.create] Failed to create room:`, error);
+    logFailure("createRoom", error, { roomId });
     throw error;
   }
 }
@@ -52,7 +51,6 @@ export async function joinRoom(joinCode: string, rawPlayerName: string) {
     const playerName = cleanText(rawPlayerName, "Name", PLAYER_NAME_MAX);
     const roomId = await repo.findRoomIdByCode(joinCode);
     if (!roomId) {
-      console.error(`[RoomStore.join] Invalid code attempt: ${joinCode}`);
       throw new GameError("There's no game with that code. Check it and try again.");
     }
 
@@ -75,13 +73,10 @@ export async function joinRoom(joinCode: string, rawPlayerName: string) {
     const updatedRoom = await repo.getRoom(roomId);
     await repo.publishRoom(updatedRoom);
 
-    console.log(`[RoomStore.join] ${playerName} joined room ${roomId}`);
+    logger.info({ roomId, playerId: newPlayer.id }, "player joined");
     return { room: updatedRoom, playerId: newPlayer.id, playerToken };
   } catch (error) {
-    console.error(
-      `[RoomStore.join] Error joining with code ${joinCode}:`,
-      error instanceof Error ? error.message : error,
-    );
+    logFailure("joinRoom", error, { joinCode });
     throw error;
   }
 }
@@ -91,24 +86,24 @@ export async function leaveRoom(roomId: string, playerToken: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
-      console.warn(`[RoomStore.leave] Ignored: Room ${roomId} does not exist`);
+      logger.debug({ roomId }, "leave ignored: no such room");
       return false;
     }
 
     const playerId = await repo.findPlayerIdByToken(roomId, playerToken);
     const player = room.players.find((p) => p.id === playerId);
     if (!player || !playerId) {
-      console.warn(`[RoomStore.leave] Ignored: unknown player token for room ${roomId}`);
+      logger.debug({ roomId }, "leave ignored: not a player");
       return false;
     }
 
     if (player.isHost) {
-      console.log(`[RoomStore.leave] Host left. Destroying room ${roomId}`);
+      logger.info({ roomId }, "host left, room closed");
 
       await repo.deleteRoom(roomId, room.joinCode);
       await repo.publishRoomClosed(room.id);
     } else {
-      console.log(`[RoomStore.leave] Player ${playerId} left room ${roomId}`);
+      logger.info({ roomId, playerId }, "player left");
 
       await repo.removePlayer(roomId, playerId);
       await handlePlayerLeft(roomId, playerId);
@@ -118,7 +113,7 @@ export async function leaveRoom(roomId: string, playerToken: string) {
 
     return true;
   } catch (error) {
-    console.error(`[RoomStore.leave] Error handling leave for ${roomId}:`, error);
+    logFailure("leaveRoom", error, { roomId });
     return false;
   }
 }
@@ -137,11 +132,11 @@ export async function kickPlayer(roomId: string, hostToken: string, playerId: st
 
     const player = room.players.find((p) => p.id === playerId);
     if (!player) {
-      console.warn(`[RoomStore.kick] Failed: Player ${playerId} not found in ${roomId}`);
+      logger.debug({ roomId, playerId }, "kick ignored: not in the room");
       return false;
     }
 
-    console.log(`[RoomStore.kick] Kicking player ${playerId} from ${roomId}`);
+    logger.info({ roomId, playerId }, "player removed by the host");
 
     await repo.removePlayer(roomId, playerId);
     await handlePlayerLeft(roomId, playerId);
@@ -150,7 +145,7 @@ export async function kickPlayer(roomId: string, hostToken: string, playerId: st
 
     return true;
   } catch (error) {
-    console.error(`[RoomStore.kick] Error kicking player:`, error);
+    logFailure("kickPlayer", error, { roomId, playerId });
     throw error;
   }
 }
@@ -163,7 +158,7 @@ export async function resetGame(roomId: string, hostToken: string) {
     }
     await requireHost(room, hostToken);
 
-    console.log(`[GameLogic] Resetting game for room ${roomId}`);
+    logger.info({ roomId }, "play again: back to the lobby");
 
     // Zeroes scores and returns to the lobby in one atomic step, only once the game is over
     if (!(await repo.resetToLobby(roomId, emptyGameState()))) {
@@ -174,7 +169,7 @@ export async function resetGame(roomId: string, hostToken: string) {
     await repo.publishRoom(updatedRoom);
     return true;
   } catch (error) {
-    console.error(`[RoomStore.resetGame] Failed to reset game for room ${roomId}:`, error);
+    logFailure("resetGame", error, { roomId });
     throw error;
   }
 }

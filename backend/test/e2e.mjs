@@ -1131,6 +1131,27 @@ test("in production, only the allowed web pages can use the API, and the schema 
   }
 });
 
+test("/health reports whether Redis is reachable", async () => {
+  const up = await fetch(`http://localhost:${PORT}/health`);
+  assert(up.status === 200, `health with Redis up: ${up.status}`);
+  assert((await up.json()).redis === true, "health should say Redis is up");
+
+  // A server pointed at a Redis that isn't there still answers, with 503
+  const port = "3592";
+  const backend = startBackend(port, { REDIS_URL: "redis://localhost:1" });
+  try {
+    let res = null;
+    for (let i = 0; i < 60 && !res; i++) {
+      res = await fetch(`http://localhost:${port}/health`).catch(() => null);
+      if (!res) await sleep(500);
+    }
+    assert(res?.status === 503, `health with Redis down: ${res?.status}`);
+    assert((await res.json()).redis === false, "health should say Redis is down");
+  } finally {
+    backend.stop();
+  }
+});
+
 // ---------------------------------------------------------------------------
 
 const main = startBackend(PORT);
