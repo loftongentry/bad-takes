@@ -5,3 +5,6 @@ package-lock.json
 **/.expo
 **/.tamagui
 frontend/assets
+e2e/.web-build
+e2e/test-results
+e2e/playwright-report
