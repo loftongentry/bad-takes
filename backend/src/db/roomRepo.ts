@@ -101,6 +101,7 @@ export async function getRoom(roomId: string): Promise<Room | null> {
         // Rooms created before these settings existed get the defaults
         promptTimeLimit: Number(roomData.promptTimeLimit) || 90,
         voteTimeLimit: Number(roomData.voteTimeLimit) || VOTE_SECONDS,
+        revealAuthors: roomData.revealAuthors === "1",
       },
       players: players,
       gameState,

@@ -3,6 +3,8 @@ import { usePathname, useRouter } from "expo-router";
 import { useQuery, useSubscription } from "@apollo/client/react";
 import { useGameSessionStore } from "../state/gameSessionStore";
 import { sendHome } from "../navigation/home";
+import { offerReveal } from "../state/revealStore";
+import { useRules } from "./useRules";
 import type { Notice } from "../state/noticeStore";
 import { ROOM_OPS } from "../graphql/operations";
 import type { Room, RoomStatus } from "../graphql/types";
@@ -35,6 +37,7 @@ export function useRoom(roomId?: string) {
   const router = useRouter();
   const pathname = usePathname();
   const session = useGameSessionStore((s) => s.session);
+  const rules = useRules();
 
   const myPlayerId = session?.playerId || null;
 
@@ -92,6 +95,13 @@ export function useRoom(roomId?: string) {
       }
     }
   }, [room, roomClosed, roomMissing, loading, myPlayerId, roomId]);
+
+  // In rooms that reveal authors: show who wrote the take that was just voted on
+  const lastReveal = room?.gameState?.lastReveal;
+  const revealMs = (rules?.revealSeconds ?? 4) * 1000;
+  useEffect(() => {
+    offerReveal(lastReveal, revealMs);
+  }, [lastReveal, revealMs]);
 
   // Follow the room to the screen for its current phase
   const status = room?.status;

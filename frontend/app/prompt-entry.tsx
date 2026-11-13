@@ -144,6 +144,12 @@ const PromptEntry = () => {
         </Sign>
       </Animated.View>
 
+      {room?.settings.revealAuthors ? (
+        <Text style={styles.heads}>
+          Heads up: once a take has been voted on, everyone finds out who wrote it.
+        </Text>
+      ) : null}
+
       <View style={{ marginTop: 28 }}>
         <SoapboxButton
           onPress={handleSubmitPrompt}
@@ -162,6 +168,14 @@ const PromptEntry = () => {
 };
 
 const styles = StyleSheet.create({
+  heads: {
+    marginTop: 18,
+    fontFamily: FONTS.bodyBold,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    color: SOAPBOX.markerSoft,
+  },
   timer: { marginBottom: 30 },
   input: {
     width: "100%",

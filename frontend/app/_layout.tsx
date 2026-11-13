@@ -18,6 +18,7 @@ import { useSettingsStore } from "../src/state/settingsStore";
 import { useHydrated } from "../src/state/hydration";
 import { checkForGameToResume } from "../src/session/resume";
 import { NoticeHost } from "../src/ui/NoticeHost";
+import { TakeRevealHost } from "../src/ui/TakeRevealHost";
 import { KraftBackground } from "../src/ui/soapbox/KraftBackground";
 import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
 
@@ -84,6 +85,7 @@ const Layout = () => {
                 contentStyle: { backgroundColor: SOAPBOX.kraft },
               }}
             />
+            <TakeRevealHost />
             <NoticeHost />
           </Theme>
         </TamaguiProvider>

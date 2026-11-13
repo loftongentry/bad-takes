@@ -73,7 +73,8 @@ async function gql(query, variables = {}, url = HTTP) {
 }
 
 const ROOM = `id joinCode status players { id name isHost score }
-  gameState { round deadline votesCast submittedPromptsCount currentTurn { defenderId promptId promptText } }`;
+  gameState { round deadline votesCast
+    lastReveal { id at promptText authorName defenderId defenderName score cheers boos } submittedPromptsCount currentTurn { defenderId promptId promptText } }`;
 
 const getRoom = async (roomId) =>
   (await gql(`query($id:ID!){ room(id:$id){ ${ROOM} } }`, { id: roomId })).room;
@@ -87,11 +88,11 @@ const tok = (playerId) => tokenOf.get(playerId) ?? "not-a-real-token";
 // Creates a room hosted by names[0] and joins the rest. Returns { roomId, players: [{ id, name }] }
 async function setupRoom(
   names,
-  { timeLimit = 60, promptTimeLimit = 90, rounds = 1, url = HTTP } = {},
+  { timeLimit = 60, promptTimeLimit = 90, rounds = 1, revealAuthors = false, url = HTTP } = {},
 ) {
   const c = await gql(
-    `mutation($h:String!,$t:Int!,$w:Int!,$r:Int!){ createRoom(hostName:$h, lobbyName:"E2E", rounds:$r, playerLimit:20, timeLimit:$t, promptTimeLimit:$w) { hostId playerToken room { id joinCode } } }`,
-    { h: names[0], t: timeLimit, w: promptTimeLimit, r: rounds },
+    `mutation($h:String!,$t:Int!,$w:Int!,$r:Int!,$a:Boolean){ createRoom(hostName:$h, lobbyName:"E2E", rounds:$r, playerLimit:20, timeLimit:$t, promptTimeLimit:$w, revealAuthors:$a) { hostId playerToken room { id joinCode } } }`,
+    { h: names[0], t: timeLimit, w: promptTimeLimit, r: rounds, a: revealAuthors },
     url,
   );
   const roomId = c.createRoom.room.id;
@@ -1243,6 +1244,50 @@ test("if nobody writes a take in a later round, the game goes to the results", a
     room.players.every((p) => p.score === 1),
     "round 1's scores stand",
   );
+});
+
+test("a room that reveals authors says who wrote each take once its voting closes", async () => {
+  const { roomId, players } = await setupRoom(["Ann", "Bo", "Cy"], { revealAuthors: true });
+  await startGame(roomId);
+  // Each take is signed with its author's name, so the test can check the reveal
+  for (const p of players) await submitPrompt(roomId, p.id, `${p.name} wrote this`);
+
+  let room = await getRoom(roomId);
+  assert(room.gameState.lastReveal === null, "nothing is revealed before any voting");
+  const turn = room.gameState.currentTurn;
+  const defender = players.find((p) => p.id === turn.defenderId);
+  await endTurn(roomId);
+  room = await getRoom(roomId);
+  assert(room.gameState.lastReveal === null, "nothing is revealed while voting is open");
+
+  const [cheerer, booer] = players.filter((p) => p.id !== defender.id);
+  await submitVote(roomId, cheerer.id, 1);
+  await submitVote(roomId, booer.id, -1);
+  room = await getRoom(roomId);
+  const reveal = room.gameState.lastReveal;
+  assert(reveal, "voting closed: the reveal is there");
+  assert(
+    reveal.authorName === turn.promptText.replace(" wrote this", ""),
+    `the author: ${reveal.authorName} for "${turn.promptText}"`,
+  );
+  assert(reveal.promptText === turn.promptText, "it's about the take just voted on");
+  assert(reveal.defenderName === defender.name, "with who defended it");
+  assert(
+    reveal.score === 0 && reveal.cheers === 1 && reveal.boos === 1,
+    `and how the vote went: ${JSON.stringify(reveal)}`,
+  );
+  // The next defense's countdown makes room for the reveal (4s + 5s prep + 60s defense)
+  const seconds = (Date.parse(room.gameState.deadline) - Date.now()) / 1000;
+  assert(seconds > 67 && seconds <= 69, `the next defense ends in ~69s, not ${seconds}s`);
+});
+
+test("a room that doesn't reveal authors never sends who wrote a take", async () => {
+  const { roomId, players } = await setupRoom(["Ann", "Bo"]);
+  await startGame(roomId);
+  for (const p of players) await submitPrompt(roomId, p.id, `${p.name} wrote this`);
+  const { room } = await playAllTurns(roomId, players);
+  assert(room.status === "RESULTS", "the game finished");
+  assert(room.gameState.lastReveal === null, "no reveal");
 });
 
 // ---------------------------------------------------------------------------

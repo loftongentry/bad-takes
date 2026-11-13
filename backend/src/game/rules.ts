@@ -23,6 +23,11 @@ export const PROMPT_TIME_LIMIT = { min: TEST_MIN || 30, max: 180 };
 // "Get ready" countdown before each defense; the defense deadline includes it
 export const PREP_SECONDS = 5;
 
+// How long the "who wrote it" card stays up after a vote, when the room reveals authors. The
+// next phase's clock (prep countdown or writing time) gets this much longer, so nobody loses
+// time to it.
+export const REVEAL_SECONDS = 4;
+
 // How long players have to vote (the host picks within the range); when it runs out, the votes
 // that came in are counted. The default is overridable so tests don't have to wait.
 export const VOTE_TIME_LIMIT = { min: TEST_MIN || 15, max: 60 };
@@ -37,6 +42,7 @@ export function gameRules() {
     timeLimit: TIME_LIMIT,
     promptTimeLimit: PROMPT_TIME_LIMIT,
     prepSeconds: PREP_SECONDS,
+    revealSeconds: REVEAL_SECONDS,
     voteSeconds: VOTE_SECONDS,
     voteTimeLimit: VOTE_TIME_LIMIT,
     playerNameMaxLength: PLAYER_NAME_MAX,

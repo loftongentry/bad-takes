@@ -96,7 +96,7 @@ const LobbyScreen = () => {
   return (
     <SoapboxPage
       title={room.settings.lobbyName || "Game Lobby"}
-      subtitle={`${room.settings.rounds} ${room.settings.rounds === 1 ? "round" : "rounds"} · Writing: ${room.settings.promptTimeLimit}s · Defense: ${room.settings.timeLimit}s · Voting: ${room.settings.voteTimeLimit}s`}
+      subtitle={`${room.settings.rounds} ${room.settings.rounds === 1 ? "round" : "rounds"} · Writing: ${room.settings.promptTimeLimit}s · Defense: ${room.settings.timeLimit}s · Voting: ${room.settings.voteTimeLimit}s${room.settings.revealAuthors ? " · Authors revealed" : ""}`}
       onBack={leaveGame}
     >
       <Board label="Join code">

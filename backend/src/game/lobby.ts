@@ -30,6 +30,7 @@ export async function createRoom(rawHostName: string, rawSettings: RoomSettings)
     timeLimit: settings.timeLimit,
     promptTimeLimit: settings.promptTimeLimit,
     voteTimeLimit: settings.voteTimeLimit,
+    revealAuthors: settings.revealAuthors ? "1" : "0",
     gameState: JSON.stringify(emptyGameState()),
   };
 

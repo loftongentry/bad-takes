@@ -13,6 +13,7 @@ const ROOM_FRAGMENT = gql`
       timeLimit
       promptTimeLimit
       voteTimeLimit
+      revealAuthors
     }
     players {
       id
@@ -31,6 +32,17 @@ const ROOM_FRAGMENT = gql`
         defenderId
         promptId
         promptText
+      }
+      lastReveal {
+        id
+        at
+        promptText
+        authorName
+        defenderId
+        defenderName
+        score
+        cheers
+        boos
       }
     }
   }
@@ -65,6 +77,7 @@ export const ROOM_OPS = {
           max
         }
         prepSeconds
+        revealSeconds
         voteSeconds
         playerNameMaxLength
         lobbyNameMaxLength
@@ -106,6 +119,7 @@ export const ROOM_OPS = {
       $timeLimit: Int!
       $promptTimeLimit: Int!
       $voteTimeLimit: Int!
+      $revealAuthors: Boolean!
     ) {
       createRoom(
         hostName: $hostName
@@ -115,6 +129,7 @@ export const ROOM_OPS = {
         timeLimit: $timeLimit
         promptTimeLimit: $promptTimeLimit
         voteTimeLimit: $voteTimeLimit
+        revealAuthors: $revealAuthors
       ) {
         hostId
         playerToken

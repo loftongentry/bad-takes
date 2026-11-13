@@ -11,10 +11,12 @@ import type { RoomSettings } from "./types";
 // Per-request information from the HTTP request (see index.ts)
 export type Context = { ip: string };
 
-// voteTimeLimit is optional (it came later), defaulting to the usual voting time
-type CreateRoomArgs = Omit<RoomSettings, "voteTimeLimit"> & {
+// voteTimeLimit and revealAuthors are optional (they came later), defaulting to the usual
+// voting time and anonymous takes
+type CreateRoomArgs = Omit<RoomSettings, "voteTimeLimit" | "revealAuthors"> & {
   hostName: string;
   voteTimeLimit?: number | null;
+  revealAuthors?: boolean | null;
 };
 
 // Every action that needs to know who is acting takes the caller's secret playerToken
@@ -32,6 +34,7 @@ export const resolvers = {
       await checkCreateRate(ip);
       const { hostName, lobbyName, rounds, playerLimit, timeLimit, promptTimeLimit } = args;
       const voteTimeLimit = args.voteTimeLimit ?? VOTE_SECONDS;
+      const revealAuthors = args.revealAuthors ?? false;
       const settings = {
         lobbyName,
         rounds,
@@ -39,6 +42,7 @@ export const resolvers = {
         timeLimit,
         promptTimeLimit,
         voteTimeLimit,
+        revealAuthors,
       };
 
       const { room, hostId, hostToken } = await createRoom(hostName, settings);

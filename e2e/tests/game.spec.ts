@@ -240,3 +240,56 @@ test("a two-round game: everyone writes again, and the scores add up", async ({
   expect((await pageText(host)).toLowerCase(), "1 point a round each").toContain("2 pts each");
   expect(errors, "no error alerts or page errors").toEqual([]);
 });
+
+test("with Reveal Authors on, everyone finds out who wrote each take after its vote", async ({
+  newPlayer,
+  errors,
+}) => {
+  const host = await newPlayer("host");
+  const guest = await newPlayer("guest");
+  const code = await createRoom(host, "Hannah", { revealAuthors: true });
+  expect(await pageText(host), "the lobby says so").toContain("Authors revealed");
+  await joinRoom(guest, code, "Gus");
+  await clickText(host, "Start Game");
+
+  await waitForText(guest, "Enter Bad Take");
+  expect(await pageText(guest), "writers are warned").toContain("everyone finds out who wrote it");
+  await typeInto(host, "textarea", "Hannah wrote this one");
+  await clickText(host, "Submit Bad Take");
+  await typeInto(guest, "textarea", "Gus wrote this one");
+  await clickText(guest, "Submit Bad Take");
+
+  for (const turn of [1, 2]) {
+    await test.step(`turn ${turn}: no reveal during the vote, then the card`, async () => {
+      await waitForPattern(host, /DEFEND THIS!|Listen Up!/i);
+      const hostDefends = /DEFEND THIS!/i.test(await pageText(host));
+      const [defender, voter] = hostDefends ? [host, guest] : [guest, host];
+      // With two players each defends the other's take
+      const author = hostDefends ? "Gus" : "Hannah";
+      await clickText(defender, "End Defense");
+      await waitForText(voter, "Cast Your Vote");
+      expect(await pageText(voter), "not revealed while voting").not.toMatch(/written by/i);
+      await clickLabel(voter, VOTE_UP);
+
+      for (const page of [host, guest]) {
+        await waitForText(page, "Written by");
+        expect(await pageText(page)).toContain(`${author} wrote this one`);
+        expect((await pageText(page)).toLowerCase()).toContain(author.toLowerCase());
+      }
+      if (turn === 1) {
+        // The card clears in a few seconds and the next turn's countdown is still running
+        await waitForPattern(host, /starts in \d/i);
+        await host.waitForFunction(() => !/written by/i.test(document.body.innerText), undefined, {
+          timeout: 8_000,
+        });
+      }
+    });
+  }
+
+  await test.step("the results podium waits for the last card", async () => {
+    await waitForText(host, "Game Results");
+    expect(await pageText(host)).not.toMatch(/it.s a tie/i);
+    await waitForPattern(host, /it.s a tie/i, 15_000);
+  });
+  expect(errors, "no error alerts or page errors").toEqual([]);
+});

@@ -3,7 +3,8 @@ import * as repo from "../db/roomRepo";
 import { requirePlayer } from "./permissions";
 // prompts.ts also imports from this file; the cycle is fine because these are only called later
 import { startTurnsIfAllPromptsIn } from "./prompts";
-import { PREP_SECONDS } from "./rules";
+import { randomUUID } from "crypto";
+import { PREP_SECONDS, REVEAL_SECONDS } from "./rules";
 import { emptyGameState, roundOf } from "./state";
 import type { Player, Room, RoomStatus, StoredGameState } from "../types";
 import { GameError, roomClosedError } from "./errors";
@@ -17,11 +18,13 @@ type TimedPhase = "PROMPT_ENTRY" | "DEFENSE" | "VOTING";
 // Only happens if the room is still in `fromStatus`: when several requests race to advance
 // the same turn (e.g. the last two votes arriving together), exactly one wins and the rest
 // do nothing. Returns whether this call advanced the room.
+// `pauseSeconds` lengthens the next phase's clock (time for the "who wrote it" card).
 export async function advanceToNextTurn(
   room: Room,
   fromStatus: RoomStatus,
   state: StoredGameState,
   scoredPlayer?: Player,
+  pauseSeconds = 0,
 ) {
   const roomId = room.id;
   const stillHere = new Set(room.players.map((p) => p.id));
@@ -40,13 +43,16 @@ export async function advanceToNextTurn(
     state.currentTurn = nextTurn;
     // Absolute end of this defense. Every client counts down to it, and the server ends the turn when it passes.
     state.deadline = new Date(
-      Date.now() + (PREP_SECONDS + room.settings.timeLimit) * 1000,
+      Date.now() + (pauseSeconds + PREP_SECONDS + room.settings.timeLimit) * 1000,
     ).toISOString();
   } else if (round < room.settings.rounds) {
     // Everyone has defended: on to the next round, starting with fresh takes
     to = "PROMPT_ENTRY";
     next = emptyGameState(round + 1);
-    next.deadline = new Date(Date.now() + room.settings.promptTimeLimit * 1000).toISOString();
+    next.lastReveal = state.lastReveal;
+    next.deadline = new Date(
+      Date.now() + (pauseSeconds + room.settings.promptTimeLimit) * 1000,
+    ).toISOString();
     logger.info({ roomId, round: round + 1 }, "next round");
   } else {
     to = "RESULTS";
@@ -250,6 +256,27 @@ export async function tallyIfAllVotesIn(
   if (!state) {
     return false;
   }
-  await advanceToNextTurn(room, "VOTING", state, scoredDefender);
+
+  // Reveal who wrote it, if the room does that
+  let pauseSeconds = 0;
+  const turn = state.currentTurn;
+  if (room.settings.revealAuthors && turn) {
+    const authorId = state.prompts.find((p) => p.id === turn.promptId)?.authorId;
+    const author = room.players.find((p) => p.id === authorId);
+    const cheers = votes.filter(([, vote]) => Number(vote) > 0).length;
+    state.lastReveal = {
+      id: randomUUID(),
+      at: new Date().toISOString(),
+      promptText: turn.promptText,
+      authorName: author?.name ?? "Someone who left",
+      defenderId: turn.defenderId,
+      defenderName: defender?.name ?? "Someone who left",
+      score: roundScore,
+      cheers,
+      boos: votes.length - cheers,
+    };
+    pauseSeconds = REVEAL_SECONDS;
+  }
+  await advanceToNextTurn(room, "VOTING", state, scoredDefender, pauseSeconds);
   return true;
 }

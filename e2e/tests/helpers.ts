@@ -94,7 +94,7 @@ const DEFAULT_ROUNDS = 2;
 export async function createRoom(
   host: Page,
   hostName: string,
-  { lobbyName = "UI Test", rounds = 1 } = {},
+  { lobbyName = "UI Test", rounds = 1, revealAuthors = false } = {},
 ) {
   await clickText(host, "Create Game");
   await typeInto(host, 'input[aria-label="Lobby name"]', lobbyName);
@@ -102,6 +102,7 @@ export async function createRoom(
   for (let i = rounds; i < DEFAULT_ROUNDS; i++) await clickLabel(host, "Less Rounds");
   for (let i = DEFAULT_ROUNDS; i < rounds; i++) await clickLabel(host, "More Rounds");
   await waitForText(host, `${rounds}`);
+  if (revealAuthors) await clickLabel(host, "Reveal Authors");
   await clickText(host, "Create Lobby");
   return readJoinCode(host);
 }

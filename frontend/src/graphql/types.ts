@@ -23,6 +23,8 @@ export type GameRules = {
   promptTimeLimit: Range;
   // "Get ready" countdown before each defense; included in the defense deadline
   prepSeconds: number;
+  // How long the "who wrote it" card shows after each vote, in rooms that reveal authors
+  revealSeconds: number;
   // Voting time, in seconds: the range the host picks from, and the starting value
   voteTimeLimit: Range;
   voteSeconds: number;
@@ -42,6 +44,8 @@ export type Room = {
     timeLimit: number;
     promptTimeLimit: number;
     voteTimeLimit: number;
+    // Whether everyone finds out who wrote each take once its voting closes
+    revealAuthors: boolean;
   };
   players: Player[];
   gameState: {
@@ -58,7 +62,23 @@ export type Room = {
       promptId: string;
       promptText: string;
     };
+    // The last take voted on, in rooms that reveal authors
+    lastReveal: TakeReveal | null;
   };
+};
+
+// Who wrote the take that was just voted on, and how it went
+export type TakeReveal = {
+  id: string;
+  // When voting closed (ISO time)
+  at: string;
+  promptText: string;
+  authorName: string;
+  defenderId: string;
+  defenderName: string;
+  score: number;
+  cheers: number;
+  boos: number;
 };
 
 export type CreateArgs = {
@@ -69,6 +89,7 @@ export type CreateArgs = {
   timeLimit: number;
   promptTimeLimit: number;
   voteTimeLimit: number;
+  revealAuthors: boolean;
 };
 
 // --- Mutation results ---

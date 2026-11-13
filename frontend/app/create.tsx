@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { Board } from "../src/ui/soapbox/Board";
-import { FieldRow, InlineTextInput, Stepper } from "../src/ui/soapbox/Form";
+import { FieldRow, InlineTextInput, Stepper, ToggleRow } from "../src/ui/soapbox/Form";
 import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
 import { SOAPBOX } from "../src/ui/soapbox/tokens";
 import { useRoomActions } from "../src/hooks/useRoomActions";
@@ -65,6 +65,7 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
   const [voteTimeLimit, setVoteTimeLimit] = useState(() =>
     clamp(rules.voteSeconds, rules.voteTimeLimit),
   );
+  const [revealAuthors, setRevealAuthors] = useState(false);
   const [yourName, setYourName] = useState(() => useSettingsStore.getState().lastName);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -81,6 +82,7 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
         timeLimit,
         promptTimeLimit,
         voteTimeLimit,
+        revealAuthors,
       });
 
       router.push(`/lobby`);
@@ -146,8 +148,9 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
           range={rules.voteTimeLimit}
           step={VOTE_STEP_SECONDS}
           unit="s"
-          last
         />
+        {/* Once a take's voting closes, everyone finds out who wrote it */}
+        <ToggleRow label="Reveal Authors" value={revealAuthors} onChange={setRevealAuthors} last />
       </Board>
 
       <View style={{ marginTop: 28 }}>

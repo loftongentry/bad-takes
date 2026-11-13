@@ -27,6 +27,8 @@ const typeDefs = `
     promptTimeLimit: Range!
     # "Get ready" countdown before each defense; included in the defense deadline
     prepSeconds: Int!
+    # How long the "who wrote it" card shows after each vote, in rooms that reveal authors
+    revealSeconds: Int!
     # Voting time, in seconds: the range the host picks from, and the starting value
     voteTimeLimit: Range!
     voteSeconds: Int!
@@ -44,6 +46,8 @@ const typeDefs = `
     promptTimeLimit: Int!
     # Seconds players get to vote on each defense
     voteTimeLimit: Int!
+    # Whether everyone finds out who wrote each take once its voting closes
+    revealAuthors: Boolean!
   }
     
   type Player {
@@ -59,6 +63,20 @@ const typeDefs = `
     promptText: String!
   }
 
+  # Who wrote the take that was just voted on, and how it went (only in rooms that reveal authors)
+  type TakeReveal {
+    id: ID!
+    # When voting closed (ISO time)
+    at: String!
+    promptText: String!
+    authorName: String!
+    defenderId: ID!
+    defenderName: String!
+    score: Int!
+    cheers: Int!
+    boos: Int!
+  }
+
   type GameState {
     # Which round of the game this is, from 1 (see RoomSettings.rounds)
     round: Int!
@@ -71,6 +89,8 @@ const typeDefs = `
     votedPlayerIds: [ID!]!
     votesCast: Int!
     currentTurn: TurnInfo
+    # The last take voted on, in rooms that reveal authors
+    lastReveal: TakeReveal
   }
 
   type Room {
@@ -93,7 +113,7 @@ const typeDefs = `
   }
 
   type Mutation {
-    createRoom(hostName: String!, lobbyName: String!, rounds: Int!, playerLimit: Int!, timeLimit: Int!, promptTimeLimit: Int!, voteTimeLimit: Int): CreateResponse!
+    createRoom(hostName: String!, lobbyName: String!, rounds: Int!, playerLimit: Int!, timeLimit: Int!, promptTimeLimit: Int!, voteTimeLimit: Int, revealAuthors: Boolean): CreateResponse!
     joinRoom(code: String!, playerName: String!): JoinResponse!
     leaveRoom(roomId: ID!, playerToken: String!): Boolean!
     # Host only. playerId is the public id of the player to remove.

@@ -11,6 +11,7 @@ import { settleIn } from "../src/ui/soapbox/motion";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
+import { isNewReveal, useRevealStore } from "../src/state/revealStore";
 import { reportActionError } from "../src/ui/reportError";
 
 const Results = () => {
@@ -22,6 +23,8 @@ const Results = () => {
   const [loading, setLoading] = useState(false);
 
   const isHost = room?.players.find((p) => p.id === myPlayerId)?.isHost;
+  const revealShowing = useRevealStore((s) => s.current !== null);
+  const revealing = revealShowing || isNewReveal(room?.gameState?.lastReveal);
 
   const handlePlayAgain = async () => {
     setLoading(true);
@@ -40,21 +43,26 @@ const Results = () => {
       title="Game Results"
       onBack={leaveGame}
     >
-      <ResultsReveal players={room?.players || []} />
+      {/* The last take's "who wrote it" card goes first; the podium waits for it */}
+      {revealing ? null : (
+        <>
+          <ResultsReveal players={room?.players || []} />
 
-      <Animated.View entering={settleIn(REVEAL.actions)} style={{ marginTop: 28 }}>
-        {isHost ? (
-          <SoapboxButton
-            onPress={handlePlayAgain}
-            disabled={loading}
-            icon={<RefreshCw size={20} color={SOAPBOX.paper} />}
-          >
-            {loading ? "Resetting..." : "Play Again"}
-          </SoapboxButton>
-        ) : (
-          <Text style={styles.note}>Waiting for host to restart...</Text>
-        )}
-      </Animated.View>
+          <Animated.View entering={settleIn(REVEAL.actions)} style={{ marginTop: 28 }}>
+            {isHost ? (
+              <SoapboxButton
+                onPress={handlePlayAgain}
+                disabled={loading}
+                icon={<RefreshCw size={20} color={SOAPBOX.paper} />}
+              >
+                {loading ? "Resetting..." : "Play Again"}
+              </SoapboxButton>
+            ) : (
+              <Text style={styles.note}>Waiting for host to restart...</Text>
+            )}
+          </Animated.View>
+        </>
+      )}
     </SoapboxPage>
   );
 };
