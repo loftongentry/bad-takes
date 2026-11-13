@@ -5,7 +5,11 @@ import { createRoom, joinRoom, leaveRoom, kickPlayer, resetGame } from "./game/l
 import { startGame, submitPrompt } from "./game/prompts";
 import { endTurn, submitVote } from "./game/turns";
 import { gameRules } from "./game/rules";
+import { checkCreateRate, checkJoinRate } from "./security";
 import type { RoomSettings } from "./types";
+
+// Per-request information from the HTTP request (see index.ts)
+export type Context = { ip: string };
 
 type CreateRoomArgs = RoomSettings & { hostName: string };
 
@@ -20,7 +24,8 @@ export const resolvers = {
     rules: () => gameRules(),
   },
   Mutation: {
-    createRoom: async (_: unknown, args: CreateRoomArgs) => {
+    createRoom: async (_: unknown, args: CreateRoomArgs, { ip }: Context) => {
+      await checkCreateRate(ip);
       const { hostName, lobbyName, rounds, playerLimit, timeLimit, promptTimeLimit } = args;
       const settings = { lobbyName, rounds, playerLimit, timeLimit, promptTimeLimit };
 
@@ -29,7 +34,12 @@ export const resolvers = {
 
       return { room, hostId, playerToken: hostToken };
     },
-    joinRoom: async (_: unknown, { code, playerName }: { code: string; playerName: string }) => {
+    joinRoom: async (
+      _: unknown,
+      { code, playerName }: { code: string; playerName: string },
+      { ip }: Context,
+    ) => {
+      await checkJoinRate(ip);
       const { room, playerId, playerToken } = await joinRoom(code, playerName);
       return { room, playerId, playerToken };
     },

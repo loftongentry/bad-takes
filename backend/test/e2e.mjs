@@ -8,6 +8,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import Redis from "ioredis";
+import NodeWebSocket from "ws";
 
 const BACKEND_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = process.env.E2E_PORT || "3599";
@@ -27,7 +28,15 @@ function startBackend(port, extraEnv = {}) {
   const child = spawn(process.execPath, ["--import", "tsx", "src/index.ts"], {
     cwd: BACKEND_DIR,
     // Timer tests use defenses of a second or two, below the normal 60-second minimum
-    env: { ...process.env, MIN_TIME_LIMIT_SECONDS: "1", PORT: port, ...extraEnv },
+    // and the tests create rooms far faster than the rate limits allow, so those are off
+    env: {
+      ...process.env,
+      MIN_TIME_LIMIT_SECONDS: "1",
+      RATE_LIMIT_CREATE_PER_MINUTE: "0",
+      RATE_LIMIT_JOIN_PER_MINUTE: "0",
+      PORT: port,
+      ...extraEnv,
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let logs = "";
@@ -1031,6 +1040,94 @@ test("unexpected server errors reach the app as a generic message", async () => 
   } finally {
     await redis.del(`room:${id}`);
     redis.disconnect();
+  }
+});
+
+test("creating and joining rooms is rate-limited per address", async () => {
+  const port = "3594";
+  const url = `http://localhost:${port}/graphql`;
+  // TRUST_PROXY makes the server read the caller's address from X-Forwarded-For, as behind a
+  // hosting provider's proxy
+  const backend = startBackend(port, {
+    RATE_LIMIT_CREATE_PER_MINUTE: "2",
+    RATE_LIMIT_JOIN_PER_MINUTE: "3",
+    TRUST_PROXY: "1",
+  });
+  try {
+    await backend.ready;
+    // Separate counters per address: each test run gets fresh ones (the window is a minute)
+    const ip = `203.0.113.${Math.floor(Math.random() * 250)}`;
+    const call = async (query) => {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": ip },
+        body: JSON.stringify({ query }),
+      });
+      return r.json();
+    };
+    const create = () =>
+      call(
+        `mutation{ createRoom(hostName:"H", lobbyName:"L", rounds:1, playerLimit:8, timeLimit:60, promptTimeLimit:90) { room { joinCode } } }`,
+      );
+    const first = await create();
+    assert(!first.errors, `first create: ${JSON.stringify(first.errors)}`);
+    assert(!(await create()).errors, "second create should work");
+    const third = await create();
+    assert(/too many games/i.test(third.errors?.[0]?.message ?? ""), "third create is refused");
+
+    const code = first.data.createRoom.room.joinCode;
+    const join = () => call(`mutation{ joinRoom(code:"${code}", playerName:"P") { playerId } }`);
+    for (let i = 0; i < 3; i++) assert(!(await join()).errors, `join ${i + 1} should work`);
+    const fourth = await join();
+    assert(/too many attempts/i.test(fourth.errors?.[0]?.message ?? ""), "4th join is refused");
+  } finally {
+    backend.stop();
+  }
+});
+
+test("in production, only the allowed web pages can use the API, and the schema is hidden", async () => {
+  const port = "3593";
+  const url = `http://localhost:${port}/graphql`;
+  const backend = startBackend(port, {
+    NODE_ENV: "production",
+    ALLOWED_ORIGINS: "https://badtakes.example",
+  });
+  const corsFor = async (origin) => {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin },
+      body: JSON.stringify({ query: "{ rules { minPlayers } }" }),
+    });
+    return r.headers.get("access-control-allow-origin");
+  };
+  // Resolves to the close code, or "open" if the server accepted the connection
+  const wsFrom = (headers) =>
+    new Promise((resolve) => {
+      const ws = new NodeWebSocket(`ws://localhost:${port}/graphql`, "graphql-transport-ws", {
+        headers,
+      });
+      ws.on("open", () => {
+        ws.close();
+        resolve("open");
+      });
+      ws.on("unexpected-response", (_req, res) => resolve(res.statusCode));
+      ws.on("error", () => resolve("error"));
+    });
+  try {
+    await backend.ready;
+    assert((await corsFor("https://badtakes.example")) === "https://badtakes.example", "allowed");
+    assert((await corsFor("https://evil.example")) === null, "other pages get no CORS header");
+
+    assert((await wsFrom({ origin: "https://badtakes.example" })) === "open", "allowed page");
+    assert((await wsFrom({ origin: `http://localhost:${port}` })) === "open", "same address");
+    assert((await wsFrom({})) === "open", "no Origin (a non-browser client)");
+    assert((await wsFrom({ origin: "https://evil.example" })) === 401, "other pages refused");
+
+    const introspection = await gqlRaw("{ __schema { types { name } } }", {}, url);
+    assert(introspection.errors, "introspection should be off in production");
+    assert(!(await gqlRaw("{ rules { minPlayers } }", {}, url)).errors, "normal queries work");
+  } finally {
+    backend.stop();
   }
 });
 

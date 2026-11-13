@@ -1,6 +1,6 @@
 import "dotenv/config";
 import express from "express";
-import { createServer } from "http";
+import { createServer, type IncomingMessage } from "http";
 import { WebSocketServer } from "ws";
 import { useServer } from "graphql-ws/use/ws";
 import { ApolloServer } from "@apollo/server";
@@ -12,6 +12,8 @@ import type { GraphQLFormattedError } from "graphql";
 import { schema } from "./schema";
 import { restorePhaseTimers } from "./game/turns";
 import { GameError } from "./game/errors";
+import { ALLOWED_ORIGINS, PRODUCTION, TRUST_PROXY, isAllowedWebSocketOrigin } from "./security";
+import type { Context } from "./resolvers";
 
 const GRAPH_QL = "/graphql";
 const PORT = process.env.PORT || 3500;
@@ -49,17 +51,22 @@ function formatError(formatted: GraphQLFormattedError, error: unknown): GraphQLF
 
 async function main() {
   const app = express();
+  app.set("trust proxy", TRUST_PROXY);
   const httpServer = createServer(app);
   const wsServer = new WebSocketServer({
     server: httpServer,
     path: GRAPH_QL,
     maxPayload: MAX_REQUEST_BYTES,
+    // Live updates only for the app's own web pages (see ALLOWED_ORIGINS)
+    verifyClient: ({ req }: { req: IncomingMessage }) => isAllowedWebSocketOrigin(req),
   });
   const serverCleanup = useServer({ schema }, wsServer);
 
-  const server = new ApolloServer({
+  const server = new ApolloServer<Context>({
     schema,
     formatError,
+    // The schema is public in the repo, but there's no need to hand it out in production
+    introspection: !PRODUCTION,
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
       {
@@ -83,7 +90,19 @@ async function main() {
 
   await server.start();
 
-  app.use(GRAPH_QL, cors(), express.json({ limit: MAX_REQUEST_BYTES }), expressMiddleware(server));
+  if (PRODUCTION && ALLOWED_ORIGINS.length === 0) {
+    console.warn("ALLOWED_ORIGINS is not set: any web page can use this API from a browser");
+  }
+  app.use(
+    GRAPH_QL,
+    // Unset in development: any page may call the API
+    cors(ALLOWED_ORIGINS.length ? { origin: ALLOWED_ORIGINS } : undefined),
+    express.json({ limit: MAX_REQUEST_BYTES }),
+    expressMiddleware(server, {
+      // The caller's address, for rate limits (see TRUST_PROXY)
+      context: async ({ req }) => ({ ip: req.ip ?? "unknown" }),
+    }),
+  );
 
   app.get("/health", (_req, res) => {
     res.send("OK");
