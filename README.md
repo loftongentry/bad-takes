@@ -7,6 +7,7 @@ defending a random one against the clock while everyone else votes.
 | ----------------------- | ------------------------ | -------------------------------------------------- |
 | [`frontend/`](frontend) | Mobile app               | Expo, expo-router, Tamagui, Apollo Client, Zustand |
 | [`backend/`](backend)   | GraphQL API + game logic | Express, Apollo Server, graphql-ws, Redis          |
+| [`e2e/`](e2e)           | UI tests                 | Playwright                                         |
 
 The frontend and backend are independent npm packages (separate `package.json` and
 lockfiles). The root `package.json` only holds convenience scripts.
@@ -42,7 +43,7 @@ Each screen redirects when the status changes.
 Requires Docker and Node 22.13+ or 24.3+ (Expo SDK 58 doesn't support odd-numbered Node releases).
 
 ```sh
-npm install   # also installs frontend/ and backend/ dependencies
+npm install   # also installs frontend/, backend/ and e2e/ dependencies
 ```
 
 ## Running
@@ -95,7 +96,14 @@ npm run format          # format everything with Prettier (format:check to only 
 npm run lint            # ESLint, both packages
 npm run typecheck       # TypeScript, both packages
 npm --prefix backend run test:e2e    # plays real games against the backend (needs Redis running)
+npm run test:ui         # plays games through the app in headless Chromium (needs Redis running)
 ```
+
+The UI tests build the web version of the app, start their own backend (port 3598) and serve the
+build (port 3597), then play whole games with one browser window per player. Before the first run,
+install the browser with `npx --prefix e2e playwright install chromium`. Useful options (after
+`npm --prefix e2e test --`): `--headed` to watch, `--ui` to step through, `-g "remove"` to run
+matching tests only. `SKIP_WEB_BUILD=1` reuses the last build when only the tests changed.
 
 To tune animations and sounds without playing a game, open **Motion lab (dev)** at the bottom of
 the Home screen (development builds only): it shows every animation and sound with a button to
@@ -108,7 +116,7 @@ one of the same name.
 
 The end-to-end tests start their own backend on port 3599, so they can run alongside `npm run dev`.
 
-GitHub Actions runs all four on every push to `main` and every pull request
+GitHub Actions runs all of these on every push to `main` and every pull request
 ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 The game's rules and limits (player counts, time ranges, text lengths) live in

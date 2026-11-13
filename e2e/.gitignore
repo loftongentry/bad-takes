@@ -1,0 +1,4 @@
+# Web build made for the tests, and Playwright's output
+.web-build/
+test-results/
+playwright-report/
