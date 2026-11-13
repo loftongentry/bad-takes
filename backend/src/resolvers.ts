@@ -4,14 +4,18 @@ import { getRoom } from "./db/roomRepo";
 import { createRoom, joinRoom, leaveRoom, kickPlayer, resetGame } from "./game/lobby";
 import { startGame, submitPrompt } from "./game/prompts";
 import { endTurn, submitVote } from "./game/turns";
-import { gameRules } from "./game/rules";
+import { VOTE_SECONDS, gameRules } from "./game/rules";
 import { checkCreateRate, checkJoinRate } from "./security";
 import type { RoomSettings } from "./types";
 
 // Per-request information from the HTTP request (see index.ts)
 export type Context = { ip: string };
 
-type CreateRoomArgs = RoomSettings & { hostName: string };
+// voteTimeLimit is optional (it came later), defaulting to the usual voting time
+type CreateRoomArgs = Omit<RoomSettings, "voteTimeLimit"> & {
+  hostName: string;
+  voteTimeLimit?: number | null;
+};
 
 // Every action that needs to know who is acting takes the caller's secret playerToken
 type ByPlayer = { roomId: string; playerToken: string };
@@ -27,7 +31,15 @@ export const resolvers = {
     createRoom: async (_: unknown, args: CreateRoomArgs, { ip }: Context) => {
       await checkCreateRate(ip);
       const { hostName, lobbyName, rounds, playerLimit, timeLimit, promptTimeLimit } = args;
-      const settings = { lobbyName, rounds, playerLimit, timeLimit, promptTimeLimit };
+      const voteTimeLimit = args.voteTimeLimit ?? VOTE_SECONDS;
+      const settings = {
+        lobbyName,
+        rounds,
+        playerLimit,
+        timeLimit,
+        promptTimeLimit,
+        voteTimeLimit,
+      };
 
       const { room, hostId, hostToken } = await createRoom(hostName, settings);
       if (!room) throw new Error("Failed to create room");

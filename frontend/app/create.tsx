@@ -17,6 +17,7 @@ const clamp = (n: number, { min, max }: Range) => Math.max(min, Math.min(max, n)
 // Starting values for a new room (each kept within the server's allowed range)
 const DEFAULTS = { rounds: 1, playerLimit: 5, timeLimit: 60, promptTimeLimit: 90 };
 const STEP_SECONDS = 15;
+const VOTE_STEP_SECONDS = 5;
 
 // A stepper for a number limited to `range`. Takes the state setter itself and updates from
 // the latest value, so quick repeated taps all count even before the screen re-renders.
@@ -62,6 +63,9 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
     clamp(DEFAULTS.promptTimeLimit, rules.promptTimeLimit),
   );
   // Filled in with the name this player used last time
+  const [voteTimeLimit, setVoteTimeLimit] = useState(() =>
+    clamp(rules.voteSeconds, rules.voteTimeLimit),
+  );
   const [yourName, setYourName] = useState(() => useSettingsStore.getState().lastName);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -77,6 +81,7 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
         playerLimit,
         timeLimit,
         promptTimeLimit,
+        voteTimeLimit,
       });
 
       router.push(`/lobby`);
@@ -133,6 +138,14 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
           setValue={setTimeLimit}
           range={rules.timeLimit}
           step={STEP_SECONDS}
+          unit="s"
+        />
+        <RangeStepper
+          label="Voting Time"
+          value={voteTimeLimit}
+          setValue={setVoteTimeLimit}
+          range={rules.voteTimeLimit}
+          step={VOTE_STEP_SECONDS}
           unit="s"
           last
         />

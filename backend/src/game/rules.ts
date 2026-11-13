@@ -22,8 +22,9 @@ export const PROMPT_TIME_LIMIT = { min: TEST_MIN || 30, max: 180 };
 // "Get ready" countdown before each defense; the defense deadline includes it
 export const PREP_SECONDS = 5;
 
-// How long players have to vote; when it runs out, the votes that came in are counted.
-// Overridable so tests don't have to wait.
+// How long players have to vote (the host picks within the range); when it runs out, the votes
+// that came in are counted. The default is overridable so tests don't have to wait.
+export const VOTE_TIME_LIMIT = { min: TEST_MIN || 15, max: 60 };
 export const VOTE_SECONDS = Number(process.env.VOTE_SECONDS) || 30;
 
 // Everything the app needs to know, served by the `rules` query
@@ -36,6 +37,7 @@ export function gameRules() {
     promptTimeLimit: PROMPT_TIME_LIMIT,
     prepSeconds: PREP_SECONDS,
     voteSeconds: VOTE_SECONDS,
+    voteTimeLimit: VOTE_TIME_LIMIT,
     playerNameMaxLength: PLAYER_NAME_MAX,
     lobbyNameMaxLength: LOBBY_NAME_MAX,
     promptMaxLength: PROMPT_MAX,
@@ -67,5 +69,6 @@ export function checkSettings(settings: RoomSettings): RoomSettings {
   checkRange(settings.playerLimit, "Player limit", PLAYER_LIMIT);
   checkRange(settings.timeLimit, "Time limit", TIME_LIMIT);
   checkRange(settings.promptTimeLimit, "Writing time", PROMPT_TIME_LIMIT);
+  checkRange(settings.voteTimeLimit, "Voting time", VOTE_TIME_LIMIT);
   return { ...settings, lobbyName: cleanText(settings.lobbyName, "Lobby name", LOBBY_NAME_MAX) };
 }

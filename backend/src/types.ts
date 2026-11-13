@@ -7,6 +7,8 @@ export type RoomSettings = {
   timeLimit: number;
   // Seconds players get to write their take
   promptTimeLimit: number;
+  // Seconds players get to vote on each defense
+  voteTimeLimit: number;
 };
 
 export type Player = {

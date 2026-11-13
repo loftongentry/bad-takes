@@ -13,6 +13,7 @@ import {
 } from "./keys";
 import type { GameState, Player, Prompt, Room, RoomStatus, StoredGameState } from "../types";
 import { GameError } from "../game/errors";
+import { VOTE_SECONDS } from "../game/rules";
 import { logger } from "../logger";
 
 // Each command in a Redis pipeline yields [error, result]
@@ -94,8 +95,9 @@ export async function getRoom(roomId: string): Promise<Room | null> {
         rounds: Number(roomData.rounds),
         playerLimit: Number(roomData.playerLimit),
         timeLimit: Number(roomData.timeLimit),
-        // Rooms created before this setting existed default to 90 seconds
+        // Rooms created before these settings existed get the defaults
         promptTimeLimit: Number(roomData.promptTimeLimit) || 90,
+        voteTimeLimit: Number(roomData.voteTimeLimit) || VOTE_SECONDS,
       },
       players: players,
       gameState,

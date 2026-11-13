@@ -30,7 +30,9 @@ export const HowToPlay = () => {
   const defenseRange = rules
     ? `the host sets it, from ${describeSeconds(rules.timeLimit.min)} to ${describeSeconds(rules.timeLimit.max)}`
     : "the host sets how long";
-  const voteTime = rules ? `${describeSeconds(rules.voteSeconds)}` : "a short time";
+  const voteRange = rules
+    ? `the host sets it, from ${describeSeconds(rules.voteTimeLimit.min)} to ${describeSeconds(rules.voteTimeLimit.max)}`
+    : "the host sets how long";
 
   return (
     <Dialog modal>
@@ -63,7 +65,7 @@ export const HowToPlay = () => {
 
           <Rule n={5} title="Vote">
             When time’s up, everyone else stamps BOO or CHEER on how well the player defended the
-            prompt, with {voteTime} to decide
+            prompt, before voting closes ({voteRange})
           </Rule>
 
           <Rule n={6} title="No repeats in a round">

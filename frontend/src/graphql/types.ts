@@ -23,6 +23,8 @@ export type GameRules = {
   promptTimeLimit: Range;
   // "Get ready" countdown before each defense; included in the defense deadline
   prepSeconds: number;
+  // Voting time, in seconds: the range the host picks from, and the starting value
+  voteTimeLimit: Range;
   voteSeconds: number;
   playerNameMaxLength: number;
   lobbyNameMaxLength: number;
@@ -39,6 +41,7 @@ export type Room = {
     playerLimit: number;
     timeLimit: number;
     promptTimeLimit: number;
+    voteTimeLimit: number;
   };
   players: Player[];
   gameState: {
@@ -63,6 +66,7 @@ export type CreateArgs = {
   playerLimit: number;
   timeLimit: number;
   promptTimeLimit: number;
+  voteTimeLimit: number;
 };
 
 // --- Mutation results ---

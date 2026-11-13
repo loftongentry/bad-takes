@@ -27,6 +27,8 @@ const typeDefs = `
     promptTimeLimit: Range!
     # "Get ready" countdown before each defense; included in the defense deadline
     prepSeconds: Int!
+    # Voting time, in seconds: the range the host picks from, and the starting value
+    voteTimeLimit: Range!
     voteSeconds: Int!
     playerNameMaxLength: Int!
     lobbyNameMaxLength: Int!
@@ -40,6 +42,8 @@ const typeDefs = `
     timeLimit: Int!
     # Seconds players get to write their take
     promptTimeLimit: Int!
+    # Seconds players get to vote on each defense
+    voteTimeLimit: Int!
   }
     
   type Player {
@@ -87,7 +91,7 @@ const typeDefs = `
   }
 
   type Mutation {
-    createRoom(hostName: String!, lobbyName: String!, rounds: Int!, playerLimit: Int!, timeLimit: Int!, promptTimeLimit: Int!): CreateResponse!
+    createRoom(hostName: String!, lobbyName: String!, rounds: Int!, playerLimit: Int!, timeLimit: Int!, promptTimeLimit: Int!, voteTimeLimit: Int): CreateResponse!
     joinRoom(code: String!, playerName: String!): JoinResponse!
     leaveRoom(roomId: ID!, playerToken: String!): Boolean!
     # Host only. playerId is the public id of the player to remove.

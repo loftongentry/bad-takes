@@ -3,7 +3,7 @@ import * as repo from "../db/roomRepo";
 import { requirePlayer } from "./permissions";
 // prompts.ts also imports from this file; the cycle is fine because these are only called later
 import { startTurnsIfAllPromptsIn } from "./prompts";
-import { PREP_SECONDS, VOTE_SECONDS } from "./rules";
+import { PREP_SECONDS } from "./rules";
 import type { Player, Room, RoomStatus, StoredGameState } from "../types";
 import { GameError, roomClosedError } from "./errors";
 import { logFailure, logger } from "../logger";
@@ -110,11 +110,11 @@ async function endPhaseAtDeadline(roomId: string, phase: TimedPhase, deadline: s
 // ended. Atomic, so if the defender's "End Defense" and the timer race, only one moves the room
 // on, and neither can end a later defense. Returns whether this call did.
 async function moveToVoting(roomId: string, defenseDeadline: string | null | undefined) {
-  const state = await repo.getStoredGameState(roomId);
-  if (!state) {
+  const [state, room] = await Promise.all([repo.getStoredGameState(roomId), repo.getRoom(roomId)]);
+  if (!state || !room) {
     return false;
   }
-  state.deadline = new Date(Date.now() + VOTE_SECONDS * 1000).toISOString();
+  state.deadline = new Date(Date.now() + room.settings.voteTimeLimit * 1000).toISOString();
 
   const moved = await repo.advanceRoom({
     roomId,

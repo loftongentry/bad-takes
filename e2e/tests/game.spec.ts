@@ -139,6 +139,7 @@ test("the game starts with the takes that came in when writing time runs out", a
   await clickText(host, "Create Lobby");
   const code = await readJoinCode(host);
   expect(await pageText(host), "the lobby shows the writing time").toContain("Writing: 30s");
+  expect(await pageText(host), "and the default voting time").toContain("Voting: 30s");
 
   await joinRoom(guest, code, "Gus");
   await waitForText(host, "Gus");

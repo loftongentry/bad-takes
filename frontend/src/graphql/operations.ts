@@ -12,6 +12,7 @@ const ROOM_FRAGMENT = gql`
       playerLimit
       timeLimit
       promptTimeLimit
+      voteTimeLimit
     }
     players {
       id
@@ -58,6 +59,10 @@ export const ROOM_OPS = {
           min
           max
         }
+        voteTimeLimit {
+          min
+          max
+        }
         prepSeconds
         voteSeconds
         playerNameMaxLength
@@ -99,6 +104,7 @@ export const ROOM_OPS = {
       $playerLimit: Int!
       $timeLimit: Int!
       $promptTimeLimit: Int!
+      $voteTimeLimit: Int!
     ) {
       createRoom(
         hostName: $hostName
@@ -107,6 +113,7 @@ export const ROOM_OPS = {
         playerLimit: $playerLimit
         timeLimit: $timeLimit
         promptTimeLimit: $promptTimeLimit
+        voteTimeLimit: $voteTimeLimit
       ) {
         hostId
         playerToken

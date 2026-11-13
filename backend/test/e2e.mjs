@@ -602,6 +602,7 @@ test("the rules query reports the limits the server enforces", async () => {
   const { rules } = await gql(`{ rules {
     minPlayers prepSeconds voteSeconds playerNameMaxLength lobbyNameMaxLength promptMaxLength
     rounds { min max } playerLimit { min max } timeLimit { min max } promptTimeLimit { min max }
+    voteTimeLimit { min max }
   } }`);
   assert(rules.minPlayers === 2 && rules.playerLimit.min === 2, "minimum players should be 2");
   assert(
@@ -628,6 +629,43 @@ test("the rules query reports the limits the server enforces", async () => {
     (await room({ p: 5, w: rules.promptTimeLimit.max + 1 })).errors,
     "one over the writing time should be rejected",
   );
+
+  const withVoteTime = (v) =>
+    gqlRaw(
+      `mutation($v:Int!){ createRoom(hostName:"A", lobbyName:"L", rounds:1, playerLimit:5, timeLimit:60, promptTimeLimit:90, voteTimeLimit:$v) { room { settings { voteTimeLimit } } } }`,
+      { v },
+    );
+  const longest = await withVoteTime(rules.voteTimeLimit.max);
+  assert(
+    longest.data?.createRoom.room.settings.voteTimeLimit === rules.voteTimeLimit.max,
+    `the longest voting time should be accepted: ${JSON.stringify(longest.errors)}`,
+  );
+  assert(
+    (await withVoteTime(rules.voteTimeLimit.max + 1)).errors,
+    "one over the voting time should be rejected",
+  );
+});
+
+test("voting lasts as long as the host chose", async () => {
+  const c = await gql(
+    `mutation{ createRoom(hostName:"A", lobbyName:"L", rounds:1, playerLimit:5, timeLimit:60, promptTimeLimit:90, voteTimeLimit:45) { hostId playerToken room { id joinCode } } }`,
+  );
+  const roomId = c.createRoom.room.id;
+  tokenOf.set(c.createRoom.hostId, c.createRoom.playerToken);
+  hostOf.set(roomId, c.createRoom.hostId);
+  const j = await gql(
+    `mutation($c:String!){ joinRoom(code:$c, playerName:"B") { playerId playerToken } }`,
+    { c: c.createRoom.room.joinCode },
+  );
+  tokenOf.set(j.joinRoom.playerId, j.joinRoom.playerToken);
+  await startGame(roomId);
+  await submitPrompt(roomId, c.createRoom.hostId, "take one");
+  await submitPrompt(roomId, j.joinRoom.playerId, "take two");
+  await endTurn(roomId);
+  const room = await getRoom(roomId);
+  assert(room.status === "VOTING", `should be voting, is ${room.status}`);
+  const seconds = (Date.parse(room.gameState.deadline) - Date.now()) / 1000;
+  assert(seconds > 43 && seconds <= 45, `voting should close in ~45s, closes in ${seconds}s`);
 });
 
 test("the room shows who has written a take and who has voted", async () => {
