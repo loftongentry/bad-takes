@@ -104,3 +104,22 @@ test("a failed End Defense tap says so, and the defense still ends on its own", 
   await waitForText(defender, "The jury is deciding");
   expect(errors.filter((e) => !e.includes("Failed to fetch"))).toEqual([]);
 });
+
+test("Create says so when it can't load the game's rules, and Try Again recovers", async ({
+  newPlayer,
+}) => {
+  const page = await newPlayer("host");
+  let failRules = true;
+  await page.route("**/graphql", (route) =>
+    failRules && (route.request().postData() ?? "").includes("GetRules")
+      ? route.abort()
+      : route.continue(),
+  );
+  await page.reload();
+  await clickText(page, "Create Game");
+  await waitForText(page, "Couldn't reach the game");
+
+  failRules = false;
+  await clickText(page, "Try Again");
+  await page.locator('input[aria-label="Lobby name"]').filter({ visible: true }).waitFor();
+});

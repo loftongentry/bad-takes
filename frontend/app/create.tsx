@@ -1,13 +1,14 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { Board } from "../src/ui/soapbox/Board";
 import { FieldRow, InlineTextInput, Stepper, ToggleRow } from "../src/ui/soapbox/Form";
 import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
-import { SOAPBOX } from "../src/ui/soapbox/tokens";
+import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 import { useRoomActions } from "../src/hooks/useRoomActions";
-import { useRules } from "../src/hooks/useRules";
+import { useRulesQuery } from "../src/hooks/useRules";
+import { describeError } from "../src/graphql/errors";
 import { useSettingsStore } from "../src/state/settingsStore";
 import type { GameRules, Range } from "../src/graphql/types";
 import { reportActionError } from "../src/ui/reportError";
@@ -164,9 +165,18 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
 
 const CreateScreen = () => {
   const router = useRouter();
-  const rules = useRules();
+  const { rules, error, refetch } = useRulesQuery();
 
-  // The form's limits come from the server; they're usually cached by the time you get here
+  // The form's limits come from the server; they're usually cached by the time you get here.
+  // If they can't be loaded, say why and offer a retry rather than spinning forever.
+  if (!rules && error) {
+    return (
+      <SoapboxPage title="Create Game" onBack={() => router.back()}>
+        <Text style={styles.problem}>{describeError(error).message}</Text>
+        <SoapboxButton onPress={() => refetch().catch(() => {})}>Try Again</SoapboxButton>
+      </SoapboxPage>
+    );
+  }
   if (!rules) {
     return (
       <SoapboxPage title="Create Game" onBack={() => router.back()}>
@@ -176,5 +186,16 @@ const CreateScreen = () => {
   }
   return <CreateForm rules={rules} />;
 };
+
+const styles = StyleSheet.create({
+  problem: {
+    marginBottom: 24,
+    fontFamily: FONTS.bodyBold,
+    fontSize: 15,
+    lineHeight: 21,
+    textAlign: "center",
+    color: SOAPBOX.markerSoft,
+  },
+});
 
 export default CreateScreen;
