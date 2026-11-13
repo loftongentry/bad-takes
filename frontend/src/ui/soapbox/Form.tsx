@@ -113,6 +113,53 @@ export const Stepper = ({
   </FieldRow>
 );
 
+// An On/Off switch drawn as a paper tab that turns caution yellow when on
+export const Toggle = ({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
+}) => (
+  <Pressable
+    onPress={() => {
+      play("tap");
+      onChange(!value);
+    }}
+    accessibilityRole="switch"
+    accessibilityLabel={label}
+    aria-checked={value}
+    hitSlop={6}
+    style={({ pressed }) => [
+      styles.step,
+      styles.toggle,
+      value ? styles.toggleOn : null,
+      pressed ? styles.stepPressed : null,
+    ]}
+  >
+    <Text style={styles.toggleText}>{value ? "On" : "Off"}</Text>
+  </Pressable>
+);
+
+// A FieldRow with a Toggle on the right
+export const ToggleRow = ({
+  label,
+  value,
+  onChange,
+  last,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
+  last?: boolean;
+}) => (
+  <FieldRow label={label} last={last}>
+    <Toggle label={label} value={value} onChange={onChange} />
+  </FieldRow>
+);
+
 const styles = StyleSheet.create({
   row: {
     minHeight: 62,
@@ -154,6 +201,15 @@ const styles = StyleSheet.create({
     boxShadow: `0px 0px 0px ${SOAPBOX.marker}`,
   },
   stepDisabled: { opacity: 0.3 },
+  toggle: { width: 72 },
+  toggleOn: { backgroundColor: SOAPBOX.caution },
+  toggleText: {
+    fontFamily: FONTS.heading,
+    fontSize: 14,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: SOAPBOX.marker,
+  },
   value: {
     minWidth: 58,
     fontFamily: FONTS.heading,

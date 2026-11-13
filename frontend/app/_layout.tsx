@@ -13,7 +13,9 @@ import { ApolloProvider } from "@apollo/client/react";
 import { apolloClient } from "../src/graphql/client";
 import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 import { preloadSounds } from "../src/audio/sfx";
-import { useSessionHydrated } from "../src/state/gameSessionStore";
+import { useGameSessionStore } from "../src/state/gameSessionStore";
+import { useSettingsStore } from "../src/state/settingsStore";
+import { useHydrated } from "../src/state/hydration";
 import { checkForGameToResume } from "../src/session/resume";
 import { NoticeHost } from "../src/ui/NoticeHost";
 import { KraftBackground } from "../src/ui/soapbox/KraftBackground";
@@ -41,7 +43,9 @@ const Layout = () => {
 
   // A game saved on this device (the app was closed or the page refreshed mid-game). Only checked
   // when the app opens on Home: a web page refreshed on a game screen just carries on there.
-  const sessionHydrated = useSessionHydrated();
+  const sessionHydrated = useHydrated(useGameSessionStore);
+  // Settings too, so forms can fill in the player's last name as they open
+  const settingsHydrated = useHydrated(useSettingsStore);
   const pathname = usePathname();
   const startedOnHome = useRef(pathname === "/");
   const [resumeChecked, setResumeChecked] = useState(false);
@@ -56,7 +60,7 @@ const Layout = () => {
     checkForGameToResume().finally(() => setResumeChecked(true));
   }, [sessionHydrated]);
 
-  const ready = (fontsLoaded || !!fontError) && resumeChecked;
+  const ready = (fontsLoaded || !!fontError) && resumeChecked && settingsHydrated;
   useEffect(() => {
     if (ready) {
       SplashScreen.hide();

@@ -41,14 +41,16 @@ export async function clickLabel(page: Page, label: string) {
   await page.locator(`[aria-label="${label}"]`).filter({ visible: true }).first().click();
 }
 
-// Focuses the visible matching field and types. Retries the focus: a field is hidden until its
-// entrance animation starts, and can't take focus before then.
+// Focuses the visible matching field and types, replacing what's there (names are filled in
+// from last time). Retries the focus: a field is hidden until its entrance animation starts,
+// and can't take focus before then.
 export async function typeInto(page: Page, selector: string, text: string) {
   await page.waitForFunction(
     (s) => {
       const el = [...document.querySelectorAll<HTMLElement>(s)].find((e) => e.checkVisibility());
       if (!el) return false;
       el.focus();
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.select();
       return document.activeElement === el;
     },
     selector,

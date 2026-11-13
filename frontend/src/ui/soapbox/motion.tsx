@@ -17,6 +17,7 @@ import Animated, {
   withTiming,
   ZoomIn,
 } from "react-native-reanimated";
+import { useSettingsStore } from "../../state/settingsStore";
 
 // Motion for the Soapbox look. Everyday screens move gently (things settle onto the board);
 // the big moments (a take being revealed, a vote, the results) move a lot more. Every animation
@@ -189,9 +190,10 @@ export const Flourish = ({
   return <Animated.View style={[style, animated]}>{children}</Animated.View>;
 };
 
-// A firm haptic tap on phones; nothing on the web or where haptics aren't available
+// A firm haptic tap on phones; nothing on the web, where haptics aren't available, or when the
+// player turned vibration off
 export const thud = () => {
-  if (Platform.OS === "web") {
+  if (Platform.OS === "web" || !useSettingsStore.getState().haptics) {
     return;
   }
   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});

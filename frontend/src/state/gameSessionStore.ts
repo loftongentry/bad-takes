@@ -1,4 +1,3 @@
-import { useSyncExternalStore } from "react";
 import { Platform } from "react-native";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -48,10 +47,3 @@ export const useGameSessionStore = create<GameSessionState>()(
     },
   ),
 );
-
-// True once the saved session (if any) has been read back from storage
-export const useSessionHydrated = () =>
-  useSyncExternalStore(
-    (onChange) => useGameSessionStore.persist.onFinishHydration(onChange),
-    () => useGameSessionStore.persist.hasHydrated(),
-  );

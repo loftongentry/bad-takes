@@ -9,6 +9,7 @@ import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
 import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 import { useRoomActions } from "../src/hooks/useRoomActions";
 import { useRules } from "../src/hooks/useRules";
+import { useSettingsStore } from "../src/state/settingsStore";
 import { reportActionError } from "../src/ui/reportError";
 
 const JoinScreen = () => {
@@ -16,7 +17,8 @@ const JoinScreen = () => {
   const { joinGame } = useRoomActions();
   const rules = useRules();
   const [roomCode, setRoomCode] = useState<string>("");
-  const [yourName, setYourName] = useState<string>("");
+  // Filled in with the name this player used last time
+  const [yourName, setYourName] = useState(() => useSettingsStore.getState().lastName);
   const [loading, setLoading] = useState<boolean>(false);
 
   const canJoin = roomCode.length === 5 && yourName.trim().length > 0;

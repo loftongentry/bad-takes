@@ -7,7 +7,7 @@ import { HowToPlay } from "../src/ui/HowToPlay";
 import { useTrackHomeScreen } from "../src/navigation/home";
 import { hasGameToResume, takeGameToResume } from "../src/session/resume";
 import { CautionTape } from "../src/ui/soapbox/CautionTape";
-import { SoundToggle } from "../src/ui/soapbox/SoundToggle";
+import { SettingsMenu } from "../src/ui/SettingsMenu";
 import { KraftBackground } from "../src/ui/soapbox/KraftBackground";
 import { Sign } from "../src/ui/soapbox/Sign";
 import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
@@ -56,8 +56,8 @@ const WelcomeScreen = () => {
       />
 
       {/* Pinned over the tape in the top corner */}
-      <View style={[styles.soundToggle, { top: insets.top + 10 }]}>
-        <SoundToggle />
+      <View style={[styles.settings, { top: insets.top + 10 }]}>
+        <SettingsMenu />
       </View>
 
       <View style={styles.content}>
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   tapeTop: { top: 54, transform: [{ rotate: "-5deg" }] },
   tapeBottom: { bottom: 40, transform: [{ rotate: "3deg" }] },
   tapeTopCompact: { top: 14 },
-  soundToggle: { position: "absolute", right: 16, zIndex: 2 },
+  settings: { position: "absolute", right: 16, zIndex: 2 },
   tapeBottomCompact: { bottom: 2 },
   content: {
     flex: 1,

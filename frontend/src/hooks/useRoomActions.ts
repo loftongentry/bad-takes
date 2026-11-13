@@ -1,5 +1,6 @@
 import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useGameSessionStore } from "../state/gameSessionStore";
+import { useSettingsStore } from "../state/settingsStore";
 import { goHome } from "../navigation/home";
 import { ROOM_OPS } from "../graphql/operations";
 import { describeError } from "../graphql/errors";
@@ -64,6 +65,7 @@ export function useRoomActions(roomId?: string) {
       }
 
       const { room, hostId, playerToken } = res.data.createRoom;
+      useSettingsStore.getState().setLastName(args.hostName);
 
       rememberRoom(room);
       setSession({
@@ -83,6 +85,7 @@ export function useRoomActions(roomId?: string) {
         throw new Error("Failed to join room");
       }
       const { room, playerId, playerToken } = res.data.joinRoom;
+      useSettingsStore.getState().setLastName(playerName);
 
       rememberRoom(room);
       setSession({
