@@ -45,6 +45,8 @@ export type Room = {
   };
   players: Player[];
   gameState: {
+    // Which round of the game this is, from 1 (out of settings.rounds)
+    round: number;
     deadline: string | null;
     // Who has written a take this game, and who has voted on the current turn
     submittedPlayerIds: string[];

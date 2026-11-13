@@ -32,6 +32,8 @@ export type Turn = {
 
 // The shape persisted as JSON in the room hash's "gameState" field
 export type StoredGameState = {
+  // Which round this is, from 1 (states saved before rounds existed have none: round 1)
+  round?: number;
   prompts: Prompt[];
   queue: Turn[];
   currentTurn: Turn | null;

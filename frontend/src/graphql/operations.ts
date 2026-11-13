@@ -21,6 +21,7 @@ const ROOM_FRAGMENT = gql`
       score
     }
     gameState {
+      round
       deadline
       submittedPlayerIds
       submittedPromptsCount

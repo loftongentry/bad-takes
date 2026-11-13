@@ -87,10 +87,21 @@ export async function dismissNotice(page: Page) {
   await clickText(page, "OK");
 }
 
-export async function createRoom(host: Page, hostName: string, lobbyName = "UI Test") {
+// The Create screen starts at this many rounds
+const DEFAULT_ROUNDS = 2;
+
+// Creates a room (one round unless asked: most tests only need one) and returns its join code
+export async function createRoom(
+  host: Page,
+  hostName: string,
+  { lobbyName = "UI Test", rounds = 1 } = {},
+) {
   await clickText(host, "Create Game");
   await typeInto(host, 'input[aria-label="Lobby name"]', lobbyName);
   await typeInto(host, 'input[aria-label="Your name"]', hostName);
+  for (let i = rounds; i < DEFAULT_ROUNDS; i++) await clickLabel(host, "Less Rounds");
+  for (let i = DEFAULT_ROUNDS; i < rounds; i++) await clickLabel(host, "More Rounds");
+  await waitForText(host, `${rounds}`);
   await clickText(host, "Create Lobby");
   return readJoinCode(host);
 }

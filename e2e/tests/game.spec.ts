@@ -194,3 +194,49 @@ test("the host can remove a player who holds up the game", async ({ newPlayer, e
   });
   expect(errors, "no error alerts or page errors").toEqual([]);
 });
+
+test("a two-round game: everyone writes again, and the scores add up", async ({
+  newPlayer,
+  errors,
+}) => {
+  const host = await newPlayer("host");
+  const guest = await newPlayer("guest");
+  const code = await createRoom(host, "Hannah", { rounds: 2 });
+  expect(await pageText(host), "the lobby shows the rounds").toContain("2 rounds");
+  await joinRoom(guest, code, "Gus");
+  await clickText(host, "Start Game");
+
+  for (const round of [1, 2]) {
+    await test.step(`round ${round}`, async () => {
+      for (const [page, take] of [
+        [host, `Hannah's round ${round} take`],
+        [guest, `Gus's round ${round} take`],
+      ] as const) {
+        await waitForText(page, "Enter Bad Take");
+        await waitForText(page, `Round ${round} of 2`);
+        await typeInto(page, "textarea", take);
+        await clickText(page, "Submit Bad Take");
+      }
+      for (let turn = 0; turn < 2; turn++) {
+        await waitForPattern(host, /DEFEND THIS!|Listen Up!/i);
+        const hostDefends = /DEFEND THIS!/i.test(await pageText(host));
+        const [defender, voter] = hostDefends ? [host, guest] : [guest, host];
+        expect(await pageText(defender), "round 2 plays round 2's takes").toContain(
+          `round ${round} take`,
+        );
+        await clickText(defender, "End Defense");
+        await waitForText(voter, "Cast Your Vote");
+        await clickLabel(voter, VOTE_UP);
+        await waitForText(
+          defender,
+          turn === 0 ? "Get Ready!" : round === 1 ? "Enter Bad Take" : "Game Results",
+        );
+      }
+    });
+  }
+
+  await waitForText(host, "Game Results");
+  await waitForPattern(host, /it.s a tie/i);
+  expect((await pageText(host)).toLowerCase(), "1 point a round each").toContain("2 pts each");
+  expect(errors, "no error alerts or page errors").toEqual([]);
+});

@@ -68,9 +68,9 @@ export const HowToPlay = () => {
             prompt, before voting closes ({voteRange})
           </Rule>
 
-          <Rule n={6} title="No repeats in a round">
-            After a player defends once, they can’t be selected again until the next round (with new
-            prompts)
+          <Rule n={6} title="Rounds">
+            Everyone defends once per round. The host picks how many rounds; each one starts with
+            everyone writing a new take, and points carry over.
           </Rule>
 
           <Rule n={7} title="Results">

@@ -73,7 +73,7 @@ async function gql(query, variables = {}, url = HTTP) {
 }
 
 const ROOM = `id joinCode status players { id name isHost score }
-  gameState { deadline votesCast submittedPromptsCount currentTurn { defenderId promptId promptText } }`;
+  gameState { round deadline votesCast submittedPromptsCount currentTurn { defenderId promptId promptText } }`;
 
 const getRoom = async (roomId) =>
   (await gql(`query($id:ID!){ room(id:$id){ ${ROOM} } }`, { id: roomId })).room;
@@ -85,10 +85,13 @@ const hostOf = new Map(); // roomId -> host's player id
 const tok = (playerId) => tokenOf.get(playerId) ?? "not-a-real-token";
 
 // Creates a room hosted by names[0] and joins the rest. Returns { roomId, players: [{ id, name }] }
-async function setupRoom(names, { timeLimit = 60, promptTimeLimit = 90, url = HTTP } = {}) {
+async function setupRoom(
+  names,
+  { timeLimit = 60, promptTimeLimit = 90, rounds = 1, url = HTTP } = {},
+) {
   const c = await gql(
-    `mutation($h:String!,$t:Int!,$w:Int!){ createRoom(hostName:$h, lobbyName:"E2E", rounds:1, playerLimit:20, timeLimit:$t, promptTimeLimit:$w) { hostId playerToken room { id joinCode } } }`,
-    { h: names[0], t: timeLimit, w: promptTimeLimit },
+    `mutation($h:String!,$t:Int!,$w:Int!,$r:Int!){ createRoom(hostName:$h, lobbyName:"E2E", rounds:$r, playerLimit:20, timeLimit:$t, promptTimeLimit:$w) { hostId playerToken room { id joinCode } } }`,
+    { h: names[0], t: timeLimit, w: promptTimeLimit, r: rounds },
     url,
   );
   const roomId = c.createRoom.room.id;
@@ -539,10 +542,9 @@ test("room settings must be in range", async () => {
     (await create({ r: 1, p: 5, t: 60, w: 100_000 })).errors,
     "a huge writing time should be rejected",
   );
-  assert(
-    (await create({ r: 3, p: 5, t: 60 })).errors,
-    "more than 1 round should be rejected (not supported yet)",
-  );
+  assert(!(await create({ r: 5, p: 5, t: 60 })).errors, "5 rounds should be accepted");
+  assert((await create({ r: 6, p: 5, t: 60 })).errors, "more than 5 rounds should be rejected");
+  assert((await create({ r: 0, p: 5, t: 60 })).errors, "0 rounds should be rejected");
   assert(!(await create({ r: 1, p: 5, t: 60 })).errors, "valid settings should be accepted");
 });
 
@@ -1188,6 +1190,59 @@ test("/health reports whether Redis is reachable", async () => {
   } finally {
     backend.stop();
   }
+});
+
+test("a game of several rounds: new takes each round, scores carry over", async () => {
+  const { roomId, players } = await setupRoom(["A", "B", "C"], { rounds: 2 });
+  await startGame(roomId);
+  assert((await getRoom(roomId)).gameState.round === 1, "the game starts in round 1");
+  for (const p of players) await submitPrompt(roomId, p.id, `round one take by ${p.name}`);
+
+  let { room } = await playAllTurns(roomId, players);
+  assert(room.status === "PROMPT_ENTRY", `after round 1, writing again (status ${room.status})`);
+  assert(room.gameState.round === 2, `now round 2 (round ${room.gameState.round})`);
+  assert(room.gameState.submittedPromptsCount === 0, "round 1's takes are cleared");
+  assert(room.gameState.deadline, "round 2 has a writing clock");
+  // Every voter cheered, so each defender got +2
+  assert(
+    room.players.every((p) => p.score === 2),
+    `round 1 scores: ${room.players.map((p) => p.score)}`,
+  );
+
+  for (const p of players) await submitPrompt(roomId, p.id, `round two take by ${p.name}`);
+  room = await getRoom(roomId);
+  assert(room.status === "DEFENSE", "round 2's turns start once everyone has written");
+  assert(
+    room.gameState.currentTurn.promptText.startsWith("round two"),
+    `round 2 plays round 2's takes: ${room.gameState.currentTurn.promptText}`,
+  );
+  ({ room } = await playAllTurns(roomId, players));
+  assert(room.status === "RESULTS", `after the last round, results (status ${room.status})`);
+  assert(
+    room.players.every((p) => p.score === 4),
+    `scores add up across rounds: ${room.players.map((p) => p.score)}`,
+  );
+
+  // Play Again starts over at round 1
+  assert(!(await resetGameAs(roomId, players[0].id)).errors, "reset should work");
+  await startGame(roomId);
+  assert((await getRoom(roomId)).gameState.round === 1, "a new game starts at round 1");
+});
+
+test("if nobody writes a take in a later round, the game goes to the results", async () => {
+  const { roomId, players } = await setupRoom(["A", "B"], { rounds: 2, promptTimeLimit: 1 });
+  await startGame(roomId);
+  for (const p of players) await submitPrompt(roomId, p.id, `take by ${p.name}`);
+  await playAllTurns(roomId, players);
+  const { status, gameState } = await getRoom(roomId);
+  assert(status === "PROMPT_ENTRY" && gameState.round === 2, `round 2 writing (${status})`);
+  await sleep(Date.parse(gameState.deadline) + 1000 - Date.now());
+  const room = await getRoom(roomId);
+  assert(room.status === "RESULTS", `with no takes in round 2, results (status ${room.status})`);
+  assert(
+    room.players.every((p) => p.score === 1),
+    "round 1's scores stand",
+  );
 });
 
 // ---------------------------------------------------------------------------

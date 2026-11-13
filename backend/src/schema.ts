@@ -60,6 +60,8 @@ const typeDefs = `
   }
 
   type GameState {
+    # Which round of the game this is, from 1 (see RoomSettings.rounds)
+    round: Int!
     # When the current phase ends (writing, defense or voting)
     deadline: String
     # Who has written a take this game, and how many have

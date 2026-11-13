@@ -4,13 +4,15 @@ import { requirePlayer } from "./permissions";
 // prompts.ts also imports from this file; the cycle is fine because these are only called later
 import { startTurnsIfAllPromptsIn } from "./prompts";
 import { PREP_SECONDS } from "./rules";
+import { emptyGameState, roundOf } from "./state";
 import type { Player, Room, RoomStatus, StoredGameState } from "../types";
 import { GameError, roomClosedError } from "./errors";
 import { logFailure, logger } from "../logger";
 
 type TimedPhase = "PROMPT_ENTRY" | "DEFENSE" | "VOTING";
 
-// Starts the next turn in the queue, or moves to RESULTS when the queue is empty.
+// Starts the next turn in the queue. When the queue is empty, starts the next round's writing
+// phase, or after the last round moves to RESULTS.
 // Turns belonging to players who have since left are skipped.
 // Only happens if the room is still in `fromStatus`: when several requests race to advance
 // the same turn (e.g. the last two votes arriving together), exactly one wins and the rest
@@ -30,13 +32,24 @@ export async function advanceToNextTurn(
     nextTurn = state.queue.shift();
   }
 
+  const round = roundOf(state);
+  let to: RoomStatus;
+  let next = state;
   if (nextTurn) {
+    to = "DEFENSE";
     state.currentTurn = nextTurn;
     // Absolute end of this defense. Every client counts down to it, and the server ends the turn when it passes.
     state.deadline = new Date(
       Date.now() + (PREP_SECONDS + room.settings.timeLimit) * 1000,
     ).toISOString();
+  } else if (round < room.settings.rounds) {
+    // Everyone has defended: on to the next round, starting with fresh takes
+    to = "PROMPT_ENTRY";
+    next = emptyGameState(round + 1);
+    next.deadline = new Date(Date.now() + room.settings.promptTimeLimit * 1000).toISOString();
+    logger.info({ roomId, round: round + 1 }, "next round");
   } else {
+    to = "RESULTS";
     state.deadline = null;
     logger.info({ roomId }, "no turns left, showing results");
   }
@@ -44,19 +57,20 @@ export async function advanceToNextTurn(
   const advanced = await repo.advanceRoom({
     roomId,
     from: fromStatus,
-    to: nextTurn ? "DEFENSE" : "RESULTS",
+    to,
     // The phase as the caller read it: if the room has moved on since, nothing happens
     expectedDeadline: room.gameState?.deadline,
-    state,
+    state: next,
     updatedPlayer: scoredPlayer,
+    clearPrompts: to === "PROMPT_ENTRY",
   });
   if (!advanced) {
     logger.debug({ roomId, from: fromStatus }, "already advanced by another request");
     return false;
   }
 
-  if (state.deadline) {
-    schedulePhaseEnd(roomId, "DEFENSE", state.deadline);
+  if (next.deadline && (to === "DEFENSE" || to === "PROMPT_ENTRY")) {
+    schedulePhaseEnd(roomId, to, next.deadline);
   }
 
   const finalRoom = await repo.getRoom(roomId);

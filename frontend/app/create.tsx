@@ -15,7 +15,7 @@ import { reportActionError } from "../src/ui/reportError";
 const clamp = (n: number, { min, max }: Range) => Math.max(min, Math.min(max, n));
 
 // Starting values for a new room (each kept within the server's allowed range)
-const DEFAULTS = { rounds: 1, playerLimit: 5, timeLimit: 60, promptTimeLimit: 90 };
+const DEFAULTS = { rounds: 2, playerLimit: 5, timeLimit: 60, promptTimeLimit: 90 };
 const STEP_SECONDS = 15;
 const VOTE_STEP_SECONDS = 5;
 
@@ -53,7 +53,6 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
   const router = useRouter();
   const { createGame } = useRoomActions();
   const [lobbyName, setLobbyName] = useState<string>("");
-  // TODO: Implement logic that handles multiple rounds instead of just 1
   const [rounds, setRounds] = useState(() => clamp(DEFAULTS.rounds, rules.rounds));
   const [playerLimit, setPlayerLimit] = useState(() =>
     clamp(DEFAULTS.playerLimit, rules.playerLimit),
@@ -114,7 +113,7 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
       </Board>
 
       <Board label="House rules" delay={120} style={{ marginTop: 34 }}>
-        {/* Only shown once the server allows more than one round (it's fixed at 1 for now) */}
+        {/* Only shown when the server allows a choice */}
         {rules.rounds.max > rules.rounds.min ? (
           <RangeStepper label="Rounds" value={rounds} setValue={setRounds} range={rules.rounds} />
         ) : null}

@@ -1,14 +1,17 @@
 // Pure game-state helpers (no Redis access)
 import type { Player, Prompt, StoredGameState, Turn } from "../types";
 
-export function emptyGameState(): StoredGameState {
+export function emptyGameState(round = 1): StoredGameState {
   return {
+    round,
     prompts: [],
     queue: [],
     currentTurn: null,
     deadline: null,
   };
 }
+
+export const roundOf = (state: { round?: number } | null | undefined) => state?.round ?? 1;
 
 // Fisher-Yates shuffle: every ordering is equally likely
 // (unlike sort(() => 0.5 - Math.random()), which is biased)

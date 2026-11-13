@@ -1,7 +1,7 @@
 // Prompt phase: starting the game and collecting each player's bad take
 import { v4 as uuid } from "uuid";
 import * as repo from "../db/roomRepo";
-import { emptyGameState, generateQueue } from "./state";
+import { emptyGameState, generateQueue, roundOf } from "./state";
 import { advanceToNextTurn, schedulePhaseEnd } from "./turns";
 import { requireHost, requirePlayer } from "./permissions";
 import { MIN_PLAYERS, PROMPT_MAX, cleanText } from "./rules";
@@ -114,23 +114,31 @@ export async function startTurnsIfAllPromptsIn(
     return;
   }
 
+  const round = roundOf(room.gameState);
   if (prompts.length === 0) {
-    logger.info({ roomId }, "nobody wrote a take, back to the lobby");
-    const backToLobby = await repo.advanceRoom({
+    // In the first round there's nothing to show, so back to the lobby. After that, the scores
+    // so far stand: straight to the results.
+    const to = round === 1 ? "LOBBY" : "RESULTS";
+    logger.info({ roomId, round, to }, "nobody wrote a take");
+    const moved = await repo.advanceRoom({
       roomId,
       from: "PROMPT_ENTRY",
-      to: "LOBBY",
+      to,
       expectedDeadline: room.gameState?.deadline,
-      state: emptyGameState(),
+      state: emptyGameState(round),
     });
-    if (backToLobby) {
+    if (moved) {
       await repo.publishRoom(await repo.getRoom(roomId));
     }
     return;
   }
 
   // Generate the turn queue (who defends what)
-  const state = { ...emptyGameState(), prompts, queue: generateQueue(room.players, prompts) };
+  const state = {
+    ...emptyGameState(round),
+    prompts,
+    queue: generateQueue(room.players, prompts),
+  };
 
   // Transition to first turn. If the last few prompts arrive together, only one request starts it.
   await advanceToNextTurn(room, "PROMPT_ENTRY", state);

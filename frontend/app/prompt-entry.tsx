@@ -67,6 +67,11 @@ const PromptEntry = () => {
     }
   };
 
+  // "Round 2 of 3", when there's more than one
+  const rounds = room?.settings.rounds ?? 1;
+  const roundLabel =
+    rounds > 1 && room?.gameState ? `Round ${room.gameState.round} of ${rounds}` : null;
+
   if (isSubmitted) {
     const count = room?.gameState?.submittedPromptsCount || 0;
     const total = room?.players.length || 0;
@@ -75,6 +80,7 @@ const PromptEntry = () => {
       <SoapboxPage
         headerRight={<HostPlayersMenu room={room} />}
         title="Bad Take Submitted!"
+        subtitle={roundLabel ?? undefined}
         onBack={leaveGame}
       >
         {timer}
@@ -96,9 +102,11 @@ const PromptEntry = () => {
       headerRight={<HostPlayersMenu room={room} />}
       title="Enter Bad Take"
       subtitle={
-        secondsLeft !== null
-          ? `Enter a controversial opinion · ${secondsLeft}s left`
-          : "Enter a controversial opinion below"
+        roundLabel
+          ? `${roundLabel}${secondsLeft !== null ? ` · ${secondsLeft}s left` : ""}`
+          : secondsLeft !== null
+            ? `Enter a controversial opinion · ${secondsLeft}s left`
+            : "Enter a controversial opinion below"
       }
       onBack={leaveGame}
     >

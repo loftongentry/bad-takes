@@ -11,7 +11,8 @@ export const PROMPT_MAX = 140;
 // With one player there's nobody to vote, so a game needs at least two
 export const MIN_PLAYERS = 2;
 
-export const ROUNDS = { min: 1, max: 1 }; // multiple rounds aren't supported yet
+// Each round, everyone writes a take and defends one
+export const ROUNDS = { min: 1, max: 5 };
 export const PLAYER_LIMIT = { min: MIN_PLAYERS, max: 20 };
 // Defense and writing times in seconds. The minimums are overridable so tests can use very
 // short phases.

@@ -72,6 +72,9 @@ export async function getRoom(roomId: string): Promise<Room | null> {
     let gameState: GameState | null = null;
     try {
       gameState = roomData.gameState ? JSON.parse(roomData.gameState) : null;
+      if (gameState) {
+        gameState.round ??= 1;
+      }
     } catch (parseErr) {
       logger.error({ roomId, err: parseErr }, "unreadable game state");
     }
@@ -287,6 +290,9 @@ const ADVANCE_ROOM_SCRIPT = `
   end
   redis.call('HSET', KEYS[1], 'status', ARGV[2], 'gameState', ARGV[3])
   redis.call('DEL', KEYS[2])
+  if ARGV[7] == '1' then
+    redis.call('DEL', KEYS[4])
+  end
   -- Only update a player who is still in the room (they may have just left)
   if ARGV[4] ~= '' and redis.call('HEXISTS', KEYS[3], ARGV[4]) == 1 then
     redis.call('HSET', KEYS[3], ARGV[4], ARGV[5])
@@ -294,8 +300,9 @@ const ADVANCE_ROOM_SCRIPT = `
   return 1
 `;
 
-// Moves the room from `from` to `to` with a new game state, clears the votes, and optionally
-// saves one player (the defender's new score). `expectedDeadline` is the deadline of the phase
+// Moves the room from `from` to `to` with a new game state, clears the votes (and with
+// clearPrompts, the takes: a new round), and optionally saves one player (the defender's new
+// score). `expectedDeadline` is the deadline of the phase
 // being left (null if it has none), as read by the caller. Returns false, changing nothing, if
 // the room has moved on since then because another request already advanced it.
 export async function advanceRoom({
@@ -305,6 +312,7 @@ export async function advanceRoom({
   expectedDeadline,
   state,
   updatedPlayer,
+  clearPrompts = false,
 }: {
   roomId: string;
   from: RoomStatus;
@@ -312,19 +320,22 @@ export async function advanceRoom({
   expectedDeadline: string | null | undefined;
   state: StoredGameState;
   updatedPlayer?: Player;
+  clearPrompts?: boolean;
 }): Promise<boolean> {
   const result = await redis.eval(
     ADVANCE_ROOM_SCRIPT,
-    3,
+    4,
     roomKey(roomId),
     votesKey(roomId),
     playersKey(roomId),
+    promptsKey(roomId),
     from,
     to,
     JSON.stringify(state),
     updatedPlayer?.id ?? "",
     updatedPlayer ? JSON.stringify(updatedPlayer) : "",
     expectedDeadline ?? "",
+    clearPrompts ? "1" : "0",
   );
   return result === 1;
 }
