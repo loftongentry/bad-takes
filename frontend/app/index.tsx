@@ -1,9 +1,11 @@
-import { useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
 import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated from "react-native-reanimated";
 import { HowToPlay } from "../src/ui/HowToPlay";
 import { useTrackHomeScreen } from "../src/navigation/home";
+import { hasGameToResume, takeGameToResume } from "../src/session/resume";
 import { CautionTape } from "../src/ui/soapbox/CautionTape";
 import { SoundToggle } from "../src/ui/soapbox/SoundToggle";
 import { KraftBackground } from "../src/ui/soapbox/KraftBackground";
@@ -18,6 +20,26 @@ const WelcomeScreen = () => {
   // Short phones (an iPhone SE is 667 points tall) get a smaller sign and tape closer to the edges
   const compact = useWindowDimensions().height < 740;
   const insets = useSafeAreaInsets();
+
+  // Back into the game this player was in when the app closed (checked during the launch
+  // screen). Home stays blank meanwhile, so it doesn't flash up on the way.
+  const [resuming, setResuming] = useState(hasGameToResume);
+  useEffect(() => {
+    const target = takeGameToResume();
+    if (target) {
+      router.push(target);
+    }
+  }, [router]);
+  // Once the game covers Home, draw Home normally underneath for when the player comes back
+  useFocusEffect(useCallback(() => () => setResuming(false), []));
+
+  if (resuming) {
+    return (
+      <View style={styles.screen}>
+        <KraftBackground />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>

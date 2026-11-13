@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { Stack } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { Stack, usePathname } from "expo-router";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { ArchivoBlack_400Regular } from "@expo-google-fonts/archivo-black";
@@ -12,9 +12,12 @@ import { ApolloProvider } from "@apollo/client/react";
 import { apolloClient } from "../src/graphql/client";
 import { SOAPBOX } from "../src/ui/soapbox/tokens";
 import { preloadSounds } from "../src/audio/sfx";
+import { useSessionHydrated } from "../src/state/gameSessionStore";
+import { checkForGameToResume } from "../src/session/resume";
 
-// Keep the launch screen up until the fonts are in, so the first thing players see after it is
-// the finished Home screen (not a blank frame, then text changing font). Fades out on phones.
+// Keep the launch screen up until the fonts are in and any saved game has been checked, so the
+// first thing players see after it is the finished Home screen or their game (not a blank frame,
+// then text changing font). Fades out on phones.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 SplashScreen.setOptions({ fade: true, duration: 300 });
 
@@ -32,7 +35,24 @@ const Layout = () => {
     preloadSounds();
   }, []);
 
-  const ready = fontsLoaded || !!fontError;
+  // A game saved on this device (the app was closed or the page refreshed mid-game). Only checked
+  // when the app opens on Home: a web page refreshed on a game screen just carries on there.
+  const sessionHydrated = useSessionHydrated();
+  const pathname = usePathname();
+  const startedOnHome = useRef(pathname === "/");
+  const [resumeChecked, setResumeChecked] = useState(false);
+  useEffect(() => {
+    if (!sessionHydrated) {
+      return;
+    }
+    if (!startedOnHome.current) {
+      setResumeChecked(true);
+      return;
+    }
+    checkForGameToResume().finally(() => setResumeChecked(true));
+  }, [sessionHydrated]);
+
+  const ready = (fontsLoaded || !!fontError) && resumeChecked;
   useEffect(() => {
     if (ready) {
       SplashScreen.hide();

@@ -9,7 +9,7 @@ import type { Room, RoomStatus } from "../graphql/types";
 // The screen for each phase of the game. The server decides the phase; every in-game screen
 // follows it from here, so any change (including the game ending early because players left)
 // moves every player to the right screen, whichever screen they're on.
-const SCREEN_FOR_STATUS: Record<RoomStatus, string> = {
+export const SCREEN_FOR_STATUS: Record<RoomStatus, string> = {
   LOBBY: "/lobby",
   PROMPT_ENTRY: "/prompt-entry",
   DEFENSE: "/defense",

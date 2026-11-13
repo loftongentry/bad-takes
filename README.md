@@ -20,7 +20,8 @@ frontend/
   src/graphql/         Apollo client, operations, schema types
   src/hooks/           useRoom (live room data and screen routing), useRoomActions
                        (mutations), useRules, timers
-  src/state/           session store (Zustand)
+  src/state/           session store (saved on the device) and settings (Zustand)
+  src/session/         picking a saved game back up when the app opens
   src/ui/              shared components (How to Play, the host's Players menu, code input)
   src/ui/soapbox/      the Soapbox look: colors and fonts (tokens.ts), page shell, buttons,
                        signs, caution tape, stamps
@@ -76,9 +77,9 @@ The app runs in a web browser too, which is the quickest way to play a whole gam
 3. Open the same address (usually http://localhost:8081) in a second and third window. Each
    window is a separate player: create a game in one and join with the code in the others.
 
-Refreshing a window drops that player from the game (sessions aren't saved yet). The web
-version is close to, but not exactly, the phone app (keyboard and alert behavior differ),
-so do a final check on a real device.
+Each window remembers its player, so refreshing one keeps that player in the game (on a phone,
+closing and reopening the app does the same). The web version is close to, but not exactly, the
+phone app (keyboard and alert behavior differ), so do a final check on a real device.
 
 ### Playing on a phone
 
