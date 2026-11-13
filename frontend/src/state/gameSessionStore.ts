@@ -16,7 +16,11 @@ export type GameSession = {
 
 type GameSessionState = {
   session: GameSession | null;
+  // Set while this player is leaving on purpose, so the server's "you're not in the room any
+  // more" update that follows isn't explained to them as being removed (not saved)
+  leaving: boolean;
   setSession: (session: GameSession) => void;
+  markLeaving: () => void;
   clearSession: () => void;
 };
 
@@ -32,8 +36,10 @@ export const useGameSessionStore = create<GameSessionState>()(
   persist(
     (set) => ({
       session: null,
-      setSession: (session) => set({ session }),
-      clearSession: () => set({ session: null }),
+      leaving: false,
+      setSession: (session) => set({ session, leaving: false }),
+      markLeaving: () => set({ leaving: true }),
+      clearSession: () => set({ session: null, leaving: false }),
     }),
     {
       name: "bad-takes-session",

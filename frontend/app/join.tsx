@@ -9,6 +9,7 @@ import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
 import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 import { useRoomActions } from "../src/hooks/useRoomActions";
 import { useRules } from "../src/hooks/useRules";
+import { reportActionError } from "../src/ui/reportError";
 
 const JoinScreen = () => {
   const router = useRouter();
@@ -27,8 +28,7 @@ const JoinScreen = () => {
 
       router.push(`/lobby`);
     } catch (error) {
-      console.error("Error joining lobby:", error);
-      alert("Failed to join lobby. Please try again.");
+      reportActionError("Couldn't join the game", error);
     } finally {
       setLoading(false);
     }

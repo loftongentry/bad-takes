@@ -2,6 +2,7 @@ import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useGameSessionStore } from "../state/gameSessionStore";
 import { goHome } from "../navigation/home";
 import { ROOM_OPS } from "../graphql/operations";
+import { describeError } from "../graphql/errors";
 import type {
   CreateArgs,
   CreateRoomResult,
@@ -13,14 +14,20 @@ import type {
   SubmitVoteResult,
 } from "../graphql/types";
 
-// Wraps an action so a failure is logged under `label`, then rethrown for the screen to handle
+// Wraps an action so a failure is logged under `label`, then rethrown for the screen to handle.
+// Problems the server explained (a full room, say) are expected, so they're only warnings: in
+// development, errors pop up over the app.
 const withErrorLog =
   <Args extends unknown[], Result>(label: string, action: (...args: Args) => Promise<Result>) =>
   async (...args: Args): Promise<Result> => {
     try {
       return await action(...args);
     } catch (error) {
-      console.error(label, error);
+      if (describeError(error).code) {
+        console.warn(label, error);
+      } else {
+        console.error(label, error);
+      }
       throw error;
     }
   };
@@ -28,7 +35,7 @@ const withErrorLog =
 // Every game mutation, bound to the current room and player
 export function useRoomActions(roomId?: string) {
   const client = useApolloClient();
-  const { session, setSession, clearSession } = useGameSessionStore();
+  const { session, setSession, markLeaving, clearSession } = useGameSessionStore();
 
   // Sent with every action so the server knows who is acting (see GameSession.playerToken)
   const myToken = session?.playerToken || null;
@@ -97,6 +104,7 @@ export function useRoomActions(roomId?: string) {
         return;
       }
 
+      markLeaving();
       // This is a fire and forget; we do not wait for errors, as the goal is for the player to leave the room, which these accomplish.
       try {
         await leaveFn({ variables: { roomId, playerToken: myToken } });

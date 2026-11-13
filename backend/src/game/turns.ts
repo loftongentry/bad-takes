@@ -5,6 +5,7 @@ import { requirePlayer } from "./permissions";
 import { startTurnsIfAllPromptsIn } from "./prompts";
 import { PREP_SECONDS, VOTE_SECONDS } from "./rules";
 import type { Player, Room, RoomStatus, StoredGameState } from "../types";
+import { GameError, roomClosedError } from "./errors";
 
 type TimedPhase = "PROMPT_ENTRY" | "DEFENSE" | "VOTING";
 
@@ -138,16 +139,16 @@ export async function endTurn(roomId: string, playerToken: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
-      throw new Error("Room not found");
+      throw roomClosedError();
     }
 
+    // Who's asking comes first: a player who was removed should hear that, not about the phase
+    const player = await requirePlayer(room, playerToken);
     if (room.status !== "DEFENSE") {
       return false;
     }
-
-    const player = await requirePlayer(room, playerToken);
     if (room.gameState?.currentTurn?.defenderId !== player.id) {
-      throw new Error("Only the defender can end their defense early");
+      throw new GameError("Only the defender can end their defense early");
     }
 
     console.log(`[GameLogic] Ending turn for room ${roomId}`);
@@ -163,20 +164,20 @@ export async function submitVote(roomId: string, playerToken: string, value: num
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
-      throw new Error("Room not found");
+      throw roomClosedError();
     }
 
+    const playerId = (await requirePlayer(room, playerToken)).id;
     if (room.status !== "VOTING") {
-      throw new Error("Not in voting phase");
+      throw new GameError("Voting has closed.");
     }
 
     const defenderId = room.gameState?.currentTurn?.defenderId;
-    const playerId = (await requirePlayer(room, playerToken)).id;
     if (playerId === defenderId) {
-      throw new Error("The defender can't vote on their own defense");
+      throw new GameError("The defender can't vote on their own defense");
     }
     if (value !== 1 && value !== -1) {
-      throw new Error("Vote must be 1 or -1");
+      throw new GameError("Vote must be 1 or -1");
     }
 
     await repo.recordVote(roomId, playerId, value);

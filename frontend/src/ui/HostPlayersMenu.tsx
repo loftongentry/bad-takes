@@ -8,6 +8,7 @@ import type { Room } from "../graphql/types";
 import { NoticeDialog } from "./soapbox/NoticeDialog";
 import { SoapboxButton } from "./soapbox/SoapboxButton";
 import { FONTS, SOAPBOX } from "./soapbox/tokens";
+import { reportActionError } from "./reportError";
 
 // The small paper button that opens the menu. Dialog.Trigger passes its onPress (and a ref) in
 // through props, so the button keeps its own styling here rather than in the trigger's child.
@@ -45,8 +46,7 @@ export const HostPlayersMenu = ({ room }: { room: Room | null }) => {
     try {
       await kickPlayer(playerId);
     } catch (error) {
-      console.error("Error removing player:", error);
-      alert("Failed to remove player. Please try again.");
+      reportActionError("Couldn't remove that player", error);
     }
   };
 

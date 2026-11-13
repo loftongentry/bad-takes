@@ -2,6 +2,7 @@
 // (see gameRules below) instead of keeping its own copies, and the server enforces them
 // because a client can send anything.
 import type { RoomSettings } from "../types";
+import { GameError } from "./errors";
 
 export const PLAYER_NAME_MAX = 24;
 export const LOBBY_NAME_MAX = 40;
@@ -45,17 +46,17 @@ export function gameRules() {
 export function cleanText(value: string, label: string, max: number) {
   const text = value.trim();
   if (text.length === 0) {
-    throw new Error(`${label} can't be empty`);
+    throw new GameError(`${label} can't be empty`);
   }
   if (text.length > max) {
-    throw new Error(`${label} must be ${max} characters or fewer`);
+    throw new GameError(`${label} must be ${max} characters or fewer`);
   }
   return text;
 }
 
 function checkRange(value: number, label: string, { min, max }: { min: number; max: number }) {
   if (!Number.isInteger(value) || value < min || value > max) {
-    throw new Error(
+    throw new GameError(
       min === max ? `${label} must be ${min}` : `${label} must be between ${min} and ${max}`,
     );
   }

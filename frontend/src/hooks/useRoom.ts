@@ -2,13 +2,25 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "expo-router";
 import { useQuery, useSubscription } from "@apollo/client/react";
 import { useGameSessionStore } from "../state/gameSessionStore";
-import { goHome } from "../navigation/home";
+import { sendHome } from "../navigation/home";
+import type { Notice } from "../state/noticeStore";
 import { ROOM_OPS } from "../graphql/operations";
 import type { Room, RoomStatus } from "../graphql/types";
 
 // The screen for each phase of the game. The server decides the phase; every in-game screen
 // follows it from here, so any change (including the game ending early because players left)
 // moves every player to the right screen, whichever screen they're on.
+// Why a player was sent home, unless they chose to leave
+const EXIT_NOTICES: Record<"closed" | "missing" | "removed", Notice> = {
+  closed: { title: "Game Over", message: "The host closed the room." },
+  missing: {
+    title: "Game Over",
+    message:
+      "This game has ended: the host left, or the room closed after an hour with nothing happening.",
+  },
+  removed: { title: "Removed", message: "The host removed you from the game." },
+};
+
 export const SCREEN_FOR_STATUS: Record<RoomStatus, string> = {
   LOBBY: "/lobby",
   PROMPT_ENTRY: "/prompt-entry",
@@ -22,7 +34,7 @@ export const SCREEN_FOR_STATUS: Record<RoomStatus, string> = {
 export function useRoom(roomId?: string) {
   const router = useRouter();
   const pathname = usePathname();
-  const { session, clearSession } = useGameSessionStore();
+  const session = useGameSessionStore((s) => s.session);
 
   const myPlayerId = session?.playerId || null;
 
@@ -57,16 +69,18 @@ export function useRoom(roomId?: string) {
     if (!roomId || loading) return;
 
     // 2. Define the navigation logic
-    const handleExit = () => {
-      clearSession();
+    const handleExit = (reason: keyof typeof EXIT_NOTICES) => {
+      // Explain it, unless the player is leaving (or has left) by choice
+      const { session: current, leaving } = useGameSessionStore.getState();
+      const notice = current && !leaving ? EXIT_NOTICES[reason] : undefined;
       // Small timeout ensures we aren't mid-render when we navigate. goHome does nothing if
       // leaveGame has already sent the player home.
-      setTimeout(goHome, 0);
+      setTimeout(() => sendHome(notice), 0);
     };
 
     // Room was closed: the server said so, or the room no longer exists
     if (roomClosed || roomMissing) {
-      handleExit();
+      handleExit(roomClosed ? "closed" : "missing");
       return;
     }
 
@@ -74,10 +88,10 @@ export function useRoom(roomId?: string) {
     if (room && myPlayerId) {
       const amInRoom = room.players.some((p) => p.id === myPlayerId);
       if (!amInRoom) {
-        handleExit();
+        handleExit("removed");
       }
     }
-  }, [room, roomClosed, roomMissing, loading, myPlayerId, roomId, clearSession]);
+  }, [room, roomClosed, roomMissing, loading, myPlayerId, roomId]);
 
   // Follow the room to the screen for its current phase
   const status = room?.status;

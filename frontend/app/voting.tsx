@@ -14,6 +14,7 @@ import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
 import { useSecondsLeft } from "../src/hooks/useSecondsLeft";
 import type { Room } from "../src/graphql/types";
+import { reportActionError } from "../src/ui/reportError";
 
 // "Voting closes in 12s"; the server counts whatever votes are in when it hits zero
 const closesIn = (secondsLeft: number | null) =>
@@ -94,8 +95,7 @@ const Voting = () => {
     } catch (error) {
       setStamp(null);
       setStampLanding(false);
-      console.error("Failed to submit vote:", error);
-      alert("Failed to submit vote. Please try again.");
+      reportActionError("Couldn't send your vote", error);
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import * as repo from "../db/roomRepo";
+import { GameError } from "./errors";
 import type { Player, Room } from "../types";
 
 // Players prove who they are with a secret token, handed only to their own device when they
@@ -14,7 +15,7 @@ export async function requirePlayer(room: Room, token: string): Promise<Player> 
   const playerId = await repo.findPlayerIdByToken(room.id, token);
   const player = room.players.find((p) => p.id === playerId);
   if (!player) {
-    throw new Error("You're not a player in this room");
+    throw new GameError("You're no longer in this game.", "NOT_IN_ROOM");
   }
   return player;
 }
@@ -22,7 +23,7 @@ export async function requirePlayer(room: Room, token: string): Promise<Player> 
 export async function requireHost(room: Room, token: string): Promise<Player> {
   const player = await requirePlayer(room, token);
   if (!player.isHost) {
-    throw new Error("Only the host can do that");
+    throw new GameError("Only the host can do that");
   }
   return player;
 }

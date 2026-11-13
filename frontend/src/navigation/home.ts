@@ -1,5 +1,7 @@
 import { useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
+import { useGameSessionStore } from "../state/gameSessionStore";
+import { showNotice, type Notice } from "../state/noticeStore";
 
 // Several things can send a player home at almost the same moment: leaving sends a request and
 // navigates when it returns, while the server's "you're no longer in the room" update makes
@@ -34,5 +36,15 @@ export function goHome() {
   } else {
     // Home isn't in the stack (e.g. the web app was opened on /lobby directly)
     router.replace("/");
+  }
+}
+
+// Takes this player out of their game on this device and back to Home, with a notice saying why
+// (the room closed, they were removed)
+export function sendHome(notice?: Notice) {
+  useGameSessionStore.getState().clearSession();
+  goHome();
+  if (notice) {
+    showNotice(notice);
   }
 }

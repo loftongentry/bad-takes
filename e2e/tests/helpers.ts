@@ -74,6 +74,17 @@ export async function clickBack(page: Page) {
   });
 }
 
+// The message in the notice on screen (failed actions, being sent home), or null if none shows
+export async function waitForNotice(page: Page, timeout = 15_000) {
+  const notice = page.locator('[role="alert"]').filter({ visible: true }).first();
+  await notice.waitFor({ timeout });
+  return notice.innerText();
+}
+
+export async function dismissNotice(page: Page) {
+  await clickText(page, "OK");
+}
+
 export async function createRoom(host: Page, hostName: string, lobbyName = "UI Test") {
   await clickText(host, "Create Game");
   await typeInto(host, 'input[aria-label="Lobby name"]', lobbyName);

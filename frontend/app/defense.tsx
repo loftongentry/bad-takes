@@ -1,4 +1,5 @@
-import { StyleSheet, Text } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, StyleSheet, Text } from "react-native";
 import Animated from "react-native-reanimated";
 import { SoapboxPage } from "../src/ui/soapbox/SoapboxPage";
 import { HostPlayersMenu } from "../src/ui/HostPlayersMenu";
@@ -13,6 +14,7 @@ import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
 import { useRules } from "../src/hooks/useRules";
 import { useDefenseTimer } from "../src/hooks/useDefenseTimer";
+import { reportActionError } from "../src/ui/reportError";
 
 // The take sign slams down shortly after a turn starts
 const SLAM_DELAY_MS = 150;
@@ -27,6 +29,22 @@ const Defense = () => {
   const { room } = useRoom(roomId || undefined);
   const { endTurn } = useRoomActions(roomId || undefined);
   const rules = useRules();
+  const [ending, setEnding] = useState(false);
+
+  const handleEndDefense = async () => {
+    setEnding(true);
+    try {
+      await endTurn();
+    } catch (error) {
+      reportActionError(
+        "Couldn't end your defense",
+        error,
+        "If it keeps failing, your defense ends on its own when time runs out.",
+      );
+    } finally {
+      setEnding(false);
+    }
+  };
 
   const currentTurn = room?.gameState?.currentTurn;
   const isMe = currentTurn?.defenderId === myPlayerId;
@@ -88,7 +106,9 @@ const Defense = () => {
 
       {isMe && phase === "DEFEND" ? (
         <Animated.View entering={settleIn()} style={{ marginTop: 32 }}>
-          <SoapboxButton onPress={() => endTurn()}>End Defense</SoapboxButton>
+          <SoapboxButton disabled={ending} onPress={handleEndDefense}>
+            {ending ? <ActivityIndicator color={SOAPBOX.paper} /> : "End Defense"}
+          </SoapboxButton>
         </Animated.View>
       ) : null}
     </SoapboxPage>

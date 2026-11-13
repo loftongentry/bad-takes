@@ -9,6 +9,7 @@ import { SOAPBOX } from "../src/ui/soapbox/tokens";
 import { useRoomActions } from "../src/hooks/useRoomActions";
 import { useRules } from "../src/hooks/useRules";
 import type { GameRules, Range } from "../src/graphql/types";
+import { reportActionError } from "../src/ui/reportError";
 
 const clamp = (n: number, { min, max }: Range) => Math.max(min, Math.min(max, n));
 
@@ -78,8 +79,7 @@ const CreateForm = ({ rules }: { rules: GameRules }) => {
 
       router.push(`/lobby`);
     } catch (error) {
-      console.error("Error creating lobby:", error);
-      alert("Failed to create lobby. Please try again.");
+      reportActionError("Couldn't create the game", error);
     } finally {
       setLoading(false);
     }

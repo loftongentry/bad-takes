@@ -12,6 +12,7 @@ import {
   ROOM_TTL_SECONDS,
 } from "./keys";
 import type { GameState, Player, Prompt, Room, RoomStatus, StoredGameState } from "../types";
+import { GameError } from "../game/errors";
 
 // Each command in a Redis pipeline yields [error, result]
 type PipelineResult<T> = [Error | null, T];
@@ -163,7 +164,7 @@ export async function reserveJoinCode(roomId: string, generate: () => string): P
       return code;
     }
   }
-  throw new Error("Couldn't find a free join code, please try again");
+  throw new GameError("Couldn't find a free join code. Please try again.");
 }
 
 // Stores a new room. Its join code must already be reserved with reserveJoinCode.

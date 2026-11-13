@@ -11,6 +11,7 @@ import { settleIn } from "../src/ui/soapbox/motion";
 import { useGameSessionStore } from "../src/state/gameSessionStore";
 import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
+import { reportActionError } from "../src/ui/reportError";
 
 const Results = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null);
@@ -26,9 +27,8 @@ const Results = () => {
     setLoading(true);
     try {
       await resetGame();
-    } catch (e) {
-      console.error(e);
-      alert("Failed to reset game");
+    } catch (error) {
+      reportActionError("Couldn't start a new game", error);
     } finally {
       setLoading(false);
     }

@@ -15,6 +15,7 @@ import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
 import { useRules } from "../src/hooks/useRules";
 import type { Player } from "../src/graphql/types";
+import { reportActionError } from "../src/ui/reportError";
 
 const LobbyScreen = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null);
@@ -75,8 +76,7 @@ const LobbyScreen = () => {
       setStartLoading(true);
       await startGame();
     } catch (error) {
-      console.error("Error starting game:", error);
-      alert("Failed to start game. Please try again.");
+      reportActionError("Couldn't start the game", error);
     } finally {
       setStartLoading(false);
     }
@@ -86,8 +86,7 @@ const LobbyScreen = () => {
     try {
       await kickPlayer(playerIdToKick);
     } catch (error) {
-      console.error("Error kicking player:", error);
-      alert("Failed to kick player. Please try again.");
+      reportActionError("Couldn't remove that player", error);
     }
   };
 

@@ -5,20 +5,21 @@ import { emptyGameState, generateQueue } from "./state";
 import { advanceToNextTurn, schedulePhaseEnd } from "./turns";
 import { requireHost, requirePlayer } from "./permissions";
 import { MIN_PLAYERS, PROMPT_MAX, cleanText } from "./rules";
+import { GameError, roomClosedError } from "./errors";
 
 export async function startGame(roomId: string, hostToken: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
-      throw new Error("Room not found");
+      throw roomClosedError();
     }
     await requireHost(room, hostToken);
     if (room.status !== "LOBBY") {
-      throw new Error("The game has already started");
+      throw new GameError("The game has already started");
     }
     // With one player there's nobody to vote, so the game could never finish
     if (room.players.length < MIN_PLAYERS) {
-      throw new Error(`Need at least ${MIN_PLAYERS} players to start`);
+      throw new GameError(`Need at least ${MIN_PLAYERS} players to start`);
     }
 
     console.log(`[RoomStore.startGame] Starting game for room ${roomId}`);
@@ -36,7 +37,7 @@ export async function startGame(roomId: string, hostToken: string) {
       state,
     });
     if (!started) {
-      throw new Error("The game has already started");
+      throw new GameError("The game has already started");
     }
     schedulePhaseEnd(roomId, "PROMPT_ENTRY", state.deadline);
 
@@ -57,12 +58,12 @@ export async function submitPrompt(roomId: string, playerToken: string, prompt: 
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
-      throw new Error("Room not found");
-    }
-    if (room.status !== "PROMPT_ENTRY") {
-      throw new Error("Not accepting prompts right now");
+      throw roomClosedError();
     }
     const player = await requirePlayer(room, playerToken);
+    if (room.status !== "PROMPT_ENTRY") {
+      throw new GameError("Writing time is over.");
+    }
     const text = cleanText(prompt, "Your take", PROMPT_MAX);
 
     // One prompt per player, stored atomically: simultaneous submissions are all kept,

@@ -17,6 +17,7 @@ import { useRoom } from "../src/hooks/useRoom";
 import { useRoomActions } from "../src/hooks/useRoomActions";
 import { useRules } from "../src/hooks/useRules";
 import { useSecondsLeft } from "../src/hooks/useSecondsLeft";
+import { reportActionError } from "../src/ui/reportError";
 
 const PromptEntry = () => {
   const roomId = useGameSessionStore((s) => s.session?.roomId ?? null);
@@ -60,8 +61,7 @@ const PromptEntry = () => {
         setJustSubmitted(true);
       }
     } catch (error) {
-      console.error("Failed to submit bad take:", error);
-      alert("Failed to submit bad take. Please try again.");
+      reportActionError("Couldn't send your take", error);
     } finally {
       setLoading(false);
     }

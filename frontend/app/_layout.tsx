@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Stack, usePathname } from "expo-router";
+import { Stack, usePathname, type ErrorBoundaryProps } from "expo-router";
+import { StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { ArchivoBlack_400Regular } from "@expo-google-fonts/archivo-black";
@@ -10,10 +11,13 @@ import { TamaguiProvider, Theme } from "tamagui";
 import config from "../tamagui.config";
 import { ApolloProvider } from "@apollo/client/react";
 import { apolloClient } from "../src/graphql/client";
-import { SOAPBOX } from "../src/ui/soapbox/tokens";
+import { FONTS, SOAPBOX } from "../src/ui/soapbox/tokens";
 import { preloadSounds } from "../src/audio/sfx";
 import { useSessionHydrated } from "../src/state/gameSessionStore";
 import { checkForGameToResume } from "../src/session/resume";
+import { NoticeHost } from "../src/ui/NoticeHost";
+import { KraftBackground } from "../src/ui/soapbox/KraftBackground";
+import { SoapboxButton } from "../src/ui/soapbox/SoapboxButton";
 
 // Keep the launch screen up until the fonts are in and any saved game has been checked, so the
 // first thing players see after it is the finished Home screen or their game (not a blank frame,
@@ -76,11 +80,46 @@ const Layout = () => {
                 contentStyle: { backgroundColor: SOAPBOX.kraft },
               }}
             />
+            <NoticeHost />
           </Theme>
         </TamaguiProvider>
       </ApolloProvider>
     </SafeAreaProvider>
   );
 };
+
+// Shown instead of the app if a screen crashes. Kept to plain components, since the providers
+// above may be what failed. The saved session survives, so reopening the app goes back into
+// the game.
+export const ErrorBoundary = ({ retry }: ErrorBoundaryProps) => (
+  <View style={styles.crash}>
+    <KraftBackground />
+    <Text style={styles.crashTitle} accessibilityRole="header">
+      Well, That Broke
+    </Text>
+    <Text style={styles.crashText}>
+      Something went wrong on this screen. Try again, or close and reopen the app: you&apos;ll go
+      straight back into your game.
+    </Text>
+    <SoapboxButton onPress={retry}>Try Again</SoapboxButton>
+  </View>
+);
+
+const styles = StyleSheet.create({
+  crash: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 28,
+    gap: 18,
+    backgroundColor: SOAPBOX.kraft,
+  },
+  crashTitle: {
+    fontFamily: FONTS.heading,
+    fontSize: 34,
+    textTransform: "uppercase",
+    color: SOAPBOX.marker,
+  },
+  crashText: { fontFamily: FONTS.body, fontSize: 17, lineHeight: 24, color: SOAPBOX.marker },
+});
 
 export default Layout;

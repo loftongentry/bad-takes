@@ -12,6 +12,7 @@ import {
   showsText,
   test,
   typeInto,
+  waitForNotice,
   waitForPattern,
   waitForText,
 } from "./helpers";
@@ -77,9 +78,13 @@ test("two players play a whole game, then play again", async ({ newPlayer, error
     await waitForText(guest, "Gus (you)");
   });
 
-  await test.step("the host leaving the lobby sends the guest home", async () => {
+  await test.step("the host leaving the lobby sends the guest home, and says why", async () => {
     await clickBack(host);
     await waitForText(guest, HOME_TAGLINE, 10_000);
+    expect(await waitForNotice(guest)).toContain("The host closed the room");
+    // The host chose to leave, so they aren't told about it
+    await host.waitForTimeout(1_000);
+    expect(await host.locator('[role="alert"]').filter({ visible: true }).count()).toBe(0);
   });
 
   expect(errors, "no error alerts or page errors").toEqual([]);
@@ -182,8 +187,9 @@ test("the host can remove a player who holds up the game", async ({ newPlayer, e
     await waitForText(host, "Get Ready!", 10_000);
     await waitForText(gus, "Get Ready!", 5_000);
   });
-  await test.step("the removed player is sent back to the home screen", async () => {
+  await test.step("the removed player is sent back to the home screen, and told why", async () => {
     await waitForText(ivy, HOME_TAGLINE, 10_000);
+    expect(await waitForNotice(ivy)).toContain("The host removed you");
   });
   expect(errors, "no error alerts or page errors").toEqual([]);
 });

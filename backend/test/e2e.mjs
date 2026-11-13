@@ -7,6 +7,7 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import Redis from "ioredis";
 
 const BACKEND_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = process.env.E2E_PORT || "3599";
@@ -991,6 +992,45 @@ test("active rooms outlive the expiry time; idle rooms still expire", async () =
     assert(!(await exists(roomId)), "a room with no activity should still expire");
   } finally {
     backend.stop();
+  }
+});
+
+test("errors meant for players say what happened and carry a code for the app", async () => {
+  const codeOf = (res) => res.errors?.[0]?.extensions?.code;
+
+  const badCode = await gqlRaw(`mutation{ joinRoom(code:"ZZZZZ", playerName:"Gus") { playerId } }`);
+  assert(codeOf(badCode) === "GAME_ERROR", `bad join code: got ${JSON.stringify(badCode.errors)}`);
+  assert(/no game with that code/i.test(badCode.errors[0].message), "bad join code: message");
+
+  const missing = await startGameAs("no-such-room", "anyone");
+  assert(codeOf(missing) === "ROOM_CLOSED", `missing room: got ${JSON.stringify(missing.errors)}`);
+
+  const { roomId, players } = await setupRoom(["Host", "B"]);
+  await kickAs(roomId, players[0].id, players[1].id);
+  const removed = await submitVoteRaw(roomId, players[1].id, 1);
+  assert(
+    codeOf(removed) === "NOT_IN_ROOM",
+    `removed player: got ${JSON.stringify(removed.errors)}`,
+  );
+});
+
+test("unexpected server errors reach the app as a generic message", async () => {
+  // A key of the wrong type makes reading the room fail inside Redis
+  const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+  const id = `e2e-broken-${Date.now()}`;
+  try {
+    await redis.set(`room:${id}`, "not a hash", "EX", 60);
+    const res = await gqlRaw(`query($id:ID!){ room(id:$id){ id } }`, { id });
+    const error = res.errors?.[0];
+    assert(
+      error?.extensions?.code === "INTERNAL_SERVER_ERROR",
+      `got ${JSON.stringify(res.errors)}`,
+    );
+    assert(/something went wrong/i.test(error.message), `message: ${error.message}`);
+    assert(!/redis|database|WRONGTYPE/i.test(JSON.stringify(res)), "internals should not leak");
+  } finally {
+    await redis.del(`room:${id}`);
+    redis.disconnect();
   }
 });
 

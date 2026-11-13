@@ -5,6 +5,7 @@ import * as repo from "../db/roomRepo";
 import { emptyGameState } from "./state";
 import { newPlayerToken, requireHost } from "./permissions";
 import { handlePlayerLeft } from "./departures";
+import { GameError, roomClosedError } from "./errors";
 import { PLAYER_NAME_MAX, checkSettings, cleanText } from "./rules";
 import type { Player, RoomSettings } from "../types";
 
@@ -52,7 +53,7 @@ export async function joinRoom(joinCode: string, rawPlayerName: string) {
     const roomId = await repo.findRoomIdByCode(joinCode);
     if (!roomId) {
       console.error(`[RoomStore.join] Invalid code attempt: ${joinCode}`);
-      throw new Error("Invalid join code");
+      throw new GameError("There's no game with that code. Check it and try again.");
     }
 
     const newPlayer: Player = { id: uuid(), name: playerName, isHost: false, score: 0 };
@@ -62,13 +63,13 @@ export async function joinRoom(joinCode: string, rawPlayerName: string) {
     // the player limit and a join can't slip in as the game starts or the room closes
     const result = await repo.addPlayerIfOpen(roomId, newPlayer, playerToken);
     if (result === "gone") {
-      throw new Error("Room found in index but missing in storage (Expired?)");
+      throw roomClosedError();
     }
     if (result === "started") {
-      throw new Error("Cannot join, game already started");
+      throw new GameError("That game has already started. You can join when they play again.");
     }
     if (result === "full") {
-      throw new Error("Room is full");
+      throw new GameError("That game is full.");
     }
 
     const updatedRoom = await repo.getRoom(roomId);
@@ -127,11 +128,11 @@ export async function kickPlayer(roomId: string, hostToken: string, playerId: st
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
-      throw new Error("Room not found");
+      throw roomClosedError();
     }
     const host = await requireHost(room, hostToken);
     if (playerId === host.id) {
-      throw new Error("The host can't kick themselves");
+      throw new GameError("The host can't remove themselves");
     }
 
     const player = room.players.find((p) => p.id === playerId);
@@ -158,7 +159,7 @@ export async function resetGame(roomId: string, hostToken: string) {
   try {
     const room = await repo.getRoom(roomId);
     if (!room) {
-      throw new Error("Room not found");
+      throw roomClosedError();
     }
     await requireHost(room, hostToken);
 
@@ -166,7 +167,7 @@ export async function resetGame(roomId: string, hostToken: string) {
 
     // Zeroes scores and returns to the lobby in one atomic step, only once the game is over
     if (!(await repo.resetToLobby(roomId, emptyGameState()))) {
-      throw new Error("You can only play again once the game is over");
+      throw new GameError("You can only play again once the game is over");
     }
 
     const updatedRoom = await repo.getRoom(roomId);
